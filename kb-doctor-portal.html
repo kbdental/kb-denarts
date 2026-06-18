@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d4ed8">
+<title>K.B. DENARTS — Doctor Portal</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --blue:#1d4ed8;--blue-lt:#eff6ff;--blue-dk:#1e3a8a;
+  --green:#16a34a;--green-lt:#f0fdf4;
+  --red:#dc2626;--red-lt:#fef2f2;
+  --purple:#7c3aed;--purple-lt:#f5f3ff;
+  --orange:#ea580c;--orange-lt:#fff7ed;
+  --border:#e2e8f0;--muted:#94a3b8;--text:#1e293b;
+  --bg:#f8fafc;--card:#fff;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* TOP BAR */
+.topbar{background:var(--blue);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.topbar-logo{width:40px;height:40px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--blue);font-size:13px;flex-shrink:0}
+.topbar-info{flex:1}
+.topbar-title{font-size:16px;font-weight:800}
+.topbar-sub{font-size:11px;opacity:.75;margin-top:1px}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.logout-btn{background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 14px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer}
+.logout-btn:active{background:rgba(255,255,255,.3)}
+
+/* SCREENS */
+.screen{display:none;padding:16px;max-width:640px;margin:0 auto}
+.screen.active{display:block}
+
+/* CARD */
+.card{background:var(--card);border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+.card-title{font-size:13px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+
+/* FORM */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px}
+.form-control{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;color:var(--text);background:#fff;outline:none;transition:border-color .15s;-webkit-appearance:none}
+.form-control:focus{border-color:var(--blue)}
+select.form-control{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+
+/* BUTTONS */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:10px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .15s;width:100%}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:active{background:var(--blue-dk)}
+.btn-primary:disabled{background:#94a3b8;cursor:not-allowed}
+.btn-outline{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#1d4ed8 0%,#1e3a8a 100%)}
+.login-card{background:#fff;border-radius:20px;padding:32px 28px;width:100%;max-width:360px;box-shadow:0 8px 32px rgba(0,0,0,.2)}
+.login-logo{width:64px;height:64px;background:var(--blue);border-radius:16px;display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:18px;margin:0 auto 16px}
+.login-title{text-align:center;font-size:20px;font-weight:800;color:var(--text);margin-bottom:4px}
+.login-sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:24px}
+.pin-dots{display:flex;justify-content:center;gap:10px;margin:16px 0}
+.pin-dot{width:14px;height:14px;border-radius:50%;background:var(--border);transition:background .15s}
+.pin-dot.filled{background:var(--blue)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.pin-key{padding:16px;border-radius:12px;background:var(--bg);border:1.5px solid var(--border);font-size:20px;font-weight:700;text-align:center;cursor:pointer;transition:all .12s;color:var(--text)}
+.pin-key:active{background:var(--blue-lt);border-color:var(--blue);transform:scale(.95)}
+.pin-key.del{font-size:16px;color:var(--red);background:var(--red-lt);border-color:#fecaca}
+.pin-key.empty{background:transparent;border:none;cursor:default}
+
+/* STATUS BADGES */
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11.5px;font-weight:700}
+.badge-production{background:#dbeafe;color:#1d4ed8}
+.badge-complete{background:#dcfce7;color:#16a34a}
+.badge-delivered{background:#f0fdf4;color:#15803d}
+.badge-hold{background:#fef9c3;color:#854d0e}
+.badge-tryin{background:#f3e8ff;color:#7c3aed}
+.badge-overdue{background:#fee2e2;color:#dc2626}
+.badge-cancelled{background:#f1f5f9;color:#64748b}
+
+/* CASES TABLE */
+.cases-table{width:100%;border-collapse:collapse;font-size:13px}
+.cases-table th{padding:8px 10px;text-align:left;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;border-bottom:2px solid var(--border)}
+.cases-table td{padding:10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.cases-table tr:last-child td{border-bottom:none}
+.cases-table tr:hover td{background:#f8fafc}
+
+/* REMARK THREAD */
+.remark-msg{padding:10px 12px;border-radius:10px;margin-bottom:8px;max-width:90%;font-size:13px;line-height:1.5}
+.remark-msg.doctor{background:var(--blue-lt);color:var(--blue-dk);margin-left:auto;border-bottom-right-radius:3px}
+.remark-msg.lab{background:#f1f5f9;color:var(--text);margin-right:auto;border-bottom-left-radius:3px}
+.remark-meta{font-size:10.5px;color:var(--muted);margin-top:3px}
+
+/* TOAST */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#1e293b;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.success{background:var(--green)}
+#toast.error{background:var(--red)}
+
+/* STATS ROW */
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-box{background:var(--card);border-radius:12px;padding:14px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.stat-num{font-size:22px;font-weight:800;color:var(--blue)}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px;font-weight:600}
+
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.req{color:var(--red)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════ LOGIN SCREEN -->
+<div id="screen-login" class="login-wrap">
+  <div class="login-card">
+    <div class="login-logo">KB</div>
+    <div class="login-title">Doctor Portal</div>
+    <div class="login-sub">K.B. DENARTS Lab</div>
+
+    <div id="login-doctor-display" style="text-align:center;margin-bottom:20px;display:none">
+      <div style="font-size:18px;font-weight:800;color:var(--text)" id="login-doctor-name"></div>
+      <div style="font-size:13px;color:var(--muted);margin-top:3px" id="login-doctor-clinic"></div>
+    </div>
+    <div id="login-no-link" style="display:none;text-align:center;padding:16px;background:var(--red-lt);border-radius:10px;margin-bottom:16px">
+      <div style="font-size:13px;color:var(--red);font-weight:600">Invalid or missing link.</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px">Please use the private link shared by K.B. DENARTS lab.</div>
+    </div>
+
+    <label class="form-label" style="text-align:center;display:block">Enter PIN</label>
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="d0"></div>
+      <div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div>
+      <div class="pin-dot" id="d3"></div>
+    </div>
+
+    <div class="pin-pad">
+      <div class="pin-key" onclick="pinKey('1')">1</div>
+      <div class="pin-key" onclick="pinKey('2')">2</div>
+      <div class="pin-key" onclick="pinKey('3')">3</div>
+      <div class="pin-key" onclick="pinKey('4')">4</div>
+      <div class="pin-key" onclick="pinKey('5')">5</div>
+      <div class="pin-key" onclick="pinKey('6')">6</div>
+      <div class="pin-key" onclick="pinKey('7')">7</div>
+      <div class="pin-key" onclick="pinKey('8')">8</div>
+      <div class="pin-key" onclick="pinKey('9')">9</div>
+      <div class="pin-key empty"></div>
+      <div class="pin-key" onclick="pinKey('0')">0</div>
+      <div class="pin-key del" onclick="pinDel()">⌫</div>
+    </div>
+
+    <div id="login-error" style="color:var(--red);font-size:13px;text-align:center;margin-top:12px;display:none"></div>
+    <div id="login-setup-hint" style="font-size:12px;color:var(--muted);text-align:center;margin-top:10px;display:none">
+      ℹ️ Configure URL in setup to load doctors
+    </div>
+    <button class="btn btn-outline" onclick="showSetup()" style="margin-top:16px;font-size:13px;padding:10px">⚙ Setup (Admin)</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ SETUP SCREEN -->
+<div id="screen-setup" style="display:none" class="login-wrap">
+  <div class="login-card">
+    <div style="font-size:20px;font-weight:800;text-align:center;margin-bottom:6px">Admin Setup</div>
+    <div style="font-size:13px;color:var(--muted);text-align:center;margin-bottom:20px">Connect to KB DENARTS app</div>
+    <div class="form-group">
+      <label class="form-label">Apps Script Web App URL</label>
+      <textarea class="form-control" id="setup-url" placeholder="https://script.google.com/macros/s/.../exec" style="min-height:70px;font-size:12px" onblur="setupLoadDoctors()"></textarea>
+    </div>
+    <div id="setup-status" style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:12px"></div>
+    <button class="btn btn-primary" onclick="saveSetup()" style="margin-bottom:10px">Save & Load Doctors</button>
+    <button class="btn btn-outline" onclick="showScreen('login')" style="font-size:13px;padding:10px">← Back to Login</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════ MAIN APP -->
+<div id="screen-app" style="display:none">
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">KB</div>
+    <div class="topbar-info">
+      <div class="topbar-title" id="topbar-name">Doctor Portal</div>
+      <div class="topbar-sub" id="topbar-clinic">K.B. DENARTS</div>
+    </div>
+    <div class="topbar-right">
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+
+  <div style="padding:16px;max-width:700px;margin:0 auto">
+
+    <!-- STATS -->
+    <div class="stat-row">
+      <div class="stat-box">
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-lbl">Total Cases</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-active" style="color:var(--orange)">0</div>
+        <div class="stat-lbl">In Progress</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-num" id="stat-done" style="color:var(--green)">0</div>
+        <div class="stat-lbl">Delivered</div>
+      </div>
+    </div>
+
+    <!-- CASES TABLE -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 16px 0;display:flex;align-items:center;justify-content:space-between">
+        <div class="card-title" style="margin-bottom:12px">📋 My Cases</div>
+        <input id="case-search" class="form-control" placeholder="Search patient..." style="width:180px;padding:8px 12px;font-size:13px" oninput="renderCases()">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="cases-table" id="cases-table">
+          <thead><tr>
+            <th>PATIENT</th>
+            <th>WORK TYPE</th>
+            <th>UNITS</th>
+            <th>STAGE / STATUS</th>
+          </tr></thead>
+          <tbody id="cases-tbody">
+            <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REMARKS THREAD -->
+    <div class="card">
+      <div class="card-title">💬 Remarks & Messages</div>
+      <div id="remarks-thread" style="min-height:60px;max-height:320px;overflow-y:auto;margin-bottom:14px">
+        <div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">No messages yet.</div>
+      </div>
+      <textarea class="form-control" id="remark-input" placeholder="Type your message or request (e.g. please proceed faster on Case X)..." style="min-height:80px;margin-bottom:10px"></textarea>
+      <button class="btn btn-primary" onclick="sendRemark()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        Send Message
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════ STORAGE
+const LS={
+  get:k=>{try{return JSON.parse(localStorage.getItem('kbdp_'+k));}catch(e){return null;}},
+  set:(k,v)=>localStorage.setItem('kbdp_'+k,JSON.stringify(v))
+};
+
+function getConfig(){return LS.get('config')||{};}
+function getDoctorList(){return LS.get('doctors')||[];}
+function setDoctorList(d){LS.set('doctors',d);}
+function getRemarks(){return LS.get('remarks')||[];}
+function setRemarks(r){LS.set('remarks',r);}
+function getCases(){return LS.get('cases')||[];}
+function setCases(c){LS.set('cases',c);}
+
+// ══════════════════════════════════════════ INIT
+let _currentDoctor = null;
+let _pinEntry = '';
+
+window.addEventListener('DOMContentLoaded',function(){
+  const cfg=getConfig();
+  if(cfg.url) setupLoadDoctors();
+  document.getElementById('screen-login').style.display='flex';
+});
+
+function resolveAndShowDoctor(){
+  // Get doctor ID from URL: ?d=d3 or ?did=abc
+  const params=new URLSearchParams(window.location.search);
+  const docId=params.get('d')||params.get('did')||'';
+  if(!docId){
+    document.getElementById('login-no-link').style.display='block';
+    document.getElementById('pin-pad').style.opacity='0.3';
+    document.getElementById('pin-pad').style.pointerEvents='none';
+    return;
+  }
+  const doctors=getDoctorList();
+  const doc=doctors.find(d=>(d.id||d.name)===docId||
+    (d.name||'').toLowerCase().replace(/\s+/g,'_')===docId.toLowerCase());
+  if(!doc){
+    // Doctor list may not be loaded yet — store param and retry
+    LS.set('pending_docid',docId);
+    document.getElementById('login-doctor-display').style.display='none';
+    return;
+  }
+  LS.set('pending_docid',null);
+  _pendingDocId=docId;
+  const nameEl=document.getElementById('login-doctor-name');
+  const clinicEl=document.getElementById('login-doctor-clinic');
+  const displayEl=document.getElementById('login-doctor-display');
+  if(nameEl) nameEl.textContent='Dr. '+doc.name;
+  if(clinicEl) clinicEl.textContent=doc.clinic||'';
+  if(displayEl) displayEl.style.display='block';
+  document.getElementById('login-no-link').style.display='none';
+}
+
+// ══════════════════════════════════════════ SETUP
+function showSetup(){
+  const cfg=getConfig();
+  if(cfg.url) document.getElementById('setup-url').value=cfg.url;
+  document.getElementById('screen-setup').style.display='flex';
+  document.getElementById('screen-login').style.display='none';
+}
+
+function saveSetup(){
+  const url=document.getElementById('setup-url').value.trim();
+  if(!url){toast('Enter the URL','error');return;}
+  const cfg=getConfig();
+  cfg.url=url;
+  LS.set('config',cfg);
+  setupLoadDoctors();
+  setTimeout(()=>showScreen('login'),800);
+}
+
+function setupLoadDoctors(){
+  const url=(document.getElementById('setup-url')?.value||getConfig().url||'').trim();
+  if(!url) return;
+  const st=document.getElementById('setup-status');
+  if(st) st.textContent='Loading...';
+  fetch(url+'?t='+Date.now())
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.doctors&&d.doctors.length){
+        setDoctorList(d.doctors);
+        if(st) st.textContent='✓ Connected';
+      }
+      resolveAndShowDoctor();
+    })
+    .catch(()=>{
+      resolveAndShowDoctor(); // use cached
+    });
+}
+
+function populateDoctorDropdown(){
+  const sel=document.getElementById('login-doctor');
+  const prev=sel.value;
+  sel.innerHTML='<option value="">-- Select Doctor --</option>';
+  getDoctorList().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).forEach(d=>{
+    sel.innerHTML+=`<option value="${d.id||d.name}"${(d.id||d.name)===prev?' selected':''}>${d.name}${d.clinic?' — '+d.clinic:''}</option>`;
+  });
+}
+
+// ══════════════════════════════════════════ PIN
+function pinKey(k){
+  if(_pinEntry.length>=4) return;
+  _pinEntry+=k;
+  updatePinDots();
+  if(_pinEntry.length===4) setTimeout(attemptLogin,100);
+}
+
+function pinDel(){
+  _pinEntry=_pinEntry.slice(0,-1);
+  updatePinDots();
+  document.getElementById('login-error').style.display='none';
+}
+
+function updatePinDots(){
+  for(let i=0;i<4;i++){
+    document.getElementById('d'+i).classList.toggle('filled',i<_pinEntry.length);
+  }
+}
+
+// ══════════════════════════════════════════ LOGIN
+let _pendingDocId = '';
+
+function attemptLogin(){
+  const params=new URLSearchParams(window.location.search);
+  const docId=_pendingDocId||params.get('d')||params.get('did')||'';
+  const errEl=document.getElementById('login-error');
+  if(!docId){
+    errEl.textContent='No valid link. Please use your private portal link.';
+    errEl.style.display='block';_pinEntry='';updatePinDots();return;
+  }
+  const doctors=getDoctorList();
+  const doc=doctors.find(d=>(d.id||d.name)===docId||
+    (d.name||'').toLowerCase().replace(/\s+/g,'_')===docId.toLowerCase());
+  if(!doc){
+    errEl.textContent='Doctor not found. Ask lab to check your link.';
+    errEl.style.display='block';_pinEntry='';updatePinDots();return;
+  }
+  const correctPin=String(doc.pin||'1234');
+  if(_pinEntry!==correctPin){
+    errEl.textContent='Incorrect PIN. Please try again.';
+    errEl.style.display='block';_pinEntry='';updatePinDots();return;
+  }
+  errEl.style.display='none';
+  _currentDoctor=doc;_pinEntry='';updatePinDots();
+  logLoginToSheet(doc);
+  document.getElementById('topbar-name').textContent='Dr. '+(doc.name||'');
+  document.getElementById('topbar-clinic').textContent=doc.clinic||'K.B. DENARTS';
+  document.getElementById('screen-login').style.display='none';
+  document.getElementById('screen-app').style.display='block';
+  loadDoctorData(doc);
+}
+
+function doLogout(){
+  _currentDoctor=null;
+  _pinEntry='';updatePinDots();
+  document.getElementById('screen-app').style.display='none';
+  document.getElementById('screen-login').style.display='flex';
+  document.getElementById('login-error').style.display='none';
+  // Re-show the doctor name (don't reset it)
+}
+
+// ══════════════════════════════════════════ LOGIN LOG
+function logLoginToSheet(doc){
+  const cfg=getConfig();
+  if(!cfg.url) return;
+  const now=new Date();
+  fetch(cfg.url,{
+    method:'POST',mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      type:'doctor_login',
+      doctorName:doc.name||'',
+      clinic:doc.clinic||'',
+      datetime:now.toLocaleString('en-IN'),
+      ts:now.getTime()
+    })
+  }).catch(()=>{});
+  // Also store locally
+  const log=LS.get('login_log')||[];
+  log.push({doctorName:doc.name,clinic:doc.clinic,ts:now.getTime()});
+  LS.set('login_log',log);
+}
+
+// ══════════════════════════════════════════ LOAD DATA
+function loadDoctorData(doc){
+  const cfg=getConfig();
+  document.getElementById('cases-tbody').innerHTML=
+    '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">Loading cases...</td></tr>';
+
+  if(!cfg.url){
+    document.getElementById('cases-tbody').innerHTML=
+      '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">Not connected. Ask admin to setup.</td></tr>';
+    return;
+  }
+
+  fetch(cfg.url+'?t='+Date.now())
+    .then(r=>r.json())
+    .then(d=>{
+      // Filter orders for this doctor
+      const doctorName=(doc.name||'').toLowerCase();
+      const orders=(d.orders||[]).filter(o=>
+        (o.doctor||o.doctorName||'').toLowerCase()===doctorName
+      );
+      setCases(orders);
+
+      // Get prod log for this doctor's cases
+      const prodlog=d.prodlog||[];
+
+      renderCases(orders,prodlog);
+      renderStats(orders);
+
+      // Load remarks
+      const allRemarks=d.remarks||[];
+      const myRemarks=allRemarks.filter(r=>
+        (r.doctorName||'').toLowerCase()===doctorName
+      );
+      renderRemarks(myRemarks);
+    })
+    .catch(()=>{
+      // Use cached cases
+      const cached=getCases();
+      if(cached.length){
+        renderCases(cached,[]);
+        renderStats(cached);
+        toast('Showing cached data — check connection','error');
+      } else {
+        document.getElementById('cases-tbody').innerHTML=
+          '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--red)">Could not load cases. Check connection.</td></tr>';
+      }
+    });
+}
+
+// ══════════════════════════════════════════ RENDER CASES
+function renderCases(orders,prodlog){
+  if(!orders) orders=getCases();
+  if(!prodlog) prodlog=[];
+  const q=(document.getElementById('case-search')?.value||'').toLowerCase();
+
+  let list=orders;
+  if(q) list=orders.filter(o=>
+    (o.patient||o.patientName||'').toLowerCase().includes(q)||
+    (o.workType||'').toLowerCase().includes(q)
+  );
+
+  // Sort newest first by model number
+  list.sort((a,b)=>{
+    const na=parseInt((a.modelNo||'').split('/').pop())||0;
+    const nb=parseInt((b.modelNo||'').split('/').pop())||0;
+    return nb-na;
+  });
+
+  const tbody=document.getElementById('cases-tbody');
+  if(!list.length){
+    tbody.innerHTML='<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--muted)">No cases found.</td></tr>';
+    return;
+  }
+
+  // Build a latest-step map from prodlog
+  const stepMap={};
+  prodlog.forEach(l=>{
+    if(!stepMap[l.modelNo]||l.ts>stepMap[l.modelNo].ts) stepMap[l.modelNo]=l;
+  });
+
+  tbody.innerHTML=list.map(o=>{
+    const patient=o.patient||o.patientName||'—';
+    const workType=o.workType||'—';
+    const units=o.units||0;
+    const status=o.status||'In Production';
+    const modelNo=o.modelNo||'';
+    const latestStep=stepMap[modelNo]?.step||'';
+
+    const stageBadge=latestStep
+      ?`<div style="font-size:11px;color:var(--purple);font-weight:700;margin-top:3px">🔧 ${latestStep}</div>`
+      :'';
+
+    return `<tr>
+      <td style="font-weight:600">${patient}</td>
+      <td style="font-size:12.5px">${workType}</td>
+      <td style="text-align:center;font-weight:700">${units}</td>
+      <td>${statusBadge(status)}${stageBadge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderStats(orders){
+  const total=orders.length;
+  const active=orders.filter(o=>!['Delivered','Complete','Cancelled'].includes(o.status||'')).length;
+  const done=orders.filter(o=>['Delivered','Complete'].includes(o.status||'')).length;
+  document.getElementById('stat-total').textContent=total;
+  document.getElementById('stat-active').textContent=active;
+  document.getElementById('stat-done').textContent=done;
+}
+
+function statusBadge(status){
+  const map={
+    'In Production':'badge-production',
+    'Complete':'badge-complete',
+    'Delivered':'badge-delivered',
+    'On Hold':'badge-hold',
+    'Out for Try-in':'badge-tryin',
+    'OverDue':'badge-overdue',
+    'Cancelled':'badge-cancelled',
+    'Repeat/Repair':'badge-hold'
+  };
+  const cls=map[status]||'badge-production';
+  return `<span class="badge ${cls}">${status||'In Production'}</span>`;
+}
+
+// ══════════════════════════════════════════ REMARKS
+function renderRemarks(remarks){
+  const el=document.getElementById('remarks-thread');
+  if(!remarks||!remarks.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);font-size:13px;padding:20px">No messages yet.</div>';
+    return;
+  }
+  remarks.sort((a,b)=>a.ts-b.ts);
+  el.innerHTML=remarks.map(r=>{
+    const isDoctor=r.from==='doctor';
+    const time=r.ts?new Date(r.ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
+    return `<div style="margin-bottom:10px">
+      <div class="remark-msg ${isDoctor?'doctor':'lab'}">${r.message||''}</div>
+      <div class="remark-meta" style="text-align:${isDoctor?'right':'left'}">${isDoctor?'You':'Lab'} · ${time}</div>
+    </div>`;
+  }).join('');
+  el.scrollTop=el.scrollHeight;
+}
+
+function sendRemark(){
+  if(!_currentDoctor){toast('Not logged in','error');return;}
+  const msg=(document.getElementById('remark-input')?.value||'').trim();
+  if(!msg){toast('Type a message first','error');return;}
+  const cfg=getConfig();
+  if(!cfg.url){toast('Not connected','error');return;}
+
+  const entry={
+    type:'doctor_remark',
+    doctorName:_currentDoctor.name||'',
+    clinic:_currentDoctor.clinic||'',
+    message:msg,
+    from:'doctor',
+    datetime:new Date().toLocaleString('en-IN'),
+    ts:Date.now()
+  };
+
+  fetch(cfg.url,{
+    method:'POST',mode:'no-cors',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(entry)
+  }).then(()=>{
+    document.getElementById('remark-input').value='';
+    toast('Message sent to lab','success');
+    // Add to local thread
+    const thread=document.getElementById('remarks-thread');
+    const time=new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    thread.innerHTML+=`<div style="margin-bottom:10px">
+      <div class="remark-msg doctor">${msg}</div>
+      <div class="remark-meta" style="text-align:right">You · ${time}</div>
+    </div>`;
+    thread.scrollTop=thread.scrollHeight;
+  }).catch(()=>toast('Message saved — will sync when online','error'));
+}
+
+// ══════════════════════════════════════════ NAV
+function showScreen(name){
+  ['login','setup'].forEach(s=>{
+    document.getElementById('screen-'+s).style.display='none';
+  });
+  document.getElementById('screen-'+name).style.display='flex';
+  if(name==='login') populateDoctorDropdown();
+}
+
+// ══════════════════════════════════════════ TOAST
+function toast(msg,type){
+  const el=document.getElementById('toast');
+  el.textContent=msg;
+  el.className='show '+(type||'');
+  setTimeout(()=>{el.className=''},3000);
+}
+</script>
+</body>
+</html>
