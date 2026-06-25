@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d4ed8">
+<title>KB DENARTS — Production Log</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --blue:#1d4ed8;--blue-lt:#eff6ff;--blue-dk:#1e3a8a;
+    --green:#16a34a;--green-lt:#f0fdf4;
+    --red:#dc2626;--red-lt:#fef2f2;
+    --purple:#7c3aed;--purple-lt:#f5f3ff;
+    --border:#e2e8f0;--muted:#94a3b8;--text:#1e293b;
+    --bg:#f8fafc;--card:#fff;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+  /* ── TOP BAR ── */
+  .topbar{background:var(--blue);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .topbar-logo{width:36px;height:36px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--blue);font-size:13px;flex-shrink:0}
+  .topbar-title{font-size:16px;font-weight:700;line-height:1.2}
+  .topbar-sub{font-size:11px;opacity:.75}
+
+  /* ── SCREENS ── */
+  .screen{display:none;padding:16px;max-width:480px;margin:0 auto}
+  .screen.active{display:block}
+
+  /* ── CARD ── */
+  .card{background:var(--card);border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+  .card-title{font-size:13px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+
+  /* ── FORM ── */
+  .form-group{margin-bottom:14px}
+  .form-label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px}
+  .form-control{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;color:var(--text);background:#fff;outline:none;transition:border-color .15s;-webkit-appearance:none}
+  .form-control:focus{border-color:var(--blue)}
+  select.form-control{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+  textarea.form-control{min-height:80px;resize:vertical;line-height:1.5}
+
+  /* ── BUTTONS ── */
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:10px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .15s;width:100%;margin-bottom:10px}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-primary:active{background:var(--blue-dk)}
+  .btn-primary:disabled{background:#94a3b8;cursor:not-allowed}
+  .btn-outline{background:#fff;color:var(--blue);border:1.5px solid var(--blue)}
+  .btn-outline:active{background:var(--blue-lt)}
+  .btn-danger{background:var(--red);color:#fff}
+
+  /* ── ORDER SUGGESTIONS ── */
+  #order-suggestions{background:#fff;border:1.5px solid var(--blue);border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.1);margin-top:4px;overflow:hidden;display:none}
+  .sugg-item{padding:13px 14px;border-bottom:1px solid var(--border);cursor:pointer;active:background:var(--blue-lt)}
+  .sugg-item:last-child{border-bottom:none}
+  .sugg-item:active{background:var(--blue-lt)}
+  .sugg-model{font-size:14px;font-weight:700;color:var(--blue)}
+  .sugg-detail{font-size:12px;color:var(--muted);margin-top:2px}
+
+  /* ── ORDER INFO BOX ── */
+  #order-info-box{background:var(--blue-lt);border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-top:8px;display:none}
+  .oinfo-model{font-size:16px;font-weight:800;color:var(--blue)}
+  .oinfo-detail{font-size:13px;color:var(--blue-dk);margin-top:3px;line-height:1.5}
+  .oinfo-stage{display:inline-block;margin-top:6px;background:var(--purple-lt);color:var(--purple);font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
+
+  /* ── TOAST ── */
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#1e293b;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.success{background:var(--green)}
+  #toast.error{background:var(--red)}
+
+  /* ── HISTORY LIST ── */
+  .log-entry{padding:13px 0;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start}
+  .log-entry:last-child{border-bottom:none}
+  .log-num{width:28px;height:28px;border-radius:50%;background:var(--blue-lt);color:var(--blue);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .log-step{font-size:14px;font-weight:700;color:var(--text)}
+  .log-meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .log-note{font-size:12px;color:var(--text);margin-top:4px;font-style:italic;background:var(--bg);padding:4px 8px;border-radius:6px}
+
+  /* ── SETUP SCREEN ── */
+  .setup-icon{width:60px;height:60px;background:var(--blue-lt);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px}
+  .setup-title{text-align:center;font-size:18px;font-weight:800;color:var(--text);margin-bottom:6px}
+  .setup-sub{text-align:center;font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.5}
+
+  /* ── SUCCESS ANIM ── */
+  .success-box{text-align:center;padding:24px 0}
+  .success-icon{font-size:56px;margin-bottom:12px}
+  .success-title{font-size:18px;font-weight:800;color:var(--green);margin-bottom:6px}
+  .success-detail{font-size:13px;color:var(--muted);line-height:1.5}
+
+  /* ── SPINNER ── */
+  .spinner{display:inline-block;width:20px;height:20px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .req{color:var(--red)}
+  .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700}
+  .divider{height:1px;background:var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">KB</div>
+  <div>
+    <div class="topbar-title">Production Log</div>
+    <div class="topbar-sub">K.B. DENARTS Lab</div>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <button onclick="showScreen('log')" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">+ Log</button>
+    <button onclick="showScreen('history')" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">History</button>
+    <button onclick="showScreen('setup')" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">⚙</button>
+  </div>
+</div>
+
+<!-- ══════════════════════ SETUP SCREEN -->
+<div id="screen-setup" class="screen active">
+  <div class="card" style="margin-top:8px">
+    <div class="setup-icon">⚙️</div>
+    <div class="setup-title">Setup Required</div>
+    <div class="setup-sub">Enter the Google Apps Script URL from the main KB DENARTS app to connect this log to your Google Sheet.</div>
+    <div class="form-group">
+      <label class="form-label">Apps Script Web App URL <span class="req">*</span></label>
+      <textarea class="form-control" id="setup-url" placeholder="https://script.google.com/macros/s/.../exec" style="min-height:70px;font-size:13px" onblur="loadStaffFromUrl()"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Your Name (Staff) <span class="req">*</span></label>
+      <select class="form-control" id="setup-name">
+        <option value="">-- Select Your Name --</option>
+      </select>
+      <div id="staff-load-status" style="font-size:12px;color:var(--muted);margin-top:6px;display:none">Loading staff list...</div>
+    </div>
+    <button class="btn btn-outline" onclick="loadStaffFromUrl()" id="load-staff-btn" style="margin-bottom:10px;display:none">Load Staff List</button>
+    <button class="btn btn-primary" onclick="saveSetup()">Save & Continue</button>
+    <div id="setup-status" style="font-size:13px;text-align:center;color:var(--muted);margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ LOG ENTRY SCREEN -->
+<div id="screen-log" class="screen">
+  <div class="card" style="margin-top:8px">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
+      Log Work Done
+      <span id="active-count" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--green);background:var(--green-lt);padding:2px 8px;border-radius:10px;display:none"></span>
+    </div>
+
+    <!-- Order search -->
+    <div class="form-group">
+      <label class="form-label">Order # or Patient Name <span class="req">*</span></label>
+      <input class="form-control" id="order-search" placeholder="Type to search..." oninput="searchOrders()" autocomplete="off" autocorrect="off">
+      <div id="order-suggestions"></div>
+      <div id="order-info-box">
+        <div class="oinfo-model" id="oinfo-model"></div>
+        <div class="oinfo-detail" id="oinfo-detail"></div>
+        <div class="oinfo-stage" id="oinfo-stage"></div>
+      </div>
+    </div>
+
+    <!-- Step -->
+    <div class="form-group">
+      <label class="form-label">Production Step <span class="req">*</span></label>
+      <select class="form-control" id="step-select">
+        <option value="">-- Select Step --</option>
+      </select>
+    </div>
+
+    <!-- Date/Time -->
+    <div class="form-group">
+      <label class="form-label">Date & Time</label>
+      <input type="datetime-local" class="form-control" id="log-datetime">
+    </div>
+
+    <!-- Notes -->
+    <div class="form-group">
+      <label class="form-label">Notes (optional)</label>
+      <textarea class="form-control" id="log-note" placeholder="Any remarks..."></textarea>
+    </div>
+
+    <button class="btn btn-primary" id="save-btn" onclick="saveLog()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><polyline points="20 6 9 17 4 12"/></svg>
+      Save Log Entry
+    </button>
+
+    <div id="save-status" style="font-size:13px;text-align:center;color:var(--muted);margin-top:4px;display:none"></div>
+  </div>
+
+  <!-- Recent by this user -->
+  <div class="card">
+    <div class="card-title">My Recent Entries</div>
+    <div id="my-recent"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ HISTORY SCREEN -->
+<div id="screen-history" class="screen">
+  <div class="card" style="margin-top:8px">
+    <div class="card-title">Production History</div>
+    <div class="form-group">
+      <input class="form-control" id="hist-search" placeholder="Search model # or patient..." oninput="renderHistory()">
+    </div>
+    <div id="history-list"><div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">No entries yet.</div></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════ STORAGE
+const LS = {
+  get: k => { try{ return JSON.parse(localStorage.getItem('kbprod_'+k)); }catch(e){ return null; } },
+  set: (k,v) => localStorage.setItem('kbprod_'+k, JSON.stringify(v)),
+};
+
+// Hardcoded — no setup needed on any device
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxG6NQ78HFOddbBA-EEwnmRnwh0uozx32W70YTmi3X6PTf-GBTKUhe6KZiVPjX-VLKzqQ/exec';
+(function(){const cfg=LS.get('config');if(!cfg||!cfg.url) LS.set('config',{url:APPS_SCRIPT_URL});})();
+
+function getConfig(){ return LS.get('config')||{}; }
+function getLogs(){ return LS.get('logs')||[]; }
+function setLogs(l){ LS.set('logs',l); }
+function getOrders(){ return LS.get('orders')||[]; }
+function setOrders(o){ LS.set('orders',o); }
+
+// ══════════════════════════════════ STEPS (defaults match main app)
+const DEFAULT_STEPS = [
+  'Case Receiving & Intake',
+  'Disinfection & Preparation',
+  'Model Work (Plaster)',
+  'Design Phase- CAD/Manual (Wax UP)',
+  'Manufacturing-CAM/Casting/Curing',
+  'Layering & Finishing',
+  'Quality Control',
+  'Packing & Dispatch',
+  'Billing',
+  'Feedback & Rework Loop'
+];
+
+// ══════════════════════════════════ INIT
+window.addEventListener('DOMContentLoaded', function(){
+  const cfg = getConfig();
+  populateSteps();
+  setDefaultDateTime();
+  if(cfg.url && cfg.name){
+    showScreen('log');
+    renderMyRecent();
+    // Always pull fresh data on every open
+    pullOrdersFromSheet();
+  } else {
+    showScreen('setup');
+    // Still pull steps/orders even on setup screen
+    if(cfg.url) pullOrdersFromSheet();
+  }
+});
+
+function populateSteps(){
+  // Use steps pulled from sheet, fall back to DEFAULT_STEPS
+  const savedSteps = LS.get('steps');
+  const steps = (savedSteps && savedSteps.length) ? savedSteps : DEFAULT_STEPS;
+  const sel = document.getElementById('step-select');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- Select Step --</option>';
+  steps.forEach(function(s,i){
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = (i+1)+'. '+s;
+    sel.appendChild(opt);
+  });
+}
+
+function setDefaultDateTime(){
+  const el = document.getElementById('log-datetime');
+  if(!el) return;
+  const n = new Date();
+  n.setMinutes(n.getMinutes() - n.getTimezoneOffset());
+  el.value = n.toISOString().slice(0,16);
+}
+
+// ══════════════════════════════════ SETUP
+function saveSetup(){
+  const url = document.getElementById('setup-url').value.trim();
+  const nameEl = document.getElementById('setup-name');
+  const name = nameEl.value.trim();
+  const st = document.getElementById('setup-status');
+  if(!url){ toast('Enter the Apps Script URL','error'); return; }
+  if(!name){ toast('Select your name','error'); return; }
+  LS.set('config',{url,name});
+  st.textContent = '✓ Saved!';
+  populateSteps();
+  setDefaultDateTime();
+  setTimeout(function(){ showScreen('log'); pullOrdersFromSheet(); }, 600);
+}
+
+function loadStaffFromUrl(){
+  const url = document.getElementById('setup-url').value.trim();
+  if(!url){ toast('Enter the URL first','error'); return; }
+  const st = document.getElementById('staff-load-status');
+  st.style.display = 'block';
+  st.textContent = 'Loading staff list...';
+  fetch(url+'?t='+Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      populateStaffDropdown(d.staff||[]);
+      st.textContent = d.staff&&d.staff.length ? '✓ '+d.staff.length+' staff loaded' : 'No staff found — type your name below';
+    })
+    .catch(function(){
+      st.textContent = 'Could not load — type your name below';
+      // Fallback: show text input
+      showStaffTextInput();
+    });
+}
+
+function populateStaffDropdown(staffList){
+  const sel = document.getElementById('setup-name');
+  // Keep existing saved value
+  const saved = getConfig().name||'';
+  sel.innerHTML = '<option value="">-- Select Your Name --</option>';
+  // Add staff from sheet
+  staffList.forEach(function(s){
+    const name = s.name||s;
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name+(s.role?' ('+s.role+')':'');
+    if(name===saved) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  // Also add cached staff if any
+  const cached = LS.get('staff_list')||[];
+  cached.forEach(function(s){
+    if(!staffList.find(function(x){return (x.name||x)===s;})){
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      if(s===saved) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  });
+  // Save to cache
+  if(staffList.length) LS.set('staff_list', staffList.map(function(s){return s.name||s;}));
+}
+
+function showStaffTextInput(){
+  const sel = document.getElementById('setup-name');
+  const inp = document.createElement('input');
+  inp.className = 'form-control';
+  inp.id = 'setup-name';
+  inp.placeholder = 'Type your name';
+  inp.value = getConfig().name||'';
+  inp.style.marginTop = '8px';
+  sel.parentNode.replaceChild(inp, sel);
+}
+
+// ══════════════════════════════════ PULL ORDERS FROM SHEET
+function pullOrdersFromSheet(){
+  const cfg = getConfig();
+  if(!cfg.url) return;
+  fetch(cfg.url+'?t='+Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      // ── Pull In Production orders ──
+      if(d.orders && d.orders.length){
+        const orders = d.orders
+          .filter(function(o){ return !o.status || o.status==='In Production'; })
+          .map(function(o){
+            return {
+              id: o.modelNo,
+              modelNo: o.modelNo,
+              patientName: o.patient||o.patientName||'',
+              doctorName: o.doctor||o.doctorName||'',
+              workType: o.workType||'',
+              status: o.status||''
+            };
+          });
+        setOrders(orders);
+        const badge = document.getElementById('active-count');
+        if(badge){ badge.textContent = orders.length+' active'; badge.style.display='inline'; }
+      }
+
+      // ── Pull Production Steps from sheet ──
+      if(d.steps && d.steps.length){
+        LS.set('steps', d.steps);
+        // Rebuild step dropdown if on log screen
+        rebuildStepDropdown(d.steps);
+      }
+
+      // ── Pull Staff from sheet ──
+      if(d.staff && d.staff.length){
+        LS.set('staff', d.staff.map(function(s){ return s.name||s; }));
+        // Rebuild staff dropdown if on log screen
+        rebuildStaffDropdown(d.staff);
+      }
+    })
+    .catch(function(){});
+}
+
+function rebuildStepDropdown(steps){
+  const sel = document.getElementById('step-select');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">-- Select Step --</option>';
+  steps.forEach(function(s,i){
+    const opt = document.createElement('option');
+    opt.value = s;
+    opt.textContent = (i+1)+'. '+s;
+    if(s===prev) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function rebuildStaffDropdown(staff){
+  // Only update if staff name dropdown exists (setup screen may not be open)
+  const sel = document.getElementById('setup-name');
+  if(!sel) return;
+  const prev = getConfig().name||'';
+  sel.innerHTML = '<option value="">-- Select Your Name --</option>';
+  staff.forEach(function(s){
+    const name = s.name||s;
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name+(s.type?' ('+s.type+')':'');
+    if(name===prev) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+// ══════════════════════════════════ ORDER SEARCH
+let _selectedOrder = null;
+
+function searchOrders(){
+  const q = (document.getElementById('order-search').value||'').toLowerCase().trim();
+  const sug = document.getElementById('order-suggestions');
+  const infoBox = document.getElementById('order-info-box');
+  if(q.length < 2){ sug.style.display='none'; _selectedOrder=null; return; }
+
+  const orders = getOrders().filter(function(o){
+    return (o.status==='In Production' || o.status==='' || !o.status) &&
+           ((o.modelNo||'').toLowerCase().includes(q) ||
+            (o.patientName||'').toLowerCase().includes(q));
+  }).sort(function(a,b){
+    const na = parseInt((a.modelNo||'').split('/').pop())||0;
+    const nb = parseInt((b.modelNo||'').split('/').pop())||0;
+    return nb-na;
+  }).slice(0,6);
+
+  if(!orders.length){ sug.style.display='none'; return; }
+
+  sug.innerHTML = orders.map(function(o){
+    return '<div class="sugg-item" data-id="'+o.id+'">'+
+      '<div class="sugg-model">'+o.modelNo+'</div>'+
+      '<div class="sugg-detail">'+(o.patientName||'—')+' · '+(o.doctorName||'')+'</div>'+
+    '</div>';
+  }).join('');
+  sug.style.display = 'block';
+
+  sug.querySelectorAll('.sugg-item').forEach(function(el){
+    el.addEventListener('click', function(){ selectOrder(el.dataset.id); });
+  });
+}
+
+function selectOrder(id){
+  const o = getOrders().find(function(x){ return x.id===id; });
+  if(!o) return;
+  _selectedOrder = o;
+  document.getElementById('order-search').value = o.modelNo;
+  document.getElementById('order-suggestions').style.display = 'none';
+
+  // Get latest stage for this order from local logs
+  const logs = getLogs().filter(function(l){ return l.orderId===o.id; });
+  logs.sort(function(a,b){ return b.ts-a.ts; });
+  const latestStep = logs.length ? logs[0].step : 'Not started';
+
+  document.getElementById('oinfo-model').textContent = o.modelNo;
+  document.getElementById('oinfo-detail').textContent = (o.patientName||'—')+' · '+(o.doctorName||'—')+' · '+(o.workType||'');
+  document.getElementById('oinfo-stage').textContent = 'Current stage: '+latestStep;
+  document.getElementById('order-info-box').style.display = 'block';
+}
+
+// ══════════════════════════════════ SAVE LOG
+function saveLog(){
+  const cfg = getConfig();
+  if(!cfg.url || !cfg.name){ toast('Setup not complete','error'); return; }
+  if(!_selectedOrder){ toast('Select an order first','error'); return; }
+  const step = document.getElementById('step-select').value;
+  if(!step){ toast('Select a production step','error'); return; }
+  const dtVal = document.getElementById('log-datetime').value;
+  const note = (document.getElementById('log-note').value||'').trim();
+  const ts = dtVal ? new Date(dtVal).getTime() : Date.now();
+
+  const entry = {
+    id: '_'+Math.random().toString(36).substr(2,9),
+    orderId: _selectedOrder.id,
+    modelNo: _selectedOrder.modelNo,
+    patientName: _selectedOrder.patientName||'',
+    step: step,
+    staffName: cfg.name,
+    note: note,
+    ts: ts,
+    synced: false
+  };
+
+  // Save locally first
+  const logs = getLogs();
+  logs.push(entry);
+  setLogs(logs);
+
+  // Push to Google Sheets
+  const btn = document.getElementById('save-btn');
+  const st = document.getElementById('save-status');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Saving...';
+  st.style.display = 'block';
+  st.textContent = 'Sending to Google Sheets...';
+
+  pushEntryToSheet(entry, cfg.url)
+    .then(function(){
+      // Mark synced
+      const updatedLogs = getLogs();
+      const idx = updatedLogs.findIndex(function(l){ return l.id===entry.id; });
+      if(idx!==-1) updatedLogs[idx].synced = true;
+      setLogs(updatedLogs);
+
+      // Auto-update order status to Delivered if Packing & Dispatch logged
+      if(entry.step === 'Packing & Dispatch'){
+        pushStatusToSheet(_selectedOrder, 'Delivered', cfg.url);
+      }
+
+      // Reset form
+      document.getElementById('order-search').value = '';
+      document.getElementById('order-info-box').style.display = 'none';
+      document.getElementById('step-select').value = '';
+      document.getElementById('log-note').value = '';
+      _selectedOrder = null;
+      setDefaultDateTime();
+
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><polyline points="20 6 9 17 4 12"/></svg> Save Log Entry';
+      st.style.display = 'none';
+
+      // Show success
+      showSuccess(entry);
+      renderMyRecent();
+    })
+    .catch(function(e){
+      // Saved locally, failed to sync — show warning
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;height:16px"><polyline points="20 6 9 17 4 12"/></svg> Save Log Entry';
+      st.textContent = '⚠ Saved locally. Will retry when online.';
+      toast('Saved offline — sync pending','error');
+      renderMyRecent();
+    });
+}
+
+function pushStatusToSheet(order, status, url){
+  fetch(url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      type: 'order_status',
+      modelNo: order.modelNo||order.id,
+      status: status
+    })
+  }).catch(function(){});
+}
+
+function pushEntryToSheet(entry, url){
+  return fetch(url, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      type: 'prod_log',
+      modelNo: entry.modelNo,
+      patientName: entry.patientName,
+      step: entry.step,
+      staffName: entry.staffName,
+      note: entry.note,
+      ts: entry.ts,
+      datetime: new Date(entry.ts).toLocaleString('en-IN')
+    })
+  });
+}
+
+// ══════════════════════════════════ SUCCESS VIEW
+function showSuccess(entry){
+  const log = document.getElementById('screen-log');
+  const orig = log.innerHTML;
+  log.innerHTML = '<div class="card" style="margin-top:8px"><div class="success-box">'+
+    '<div class="success-icon">✅</div>'+
+    '<div class="success-title">Logged Successfully!</div>'+
+    '<div class="success-detail" style="margin-bottom:16px">'+
+      '<b>'+entry.modelNo+'</b> · '+entry.step+'<br>'+
+      '<span style="color:var(--muted)">Logged by '+entry.staffName+'</span>'+
+    '</div>'+
+    '<button class="btn btn-primary" onclick="resetLogScreen()" style="max-width:240px;margin:0 auto">Log Another Entry</button>'+
+    '<button class="btn btn-outline" onclick="showScreen(\'history\')" style="max-width:240px;margin:0 auto">View History</button>'+
+  '</div></div>';
+}
+
+function resetLogScreen(){
+  showScreen('log');
+  renderMyRecent();
+}
+
+// ══════════════════════════════════ MY RECENT ENTRIES
+function renderMyRecent(){
+  const cfg = getConfig();
+  const el = document.getElementById('my-recent');
+  if(!el) return;
+  const logs = getLogs().filter(function(l){ return l.staffName===cfg.name; })
+    .sort(function(a,b){ return b.ts-a.ts; }).slice(0,5);
+  if(!logs.length){
+    el.innerHTML = '<div style="text-align:center;color:var(--muted);padding:12px;font-size:13px">No entries yet today.</div>';
+    return;
+  }
+  el.innerHTML = logs.map(function(l,i){
+    return '<div class="log-entry">'+
+      '<div class="log-num">'+(i+1)+'</div>'+
+      '<div style="flex:1">'+
+        '<div class="log-step">'+l.step+'</div>'+
+        '<div class="log-meta">'+l.modelNo+' · '+fmtTime(l.ts)+(l.synced?' · <span style="color:var(--green)">✓ Synced</span>':' · <span style="color:var(--red)">⏳ Pending</span>')+'</div>'+
+        (l.note?'<div class="log-note">'+l.note+'</div>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════ HISTORY SCREEN
+function renderHistory(){
+  const q = (document.getElementById('hist-search')?.value||'').toLowerCase();
+  const el = document.getElementById('history-list');
+  let logs = getLogs().sort(function(a,b){ return b.ts-a.ts; });
+  if(q) logs = logs.filter(function(l){
+    return (l.modelNo||'').toLowerCase().includes(q)||
+           (l.patientName||'').toLowerCase().includes(q)||
+           (l.step||'').toLowerCase().includes(q)||
+           (l.staffName||'').toLowerCase().includes(q);
+  });
+  if(!logs.length){
+    el.innerHTML='<div style="text-align:center;color:var(--muted);padding:20px;font-size:13px">No entries found.</div>';
+    return;
+  }
+  el.innerHTML = logs.map(function(l,i){
+    return '<div class="log-entry">'+
+      '<div class="log-num" style="background:var(--blue);color:#fff">'+(i+1)+'</div>'+
+      '<div style="flex:1">'+
+        '<div class="log-step">'+l.step+'</div>'+
+        '<div class="log-meta">'+
+          '<b>'+l.modelNo+'</b>'+(l.patientName?' · '+l.patientName:'')+' · '+
+          '<span style="color:var(--purple)">'+l.staffName+'</span> · '+fmtTime(l.ts)+
+          (l.synced?' · <span style="color:var(--green)">✓</span>':' · <span style="color:var(--red)">⏳</span>')+
+        '</div>'+
+        (l.note?'<div class="log-note">'+l.note+'</div>':'')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+// ══════════════════════════════════ NAVIGATION
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
+  const el = document.getElementById('screen-'+name);
+  if(el) el.classList.add('active');
+  if(name==='setup'){
+    const cfg = getConfig();
+    if(cfg.url) document.getElementById('setup-url').value = cfg.url;
+    // Populate staff from cache
+    const cached = LS.get('staff_list')||[];
+    if(cached.length) populateStaffDropdown(cached.map(function(n){return {name:n};}));
+    if(cfg.name){
+      const sel = document.getElementById('setup-name');
+      if(sel) sel.value = cfg.name;
+    }
+    const st = document.getElementById('staff-load-status');
+    if(st) st.style.display = cached.length?'none':'block';
+  }
+  if(name==='history') renderHistory();
+  if(name==='log') renderMyRecent();
+  window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════ HELPERS
+function fmtTime(ts){
+  if(!ts) return '—';
+  return new Date(ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+function toast(msg, type){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show '+(type||'');
+  setTimeout(function(){ el.className=''; }, 3000);
+}
+</script>
+</body>
+</html>
