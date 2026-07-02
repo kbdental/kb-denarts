@@ -5519,7 +5519,7 @@ function renderBillingTab(){
               <label class="form-label">Against Order</label>
               <select class="form-control" id="rp-order">
                 <option value="">-- General Payment --</option>
-                ${getOrders().filter(o=>!doctorId||o.doctorId===doctorId).sort((a,b)=>b.createdAt-a.createdAt)
+                ${getOrders().filter(o=>!doctorId||o.doctorId===doctorId).sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0))
                   .map(o=>`<option value="${o.id}">${o.modelNo} — ${o.patientName}</option>`).join('')}
               </select>
             </div>
@@ -5560,7 +5560,7 @@ function renderBillingTab(){
       const sel=document.getElementById('rp-order');
       if(!sel) return;
       const did=this.value;
-      const opts=getOrders().filter(o=>!did||o.doctorId===did).sort((a,b)=>b.createdAt-a.createdAt);
+      const opts=getOrders().filter(o=>!did||o.doctorId===did).sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0));
       sel.innerHTML='<option value="">-- General Payment --</option>'+opts.map(o=>`<option value="${o.id}">${o.modelNo} — ${o.patientName}</option>`).join('');
     });
   }
