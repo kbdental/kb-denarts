@@ -819,7 +819,11 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
               Add Images
             </button>
           </div>
-          <div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" onclick="saveOrderAndMessage()" title="Save order and go to messaging to send Order Received">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              Save &amp; Message
+            </button>
             <button class="btn btn-primary" onclick="saveOrder()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
               Save Order
@@ -2457,6 +2461,10 @@ function getOrCreateSheet(ss, name, headers) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           Challan
         </button>
+        <button class="btn btn-outline" onclick="sendMsgFromView()" style="color:#059669;border-color:#059669">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          Message
+        </button>
         <button class="btn btn-primary" onclick="printJobCardFromView()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
           Job Card
@@ -3703,16 +3711,59 @@ function saveOrder(){
   setOrders(orders);
   syncOrderToSheets(order);
   toast(editingOrderId?'Order updated!':'Order saved! Model # '+order.modelNo,'success');
+  const _savedId=order.id;
+  const _isNew=!editingOrderId;
   clearOrderForm();
   currentStatusFilter='all';
-  navigate('all-orders');
+  if(_postSaveAction==='message'&&_isNew){
+    _postSaveAction=null;
+    openMsgForOrder(_savedId,'t4');
+  } else {
+    _postSaveAction=null;
+    navigate('all-orders');
+  }
 }
+let _postSaveAction=null;
+function saveOrderAndMessage(){_postSaveAction='message';saveOrder();}
 
 function clearOrderForm(){
   editingOrderId=null;
   prepareNewOrderForm();
 }
 
+function openMsgForOrder(orderId, tplId){
+  const o=getOrders().find(x=>x.id===orderId);
+  if(!o){toast('Order not found','error');return;}
+  closeModal();
+  navigate('messaging');
+  setTimeout(()=>{
+    const dSel=document.getElementById('msg-doctor-select');
+    if(dSel){
+      const opt=Array.from(dSel.options).find(op=>op.value===o.doctorId)||Array.from(dSel.options).find(op=>op.dataset.name===o.doctorName);
+      if(opt){dSel.value=opt.value;autoFillMsgPhone();}
+    }
+    const tSel=document.getElementById('msg-template-select');
+    if(tSel&&tplId){
+      // Find matching template — prefer exact id, fall back to name match
+      const tpls=getMsgTemplates();
+      const tpl=tpls.find(t=>t.id===tplId)||tpls.find(t=>t.name.toLowerCase()===(tplId==='t4'?'order received':'order ready'));
+      if(tpl){tSel.value=tpl.id;applyMsgTemplate();}
+    }
+    // After cases panel populates, tick the matching case
+    setTimeout(()=>{
+      document.querySelectorAll('.msg-case-check').forEach(c=>{
+        if(c.dataset.modelno===o.modelNo){c.checked=true;onMsgCaseToggle(c);}
+      });
+    },250);
+  },350);
+}
+function sendMsgFromView(){
+  const id=document.getElementById('modal-view').dataset.orderId;
+  const o=getOrders().find(x=>x.id===id);
+  if(!o) return;
+  const tplId=(o.status==='Complete'||o.status==='Delivered')?'t1':'t4';
+  openMsgForOrder(id,tplId);
+}
 function genSerial(){
   const s=getSerial();
   const serial=s.prefix+'-'+s.year+'/'+s.next;
