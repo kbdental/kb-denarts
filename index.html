@@ -7655,10 +7655,13 @@ function fmt(d){
   if(!d) return '';
   if(d instanceof Date) return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   if(typeof d==='number') return new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-  const parts=d.split('-');
-  if(parts.length===3){
-    const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return parts[2]+'-'+months[parseInt(parts[1])-1]+'-'+parts[0];
+  if(typeof d==='string'){
+    const parts=d.split('-');
+    if(parts.length===3&&parts[0].length===4) return parts[2]+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(parts[1])-1]+'-'+parts[0];
+    if(parts.length===3&&parts[2].length===4) return d; // already DD-MMM-YYYY
+    // fallback: parse as Date object (handles full toString strings)
+    const parsed=new Date(d);
+    if(!isNaN(parsed)) return parsed.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
   }
   return d;
 }
