@@ -6718,30 +6718,26 @@ function populateMsgCases(doctorId, doctorName){
     const nb=parseInt((b.modelNo||'').split('/').pop())||0;
     return nb-na;
   });
-  list.innerHTML=orders.map(o=>`
-    <label style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);cursor:pointer">
-      <input type="checkbox" class="msg-case-check" value="${o.id}" style="margin-top:2px;flex-shrink:0">
+  list.innerHTML=orders.map(o=>{
+    let line=`• ${o.modelNo} | ${o.allTypes||o.workType||'—'} | ${o.status}`;
+    if(o.dueDate) line+=` | Due: ${fmt(o.dueDate)}`;
+    return `<label style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);cursor:pointer">
+      <input type="checkbox" class="msg-case-check" data-line="${line.replace(/"/g,'&quot;')}" style="margin-top:2px;flex-shrink:0">
       <span>
         <span style="font-weight:700;color:var(--blue)">${o.modelNo}</span>
         <span style="color:var(--muted)"> · ${o.allTypes||o.workType||'—'}</span>
         <span style="margin-left:6px;font-size:11px;font-weight:600;color:${STATUS_COLORS[o.status]||'#64748b'}">${o.status}</span>
         ${o.dueDate?`<span style="color:var(--muted);font-size:11px"> · Due: ${fmt(o.dueDate)}</span>`:''}
       </span>
-    </label>`).join('');
+    </label>`;
+  }).join('');
   row.style.display='';
 }
 
 function insertSelectedCases(){
   const checked=[...document.querySelectorAll('.msg-case-check:checked')];
   if(!checked.length){toast('Select at least one case to insert','error');return;}
-  const orders=getOrders();
-  const lines=checked.map(cb=>{
-    const o=orders.find(x=>x.id===cb.value);
-    if(!o) return '';
-    let line=`• ${o.modelNo} | ${o.allTypes||o.workType||'—'} | ${o.status}`;
-    if(o.dueDate) line+=` | Due: ${fmt(o.dueDate)}`;
-    return line;
-  }).filter(Boolean).join('\n');
+  const lines=checked.map(cb=>cb.dataset.line||'').filter(Boolean).join('\n');
   const ta=document.getElementById('msg-body');
   if(!ta) return;
   ta.value=(ta.value?ta.value+'\n\n':'')+lines;
