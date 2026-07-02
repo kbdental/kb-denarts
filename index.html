@@ -6641,14 +6641,12 @@ function setMsgTemplates(arr){setData('msg-templates',arr);}
 function getMsgHistory(){return getData('msg-history')||[];}
 
 function renderMessagingPage(){
-  // Force-update the built-in 'Order Received' template body in case an old version is cached
+  // Always sync built-in template t4 to latest version (v3) so cached old bodies are replaced
+  const T4_BODY='Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}';
   const _tpls=getData('msg-templates');
   if(_tpls){
     const _t4=_tpls.find(t=>t.id==='t4');
-    if(_t4&&(!_t4.body.includes('{workType}')||!_t4.body.includes('{modelNo}')||!_t4.body.includes('{patientName}'))){
-      _t4.body='Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}';
-      setData('msg-templates',_tpls);
-    }
+    if(_t4&&_t4.body!==T4_BODY){_t4.body=T4_BODY;setData('msg-templates',_tpls);}
   }
   populateMsgDoctorDropdown();
   populateMsgTemplateDropdown();
