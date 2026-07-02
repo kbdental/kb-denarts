@@ -6645,8 +6645,14 @@ function renderMessagingPage(){
   const T4_BODY='Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}';
   const _tpls=getData('msg-templates');
   if(_tpls){
-    const _t4=_tpls.find(t=>t.id==='t4');
-    if(_t4&&_t4.body!==T4_BODY){_t4.body=T4_BODY;setData('msg-templates',_tpls);}
+    // Fix t4 by id AND any user-created "Order Received" templates by name
+    let _changed=false;
+    _tpls.forEach(t=>{
+      if((t.id==='t4'||t.name.toLowerCase()==='order received')&&t.body!==T4_BODY){
+        t.body=T4_BODY;_changed=true;
+      }
+    });
+    if(_changed) setData('msg-templates',_tpls);
   }
   populateMsgDoctorDropdown();
   populateMsgTemplateDropdown();
@@ -6832,6 +6838,8 @@ function applyMsgTemplate(){
   body=rpl(body,'enclosures',caseEncl);
   body=rpl(body,'labName',lab.name||'K.B. DENARTS');
   body=rpl(body,'date',new Date().toLocaleDateString('en-IN'));
+  // Also handle literal [Lab Name] pattern (user may have typed this in their template)
+  body=body.replace(/\[Lab Name\]/gi,lab.name||'K.B. DENARTS');
   document.getElementById('msg-body').value=body;
   updateMsgPreview();
   // Refresh cases panel with template-aware filter (e.g. Order Received shows today-only)
