@@ -2222,6 +2222,39 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
           <div id="gs-status" style="display:none;padding:10px 12px;background:#f8fafc;border:1px solid var(--border);border-radius:7px;font-size:12.5px"></div>
         </div>
 
+        <!-- Tally Connection Card -->
+        <div class="card" style="margin-bottom:16px">
+          <div style="font-size:12px;font-weight:700;color:var(--primary);letter-spacing:.5px;margin-bottom:14px">TALLY CONNECTION</div>
+          <div class="alert alert-info" style="margin-bottom:14px">
+            Pushes billed orders into Tally as <b>Sales (Item Invoice)</b> vouchers via Tally's local XML/HTTP gateway. Tally must be running on this same computer with <b>F12 → Advanced Configuration → Enable ODBC/HTTP → Yes</b>.
+            <b>Test against a duplicate/test company in Tally before pointing this at your live company.</b>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+            <div class="form-group">
+              <label class="form-label">Tally Company Name (exact)</label>
+              <input class="form-control" id="tally-company" placeholder="K. B. Denarts 2026-27">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Tally Server URL</label>
+              <input class="form-control" id="tally-url" placeholder="http://localhost:9000">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+            <div class="form-group">
+              <label class="form-label">GST Rate (%)</label>
+              <input class="form-control" id="tally-gst-rate" type="number" step="0.5" placeholder="5">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Home State (for Local vs Interstate)</label>
+              <input class="form-control" id="tally-home-state" placeholder="Delhi">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="saveTallyConfig()">Save Tally Settings</button>
+          </div>
+          <div id="tally-status" style="display:none;margin-top:10px;padding:10px 12px;background:#f8fafc;border:1px solid var(--border);border-radius:7px;font-size:12.5px"></div>
+        </div>
+
         <!-- What Syncs Card -->
         <div class="card" style="margin-bottom:16px">
           <div style="font-size:12px;font-weight:700;color:var(--primary);letter-spacing:.5px;margin-bottom:12px">WHAT GETS SYNCED</div>
@@ -2562,9 +2595,14 @@ function getOrCreateSheet(ss, name, headers) {
           <option value="">-- Select Category --</option>
         </select>
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom:12px">
         <label class="form-label">Notes / Remarks</label>
         <input class="form-control" id="dm-notes" placeholder="Any special instructions or notes">
+      </div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--primary);letter-spacing:.6px;margin-bottom:12px;padding-top:4px;border-top:1px solid var(--border)">TALLY / GST</div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="dm-out-of-state" style="width:16px;height:16px">
+        <label class="form-label" style="margin:0" for="dm-out-of-state">Out of state (use Interstate Sales / IGST instead of Local Sales / CGST+SGST)</label>
       </div>
     </div>
     <div class="modal-footer">
@@ -5473,7 +5511,10 @@ function renderBillingTab(){
       return numB-numA;
     });
 
-    area.innerHTML=`<div class="tbl-wrap"><table class="data-tbl">
+    area.innerHTML=`<div style="padding:10px 14px 0;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" style="color:var(--purple);border-color:var(--purple)" onclick="pushSelectedBillingToTally()">📤 Push Selected to Tally</button>
+      </div>
+      <div class="tbl-wrap"><table class="data-tbl">
       <thead><tr>
         <th><input type="checkbox" onchange="toggleBillingSelectAll(this)"></th>
         <th>ORDER #</th><th>DATE</th><th>DOCTOR</th><th>PATIENT</th>
@@ -5487,13 +5528,15 @@ function renderBillingTab(){
         <td>${o.patientName||'—'}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${(o.allTypes||'—').substring(0,35)}</td>
         <td style="color:var(--blue);font-weight:700">₹${(o.totalAmount||0).toFixed(0)}</td>
-        <td><span class="${o.invoiced?'inv-yes':'inv-not'}">${o.invoiced?'Invoiced':'Not Invoiced'}</span></td>
+        <td><span class="${o.invoiced?'inv-yes':'inv-not'}">${o.invoiced?'Invoiced':'Not Invoiced'}</span>${o.tallySent?' <span style="color:var(--purple);font-size:11px">· Tally</span>':''}</td>
         <td style="white-space:nowrap">
           <button class="btn-invoice" onclick="generateInvoiceForOrder('${o.id}')">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><rect x="2" y="1" width="12" height="14" rx="1"/><line x1="5" y1="5" x2="11" y2="5"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
             Invoice
           </button>
           <button class="btn-mark-inv" onclick="markAsInvoiced('${o.id}')" style="margin-left:4px">${o.invoiced?'Unmark':'Mark Invoiced'}</button>
+          <button class="btn btn-outline btn-xs" style="margin-left:4px;color:var(--purple);border-color:var(--purple)" onclick="pushOrderToTally(getOrders().find(x=>x.id==='${o.id}'))">Tally</button>
+          <button class="btn btn-outline btn-xs" style="margin-left:4px" onclick="downloadTallyXML(getOrders().find(x=>x.id==='${o.id}'))" title="Download Tally XML for manual import">⬇ XML</button>
         </td>
       </tr>`).join(''):noRows(9)}</tbody>
     </table></div>`;
@@ -5634,6 +5677,12 @@ function renderBillingTab(){
 
 function toggleBillingSelectAll(cb){
   document.querySelectorAll('.bill-check').forEach(c=>c.checked=cb.checked);
+}
+
+function pushSelectedBillingToTally(){
+  const ids=[...document.querySelectorAll('.bill-check:checked')].map(c=>c.value);
+  if(!ids.length){toast('Select at least one order first','error');return;}
+  pushOrdersToTally(ids);
 }
 
 function markAsInvoiced(id){
@@ -5850,6 +5899,7 @@ function openAddDoctor(){
   });
   populateDoctorCatDropdown();
   document.getElementById('dm-category').value='';
+  const oosEl=document.getElementById('dm-out-of-state');if(oosEl) oosEl.checked=false;
   document.getElementById('modal-doctor').dataset.editId='';
   showModal('doctor');
 }
@@ -5865,6 +5915,7 @@ function openEditDoctor(id){
   populateDoctorCatDropdown();
   const catEl=document.getElementById('dm-category');
   if(catEl) catEl.value=d.category||'';
+  const oosEl=document.getElementById('dm-out-of-state');if(oosEl) oosEl.checked=!!d.outOfState;
   document.getElementById('modal-doctor').dataset.editId=id;
   showModal('doctor');
 }
@@ -5885,7 +5936,8 @@ function saveDoctorModal(){
     cpName:document.getElementById('dm-cp-name')?.value.trim()||'',
     cpPhone:document.getElementById('dm-cp-phone')?.value.trim()||'',
     notes:document.getElementById('dm-notes')?.value.trim()||'',
-    category:document.getElementById('dm-category')?.value||''
+    category:document.getElementById('dm-category')?.value||'',
+    outOfState:!!document.getElementById('dm-out-of-state')?.checked
   };
   if(editId){
     const i=docs.findIndex(d=>d.id===editId);
@@ -6852,6 +6904,172 @@ function loadGSConfig(){
   const el=document.getElementById('gs-url');
   if(el) el.value=cfg.url||'';
   updateSheetsBadge();
+  loadTallyConfig();
+}
+
+// ═══════════════════════════════════════════════ TALLY
+function getTallyConfig(){
+  return getData('tally-config')||{company:'',url:'http://localhost:9000',gstRate:5,homeState:'Delhi'};
+}
+
+function loadTallyConfig(){
+  const cfg=getTallyConfig();
+  const set=(id,val)=>{const el=document.getElementById(id);if(el) el.value=val;};
+  set('tally-company',cfg.company||'');
+  set('tally-url',cfg.url||'http://localhost:9000');
+  set('tally-gst-rate',cfg.gstRate||5);
+  set('tally-home-state',cfg.homeState||'Delhi');
+}
+
+function saveTallyConfig(){
+  const company=document.getElementById('tally-company')?.value.trim()||'';
+  const url=document.getElementById('tally-url')?.value.trim()||'http://localhost:9000';
+  const gstRate=parseFloat(document.getElementById('tally-gst-rate')?.value)||5;
+  const homeState=document.getElementById('tally-home-state')?.value.trim()||'Delhi';
+  if(!company){toast('Enter the exact Tally Company name','error');return;}
+  setData('tally-config',{company,url,gstRate,homeState});
+  const statusEl=document.getElementById('tally-status');
+  if(statusEl){statusEl.style.display='block';statusEl.textContent='✓ Tally settings saved.';}
+  toast('Tally settings saved','success');
+}
+
+function xmlEscape(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Builds a Tally "Sales" (Item Invoice) voucher XML for one order, matching the
+// Party/Sales-ledger/Stock-item/CGST+SGST or IGST structure used in Tally already.
+function buildTallySalesVoucherXML(order, cfg){
+  const doctor=getDoctors().find(d=>d.id===order.doctorId||d.name===order.doctorName)||{};
+  const outOfState=!!doctor.outOfState;
+  const gstRate=cfg.gstRate||5;
+  const halfRate=(gstRate/2);
+  const salesLedger=outOfState?`Interstate Sales @ ${gstRate}%`:`Local Sales @ ${gstRate}%`;
+  const items=(order.workItems&&order.workItems.length?order.workItems:[{
+    productName:order.allTypes||'Work',units:order.totalUnits||1,unitRate:order.totalAmount||0,total:order.totalAmount||0
+  }]);
+  const taxable=items.reduce((sum,it)=>sum+(parseFloat(it.total)||0),0);
+  const dateStr=(order.dispatchDate||order.date||today()).replace(/-/g,'');
+
+  const itemLines=items.map(it=>`
+        <ALLINVENTORYENTRIES.LIST>
+          <STOCKITEMNAME>${xmlEscape(it.productName||'Work')}</STOCKITEMNAME>
+          <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+          <RATE>${(parseFloat(it.unitRate)||0).toFixed(2)}/Unit</RATE>
+          <AMOUNT>${(parseFloat(it.total)||0).toFixed(2)}</AMOUNT>
+          <ACTUALQTY>${parseFloat(it.units)||1} Units</ACTUALQTY>
+          <BILLEDQTY>${parseFloat(it.units)||1} Units</BILLEDQTY>
+          <BATCHALLOCATIONS.LIST>
+            <AMOUNT>${(parseFloat(it.total)||0).toFixed(2)}</AMOUNT>
+            <ACTUALQTY>${parseFloat(it.units)||1} Units</ACTUALQTY>
+            <BILLEDQTY>${parseFloat(it.units)||1} Units</BILLEDQTY>
+          </BATCHALLOCATIONS.LIST>
+          <ACCOUNTINGALLOCATIONS.LIST>
+            <LEDGERNAME>${xmlEscape(salesLedger)}</LEDGERNAME>
+            <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+            <AMOUNT>${(parseFloat(it.total)||0).toFixed(2)}</AMOUNT>
+          </ACCOUNTINGALLOCATIONS.LIST>
+        </ALLINVENTORYENTRIES.LIST>`).join('');
+
+  const taxLines=outOfState
+    ? `
+        <LEDGERENTRIES.LIST>
+          <LEDGERNAME>IGST @ ${gstRate}%</LEDGERNAME>
+          <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+          <AMOUNT>${(taxable*gstRate/100).toFixed(2)}</AMOUNT>
+        </LEDGERENTRIES.LIST>`
+    : `
+        <LEDGERENTRIES.LIST>
+          <LEDGERNAME>CGST @ ${halfRate}%</LEDGERNAME>
+          <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+          <AMOUNT>${(taxable*halfRate/100).toFixed(2)}</AMOUNT>
+        </LEDGERENTRIES.LIST>
+        <LEDGERENTRIES.LIST>
+          <LEDGERNAME>SGST @ ${halfRate}%</LEDGERNAME>
+          <ISDEEMEDPOSITIVE>No</ISDEEMEDPOSITIVE>
+          <AMOUNT>${(taxable*halfRate/100).toFixed(2)}</AMOUNT>
+        </LEDGERENTRIES.LIST>`;
+
+  const totalAmt=order.totalAmount||taxable;
+
+  return `<ENVELOPE>
+  <HEADER>
+    <TALLYREQUEST>Import Data</TALLYREQUEST>
+  </HEADER>
+  <BODY>
+    <IMPORTDATA>
+      <REQUESTDESC>
+        <REPORTNAME>Vouchers</REPORTNAME>
+        <STATICVARIABLES>
+          <SVCURRENTCOMPANY>${xmlEscape(cfg.company)}</SVCURRENTCOMPANY>
+        </STATICVARIABLES>
+      </REQUESTDESC>
+      <REQUESTDATA>
+        <TALLYMESSAGE xmlns:UDF="TallyUDF">
+          <VOUCHER VCHTYPE="Sales" ACTION="Create">
+            <DATE>${dateStr}</DATE>
+            <VOUCHERTYPENAME>Sales</VOUCHERTYPENAME>
+            <PARTYLEDGERNAME>${xmlEscape(order.doctorName)}</PARTYLEDGERNAME>
+            <NARRATION>${xmlEscape('KB DENARTS Order '+(order.modelNo||''))}</NARRATION>
+            <ISINVOICE>Yes</ISINVOICE>
+            <LEDGERENTRIES.LIST>
+              <LEDGERNAME>${xmlEscape(order.doctorName)}</LEDGERNAME>
+              <ISDEEMEDPOSITIVE>Yes</ISDEEMEDPOSITIVE>
+              <AMOUNT>-${totalAmt.toFixed(2)}</AMOUNT>
+            </LEDGERENTRIES.LIST>${itemLines}${taxLines}
+          </VOUCHER>
+        </TALLYMESSAGE>
+      </REQUESTDATA>
+    </IMPORTDATA>
+  </BODY>
+</ENVELOPE>`;
+}
+
+function downloadTallyXML(order){
+  const cfg=getTallyConfig();
+  if(!cfg.company){toast('Configure Tally Company name first (Settings → Google Sheets/Tally)','error');return;}
+  const xml=buildTallySalesVoucherXML(order,cfg);
+  const blob=new Blob([xml],{type:'text/xml'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Tally_'+(order.modelNo||'order').replace(/[\/\\]/g,'_')+'.xml';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+
+// Best-effort direct push to Tally's local XML/HTTP gateway. Browsers may block
+// this (mixed-content/CORS) depending on setup — downloadTallyXML() is the
+// reliable fallback via Tally's own Import Data (Gateway of Tally → Import Data → XML).
+async function pushOrderToTally(order){
+  const cfg=getTallyConfig();
+  if(!cfg.company){toast('Configure Tally Company name first','error');return false;}
+  const xml=buildTallySalesVoucherXML(order,cfg);
+  try{
+    const r=await fetch(cfg.url||'http://localhost:9000',{method:'POST',headers:{'Content-Type':'text/xml'},body:xml});
+    const txt=await r.text();
+    if(/<CREATED>\s*1\s*<\/CREATED>/i.test(txt) || /<LINEERROR>\s*<\/LINEERROR>/i.test(txt)){
+      order.invoiced=true;order.billingStatus='Invoiced';order.tallySent=true;
+      setOrders(getOrders().map(o=>o.id===order.id?order:o));
+      toast('Sent to Tally: '+order.modelNo,'success');
+      return true;
+    }
+    toast('Tally responded but import may have failed — check Tally','error');
+    return false;
+  }catch(e){
+    toast('Could not reach Tally directly — downloading XML for manual import instead','error');
+    downloadTallyXML(order);
+    return false;
+  }
+}
+
+async function pushOrdersToTally(orderIds){
+  const orders=getOrders().filter(o=>orderIds.includes(o.id));
+  let ok=0;
+  for(const o of orders){
+    const success=await pushOrderToTally(o);
+    if(success) ok++;
+  }
+  renderBillingTab();
+  toast(`Sent ${ok} of ${orders.length} order(s) to Tally`,ok===orders.length?'success':'error');
 }
 
 function saveGSConfig(){
