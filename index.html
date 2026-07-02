@@ -6751,6 +6751,7 @@ function populateMsgCases(doctorId, doctorName, templateId){
         data-enclosures="${encl.replace(/"/g,'&quot;')}"
         data-modelno="${mn.replace(/"/g,'&quot;')}"
         data-patient="${pt.replace(/"/g,'&quot;')}"
+        onchange="onMsgCaseToggle(this)"
         style="margin-top:2px;flex-shrink:0">
       <span>
         <span style="font-weight:700;color:var(--blue)">${mn}</span>
@@ -6762,6 +6763,17 @@ function populateMsgCases(doctorId, doctorName, templateId){
     </label>`;
   }).join('');
   row.style.display='';
+}
+
+function onMsgCaseToggle(cb){
+  // Uncheck all other cases so only one is active at a time (single-case mode)
+  if(cb.checked){
+    document.querySelectorAll('.msg-case-check').forEach(c=>{if(c!==cb) c.checked=false;});
+  }
+  // Re-apply the current template with updated case data
+  const tplId=document.getElementById('msg-template-select')?.value;
+  if(tplId) applyMsgTemplate();
+  else updateMsgPreview();
 }
 
 function insertSelectedCases(){
