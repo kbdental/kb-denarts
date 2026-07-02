@@ -8334,10 +8334,19 @@ function prodLogSave(){
   const log=getProdLog();
   log.push({id:genId(),orderId:_prodSelectedOrderId,modelNo:o?.modelNo||'',patientName:o?.patientName||'',step:step,staffName:staff,note:note,ts:ts});
   setProdLog(log);
-  if(step==='Packing & Dispatch'&&o&&o.status!=='Delivered'){
+  const isFinishing=step==='Layering & Finishing'||step.toLowerCase().includes('finishing');
+  const isPacking=step==='Packing & Dispatch'||step.toLowerCase().includes('packing');
+  if((isFinishing||isPacking)&&o){
     const allOrds=getOrders();
     const oidx=allOrds.findIndex(function(x){return x.id===_prodSelectedOrderId;});
-    if(oidx!==-1){allOrds[oidx].status='Delivered';setOrders(allOrds);}
+    if(oidx!==-1){
+      const newStatus=isPacking?'Delivered':'Complete';
+      if(allOrds[oidx].status!==newStatus&&allOrds[oidx].status!=='Delivered'){
+        allOrds[oidx].status=newStatus;
+        allOrds[oidx].updatedAt=Date.now();
+        setOrders(allOrds);
+      }
+    }
   }
   document.getElementById('pl-model').value='';
   document.getElementById('pl-note').value='';
@@ -8346,7 +8355,8 @@ function prodLogSave(){
   _prodSelectedOrderId=null;
   const dtEl=document.getElementById('pl-datetime');
   if(dtEl){const n=new Date();n.setMinutes(n.getMinutes()-n.getTimezoneOffset());dtEl.value=n.toISOString().slice(0,16);}
-  if(step==='Packing & Dispatch'){toast('Order marked Delivered','success');}
+  if(isPacking){toast('Order marked Delivered','success');}
+  else if(isFinishing){toast('Order marked Complete','success');}
   else{toast('Production entry saved','success');}
   prodRenderBoard();
   renderOrders();
