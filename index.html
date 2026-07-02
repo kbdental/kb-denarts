@@ -3798,7 +3798,7 @@ function renderOrders(){
   }
   tbody.innerHTML=orders.map(o=>`<tr>
     <td><input type="checkbox" class="order-check" value="${o.id}"></td>
-    <td style="color:var(--muted)">${o.challanNo||'—'}</td>
+    <td style="color:var(--muted)">${['Complete','Delivered'].includes(o.status)?(o.challanNo||'—'):'—'}</td>
     <td class="font-bold" style="color:var(--blue);cursor:pointer" onclick="viewOrder('${o.id}')">${o.modelNo}</td>
     <td>${fmt(o.date)}</td>
     <td>${o.doctorName}</td>
@@ -3888,7 +3888,7 @@ function viewOrder(id){
   document.getElementById('mv-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;border:1px solid var(--border);border-radius:8px;overflow:hidden">
       ${cell('Model No',`<span style="background:var(--blue-lt);color:var(--blue);padding:2px 9px;border-radius:5px;font-weight:700;font-size:12.5px">${o.modelNo}</span>`)}
-      ${cell('Challan No', o.challanNo||'—')}
+      ${cell('Challan No', ['Complete','Delivered'].includes(o.status)?(o.challanNo||'—'):'—')}
       ${cell('Doctor', o.doctorName||'—')}
       <div style="grid-column:1/-1;height:1px;background:var(--border)"></div>
       ${cell('Clinic', o.clinicName||'—')}
