@@ -6635,7 +6635,7 @@ function getMsgTemplates(){return getData('msg-templates')||[
   {id:'t1',name:'Order Ready',category:'Order Update',body:'Dear Dr. {doctor},\n\nYour order ({order}) from {clinic} is ready for dispatch.\n\nKindly arrange for pickup or let us know for delivery.\n\nRegards,\nK.B. DENARTS'},
   {id:'t2',name:'Trial Ready',category:'Order Update',body:'Dear Dr. {doctor},\n\nThe trial for your order ({order}) is ready. Please schedule the try-in at your earliest convenience.\n\nRegards,\nK.B. DENARTS'},
   {id:'t3',name:'Payment Reminder',category:'Payment Reminder',body:'Dear Dr. {doctor},\n\nThis is a gentle reminder that your outstanding payment is due. Kindly clear the dues at your earliest.\n\nFor any queries, please contact us.\n\nRegards,\nK.B. DENARTS'},
-  {id:'t4',name:'Order Received',category:'Order Update',body:'Dear Dr. {doctor},\n\nWe have received your order on {date}. It is now in production.\n\nExpected delivery will be communicated shortly.\n\nRegards,\nK.B. DENARTS'},
+  {id:'t4',name:'Order Received',category:'Order Update',body:'Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}'},
 ];}
 function setMsgTemplates(arr){setData('msg-templates',arr);}
 function getMsgHistory(){return getData('msg-history')||[];}
@@ -6737,9 +6737,36 @@ function populateMsgCases(doctorId, doctorName){
 function insertSelectedCases(){
   const checked=[...document.querySelectorAll('.msg-case-check:checked')];
   if(!checked.length){toast('Select at least one case to insert','error');return;}
-  const lines=checked.map(cb=>cb.dataset.line||'').filter(Boolean).join('\n');
   const ta=document.getElementById('msg-body');
   if(!ta) return;
+  // If message body contains unfilled placeholders and exactly one case is checked, fill them
+  if(checked.length===1){
+    const sel=document.getElementById('msg-doctor-select');
+    const opt=sel?.selectedOptions[0];
+    const doctorId=opt?.value||'';
+    const doctorName=opt?.dataset.name||'';
+    const allChecks=[...document.querySelectorAll('.msg-case-check')];
+    const idx=allChecks.indexOf(checked[0]);
+    const active=getOrders().filter(o=>o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName));
+    // Sort same way as populateMsgCases
+    active.sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0));
+    const o=active[idx];
+    if(o&&ta.value){
+      ta.value=ta.value
+        .replace(/\[Type of Work\]/g,o.allTypes||o.workType||'—')
+        .replace(/\{workType\}/g,o.allTypes||o.workType||'—')
+        .replace(/\[Components Received\]/g,(o.enclosures||[]).join(', ')||'—')
+        .replace(/\{enclosures\}/g,(o.enclosures||[]).join(', ')||'—')
+        .replace(/\[Order No\]/g,o.modelNo||'—')
+        .replace(/\[Model No\]/g,o.modelNo||'—')
+        .replace(/\{modelNo\}/g,o.modelNo||'—');
+      updateMsgPreview();
+      toast('Case details filled into message','success');
+      return;
+    }
+  }
+  // Multiple cases or no template body — append case lines
+  const lines=checked.map(cb=>cb.dataset.line||'').filter(Boolean).join('\n');
   ta.value=(ta.value?ta.value+'\n\n':'')+lines;
   updateMsgPreview();
   toast('Cases inserted into message','success');
@@ -6753,10 +6780,29 @@ function applyMsgTemplate(){
   // Replace placeholders
   const sel=document.getElementById('msg-doctor-select');
   const opt=sel?.selectedOptions[0];
+  const lab=getData('company')||{};
+  // Try to get work type & enclosures from a single checked case if one is already ticked
+  const checkedCase=document.querySelector('.msg-case-check:checked');
+  const caseOrders=getOrders();
+  let caseOrder=null;
+  if(checkedCase){
+    // find by data-line match or just use first checked order for this doctor
+    const doctorId=opt?.value||'';
+    const doctorName=opt?.dataset.name||'';
+    const active=caseOrders.filter(o=>o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName));
+    // match by position in list
+    const allChecks=[...document.querySelectorAll('.msg-case-check')];
+    const idx=allChecks.indexOf(checkedCase);
+    if(idx>=0&&active[idx]) caseOrder=active[idx];
+  }
   let body=tpl.body
     .replace(/\{doctor\}/g,opt?.dataset.name||'Doctor')
     .replace(/\{clinic\}/g,opt?.dataset.clinic||'[Clinic]')
-    .replace(/\{order\}/g,'[Order No]')
+    .replace(/\{order\}/g,caseOrder?caseOrder.modelNo:'[Order No]')
+    .replace(/\{modelNo\}/g,caseOrder?caseOrder.modelNo:'[Model No]')
+    .replace(/\{workType\}/g,caseOrder?(caseOrder.allTypes||caseOrder.workType||'—'):'[Type of Work]')
+    .replace(/\{enclosures\}/g,caseOrder?((caseOrder.enclosures||[]).join(', ')||'—'):'[Components Received]')
+    .replace(/\{labName\}/g,lab.name||'K.B. DENARTS')
     .replace(/\{date\}/g,new Date().toLocaleDateString('en-IN'));
   document.getElementById('msg-body').value=body;
   updateMsgPreview();
