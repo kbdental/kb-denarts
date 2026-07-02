@@ -4548,7 +4548,7 @@ function renderChallan(){
   const doctorFilter=document.getElementById('challan-filter-doctor')?.value||'';
   const fromDate=document.getElementById('challan-from')?.value||'';
   const toDate=document.getElementById('challan-to')?.value||'';
-  let orders=getOrders().filter(o=>o.challanNo&&(o.status==='Delivered'||o.challanNo));
+  let orders=getOrders().filter(o=>o.challanNo&&o.status==='Delivered');
   if(doctorFilter) orders=orders.filter(o=>o.doctorId===doctorFilter);
   if(fromDate) orders=orders.filter(o=>o.dispatchDate>=fromDate);
   if(toDate) orders=orders.filter(o=>o.dispatchDate<=toDate);
