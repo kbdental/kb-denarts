@@ -6717,16 +6717,13 @@ function populateMsgCases(doctorId, doctorName, templateId){
   // For all other templates: all In Production cases
   const isOrderReceived=(templateId||document.getElementById('msg-template-select')?.value)==='t4';
   const todayStr=today();
-  const orders=getOrders().filter(o=>{
-    if(o.status!=='In Production') return false;
-    if(!(o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName))) return false;
-    if(isOrderReceived){
-      // Only show if received/created today
-      const d=o.receivedDate||o.date||'';
-      return d===todayStr||d.startsWith(todayStr);
-    }
-    return true;
-  });
+  const doctorMatch=o=>(o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName));
+  let orders=getOrders().filter(o=>o.status==='In Production'&&doctorMatch(o));
+  if(isOrderReceived){
+    // Prefer cases received today; fall back to all In Production if none received today
+    const todayOrders=orders.filter(o=>{const d=o.receivedDate||o.date||'';return d===todayStr||d.startsWith(todayStr);});
+    if(todayOrders.length) orders=todayOrders;
+  }
   if(!orders.length){
     list.innerHTML='<div style="color:var(--muted);padding:6px 4px">No active cases for this doctor</div>';
     row.style.display='';
@@ -6788,11 +6785,12 @@ function insertSelectedCases(){
     const encl=cb.dataset.enclosures||'—';
     const mn=cb.dataset.modelno||'—';
     const pt=cb.dataset.patient||'—';
-    const filled=ta.value
-      .replace(/\[Type of Work\]/g,wt).replace(/\{workType\}/g,wt)
-      .replace(/\[Components Received\]/g,encl).replace(/\{enclosures\}/g,encl)
-      .replace(/\[Order No\]/g,mn).replace(/\[Model No\]/g,mn).replace(/\{modelNo\}/g,mn)
-      .replace(/\[Patient Name\]/g,pt).replace(/\{patientName\}/g,pt);
+    const fr=(body,key,val)=>body.replace(new RegExp('\\{\\s*'+key+'\\s*\\}','g'),val);
+    let filled=ta.value;
+    filled=fr(filled,'workType',wt).replace(/\[Type of Work\]/g,wt);
+    filled=fr(filled,'enclosures',encl).replace(/\[Components Received\]/g,encl).replace(/\[List all components received,\s*[^\]]*\]/g,encl);
+    filled=fr(filled,'modelNo',mn).replace(/\[Order No\]/g,mn).replace(/\[Model No\]/g,mn);
+    filled=fr(filled,'patientName',pt).replace(/\[Patient Name\]/g,pt);
     if(filled!==ta.value){
       ta.value=filled;
       updateMsgPreview();
@@ -6822,16 +6820,18 @@ function applyMsgTemplate(){
   const caseEncl=checkedCase?.dataset.enclosures||'[Components Received]';
   const caseMn=checkedCase?.dataset.modelno||'[Order No]';
   const casePt=checkedCase?.dataset.patient||'[Patient Name]';
-  let body=tpl.body
-    .replace(/\{doctor\}/g,opt?.dataset.name||'Doctor')
-    .replace(/\{clinic\}/g,opt?.dataset.clinic||'[Clinic]')
-    .replace(/\{order\}/g,caseMn)
-    .replace(/\{modelNo\}/g,caseMn)
-    .replace(/\{patientName\}/g,casePt)
-    .replace(/\{workType\}/g,caseWt)
-    .replace(/\{enclosures\}/g,caseEncl)
-    .replace(/\{labName\}/g,lab.name||'K.B. DENARTS')
-    .replace(/\{date\}/g,new Date().toLocaleDateString('en-IN'));
+  // Use flexible regex to handle spaces inside braces e.g. { modelNo } or {modelNo}
+  const rpl=(body,key,val)=>body.replace(new RegExp('\\{\\s*'+key+'\\s*\\}','g'),val);
+  let body=tpl.body;
+  body=rpl(body,'doctor',opt?.dataset.name||'Doctor');
+  body=rpl(body,'clinic',opt?.dataset.clinic||'[Clinic]');
+  body=rpl(body,'order',caseMn);
+  body=rpl(body,'modelNo',caseMn);
+  body=rpl(body,'patientName',casePt);
+  body=rpl(body,'workType',caseWt);
+  body=rpl(body,'enclosures',caseEncl);
+  body=rpl(body,'labName',lab.name||'K.B. DENARTS');
+  body=rpl(body,'date',new Date().toLocaleDateString('en-IN'));
   document.getElementById('msg-body').value=body;
   updateMsgPreview();
   // Refresh cases panel with template-aware filter (e.g. Order Received shows today-only)
