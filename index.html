@@ -6723,9 +6723,11 @@ function populateMsgCases(doctorId, doctorName, templateId){
   const isOrderReady=_tplId==='t1'||getMsgTemplates().find(t=>t.id===_tplId)?.name?.toLowerCase()==='order ready';
   const todayStr=today();
   const doctorMatch=o=>(o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName));
-  // Order Ready → show Complete cases; others → In Production
-  const targetStatus=isOrderReady?'Complete':'In Production';
-  let orders=getOrders().filter(o=>o.status===targetStatus&&doctorMatch(o));
+  // Order Ready → prefer Complete cases, fall back to In Production if none Complete
+  let orders=getOrders().filter(o=>doctorMatch(o)&&(isOrderReady?o.status==='Complete':o.status==='In Production'));
+  if(isOrderReady&&!orders.length){
+    orders=getOrders().filter(o=>o.status==='In Production'&&doctorMatch(o));
+  }
   if(isOrderReceived){
     // Prefer cases received today; fall back to all In Production if none received today
     const todayOrders=orders.filter(o=>{const d=o.receivedDate||o.date||'';return d===todayStr||d.startsWith(todayStr);});
