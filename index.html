@@ -6661,7 +6661,7 @@ function populateMsgDoctorDropdown(){
   if(!sel) return;
   const docs=getDoctors().sort((a,b)=>a.name.localeCompare(b.name));
   sel.innerHTML=`<option value="">-- Select Doctor --</option>`+
-    docs.map(d=>`<option value="${d.id}" data-phone="${d.phone||d.contact||''}" data-name="${d.name}">${d.name}</option>`).join('');
+    docs.map(d=>`<option value="${d.id}" data-phone="${d.phone||d.contact||''}" data-name="${d.name}" data-clinic="${d.clinic||''}">${d.name}</option>`).join('');
 }
 
 function populateMsgTemplateDropdown(){
@@ -6688,7 +6688,10 @@ function autoFillMsgPhone(){
   const phone=opt?.dataset.phone||'';
   const el=document.getElementById('msg-recipient-display');
   if(el) el.value=phone;
-  updateMsgPreview();
+  // Re-apply template with the newly selected doctor's details
+  const tplSel=document.getElementById('msg-template-select');
+  if(tplSel?.value) applyMsgTemplate();
+  else updateMsgPreview();
 }
 
 function applyMsgTemplate(){
@@ -6701,7 +6704,7 @@ function applyMsgTemplate(){
   const opt=sel?.selectedOptions[0];
   let body=tpl.body
     .replace(/\{doctor\}/g,opt?.dataset.name||'Doctor')
-    .replace(/\{clinic\}/g,'[Clinic]')
+    .replace(/\{clinic\}/g,opt?.dataset.clinic||'[Clinic]')
     .replace(/\{order\}/g,'[Order No]')
     .replace(/\{date\}/g,new Date().toLocaleDateString('en-IN'));
   document.getElementById('msg-body').value=body;
