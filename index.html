@@ -4553,9 +4553,10 @@ function renderChallan(){
   if(fromDate) orders=orders.filter(o=>o.dispatchDate>=fromDate);
   if(toDate) orders=orders.filter(o=>o.dispatchDate<=toDate);
   orders.sort((a,b)=>{
-    const numA=parseInt((String(a.challanNo||a.modelNo||'')).split('/').pop())||0;
-    const numB=parseInt((String(b.challanNo||b.modelNo||'')).split('/').pop())||0;
-    return numB-numA;
+    const dateA=new Date(a.dispatchDate||a.date||0).getTime()||0;
+    const dateB=new Date(b.dispatchDate||b.date||0).getTime()||0;
+    if(dateB!==dateA) return dateB-dateA;
+    return (b.updatedAt||0)-(a.updatedAt||0);
   });
   const tbody=document.getElementById('challan-tbody');
   if(!orders.length){
