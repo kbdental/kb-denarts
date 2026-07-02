@@ -6641,6 +6641,15 @@ function setMsgTemplates(arr){setData('msg-templates',arr);}
 function getMsgHistory(){return getData('msg-history')||[];}
 
 function renderMessagingPage(){
+  // Force-update the built-in 'Order Received' template body in case an old version is cached
+  const _tpls=getData('msg-templates');
+  if(_tpls){
+    const _t4=_tpls.find(t=>t.id==='t4');
+    if(_t4&&!_t4.body.includes('{workType}')){
+      _t4.body='Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}';
+      setData('msg-templates',_tpls);
+    }
+  }
   populateMsgDoctorDropdown();
   populateMsgTemplateDropdown();
   renderTemplatesList();
@@ -6719,13 +6728,21 @@ function populateMsgCases(doctorId, doctorName){
     return nb-na;
   });
   list.innerHTML=orders.map(o=>{
-    let line=`• ${o.modelNo} | ${o.allTypes||o.workType||'—'} | ${o.status}`;
+    const wt=o.allTypes||o.workType||'—';
+    const encl=(o.enclosures||[]).join(', ')||'—';
+    const mn=o.modelNo||'—';
+    let line=`• ${mn} | ${wt} | ${o.status}`;
     if(o.dueDate) line+=` | Due: ${fmt(o.dueDate)}`;
     return `<label style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);cursor:pointer">
-      <input type="checkbox" class="msg-case-check" data-line="${line.replace(/"/g,'&quot;')}" style="margin-top:2px;flex-shrink:0">
+      <input type="checkbox" class="msg-case-check"
+        data-line="${line.replace(/"/g,'&quot;')}"
+        data-worktype="${wt.replace(/"/g,'&quot;')}"
+        data-enclosures="${encl.replace(/"/g,'&quot;')}"
+        data-modelno="${mn.replace(/"/g,'&quot;')}"
+        style="margin-top:2px;flex-shrink:0">
       <span>
-        <span style="font-weight:700;color:var(--blue)">${o.modelNo}</span>
-        <span style="color:var(--muted)"> · ${o.allTypes||o.workType||'—'}</span>
+        <span style="font-weight:700;color:var(--blue)">${mn}</span>
+        <span style="color:var(--muted)"> · ${wt}</span>
         <span style="margin-left:6px;font-size:11px;font-weight:600;color:${STATUS_COLORS[o.status]||'#64748b'}">${o.status}</span>
         ${o.dueDate?`<span style="color:var(--muted);font-size:11px"> · Due: ${fmt(o.dueDate)}</span>`:''}
       </span>
@@ -6739,33 +6756,24 @@ function insertSelectedCases(){
   if(!checked.length){toast('Select at least one case to insert','error');return;}
   const ta=document.getElementById('msg-body');
   if(!ta) return;
-  // If message body contains unfilled placeholders and exactly one case is checked, fill them
-  if(checked.length===1){
-    const sel=document.getElementById('msg-doctor-select');
-    const opt=sel?.selectedOptions[0];
-    const doctorId=opt?.value||'';
-    const doctorName=opt?.dataset.name||'';
-    const allChecks=[...document.querySelectorAll('.msg-case-check')];
-    const idx=allChecks.indexOf(checked[0]);
-    const active=getOrders().filter(o=>o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName));
-    // Sort same way as populateMsgCases
-    active.sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0));
-    const o=active[idx];
-    if(o&&ta.value){
-      ta.value=ta.value
-        .replace(/\[Type of Work\]/g,o.allTypes||o.workType||'—')
-        .replace(/\{workType\}/g,o.allTypes||o.workType||'—')
-        .replace(/\[Components Received\]/g,(o.enclosures||[]).join(', ')||'—')
-        .replace(/\{enclosures\}/g,(o.enclosures||[]).join(', ')||'—')
-        .replace(/\[Order No\]/g,o.modelNo||'—')
-        .replace(/\[Model No\]/g,o.modelNo||'—')
-        .replace(/\{modelNo\}/g,o.modelNo||'—');
+  // If exactly one case is checked and message has unfilled placeholders, fill them from data attributes
+  if(checked.length===1&&ta.value){
+    const cb=checked[0];
+    const wt=cb.dataset.worktype||'—';
+    const encl=cb.dataset.enclosures||'—';
+    const mn=cb.dataset.modelno||'—';
+    const filled=ta.value
+      .replace(/\[Type of Work\]/g,wt).replace(/\{workType\}/g,wt)
+      .replace(/\[Components Received\]/g,encl).replace(/\{enclosures\}/g,encl)
+      .replace(/\[Order No\]/g,mn).replace(/\[Model No\]/g,mn).replace(/\{modelNo\}/g,mn);
+    if(filled!==ta.value){
+      ta.value=filled;
       updateMsgPreview();
       toast('Case details filled into message','success');
       return;
     }
   }
-  // Multiple cases or no template body — append case lines
+  // Multiple cases or no placeholders to fill — append case lines
   const lines=checked.map(cb=>cb.dataset.line||'').filter(Boolean).join('\n');
   ta.value=(ta.value?ta.value+'\n\n':'')+lines;
   updateMsgPreview();
@@ -6781,27 +6789,18 @@ function applyMsgTemplate(){
   const sel=document.getElementById('msg-doctor-select');
   const opt=sel?.selectedOptions[0];
   const lab=getData('company')||{};
-  // Try to get work type & enclosures from a single checked case if one is already ticked
+  // Read case details directly from data attributes on the checked checkbox
   const checkedCase=document.querySelector('.msg-case-check:checked');
-  const caseOrders=getOrders();
-  let caseOrder=null;
-  if(checkedCase){
-    // find by data-line match or just use first checked order for this doctor
-    const doctorId=opt?.value||'';
-    const doctorName=opt?.dataset.name||'';
-    const active=caseOrders.filter(o=>o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName));
-    // match by position in list
-    const allChecks=[...document.querySelectorAll('.msg-case-check')];
-    const idx=allChecks.indexOf(checkedCase);
-    if(idx>=0&&active[idx]) caseOrder=active[idx];
-  }
+  const caseWt=checkedCase?.dataset.worktype||'[Type of Work]';
+  const caseEncl=checkedCase?.dataset.enclosures||'[Components Received]';
+  const caseMn=checkedCase?.dataset.modelno||'[Order No]';
   let body=tpl.body
     .replace(/\{doctor\}/g,opt?.dataset.name||'Doctor')
     .replace(/\{clinic\}/g,opt?.dataset.clinic||'[Clinic]')
-    .replace(/\{order\}/g,caseOrder?caseOrder.modelNo:'[Order No]')
-    .replace(/\{modelNo\}/g,caseOrder?caseOrder.modelNo:'[Model No]')
-    .replace(/\{workType\}/g,caseOrder?(caseOrder.allTypes||caseOrder.workType||'—'):'[Type of Work]')
-    .replace(/\{enclosures\}/g,caseOrder?((caseOrder.enclosures||[]).join(', ')||'—'):'[Components Received]')
+    .replace(/\{order\}/g,caseMn)
+    .replace(/\{modelNo\}/g,caseMn)
+    .replace(/\{workType\}/g,caseWt)
+    .replace(/\{enclosures\}/g,caseEncl)
     .replace(/\{labName\}/g,lab.name||'K.B. DENARTS')
     .replace(/\{date\}/g,new Date().toLocaleDateString('en-IN'));
   document.getElementById('msg-body').value=body;
