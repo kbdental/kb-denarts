@@ -6632,7 +6632,7 @@ function saveStatusColors(){toast('Status colors saved (page refresh to apply)',
 
 // ═══════════════════════════════════════════════ MESSAGING
 function getMsgTemplates(){return getData('msg-templates')||[
-  {id:'t1',name:'Order Ready',category:'Order Update',body:'Dear Dr. {doctor},\n\nYour order ({order}) from {clinic} is ready for dispatch.\n\nKindly arrange for pickup or let us know for delivery.\n\nRegards,\nK.B. DENARTS'},
+  {id:'t1',name:'Order Ready',category:'Order Update',body:'Dear Dr. {doctor},\n\nWe are pleased to inform you that your case is ready.\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\n\nKindly arrange for pickup or let us know if you need it delivered.\n\nWarm regards,\n{labName}'},
   {id:'t2',name:'Trial Ready',category:'Order Update',body:'Dear Dr. {doctor},\n\nThe trial for your order ({order}) is ready. Please schedule the try-in at your earliest convenience.\n\nRegards,\nK.B. DENARTS'},
   {id:'t3',name:'Payment Reminder',category:'Payment Reminder',body:'Dear Dr. {doctor},\n\nThis is a gentle reminder that your outstanding payment is due. Kindly clear the dues at your earliest.\n\nFor any queries, please contact us.\n\nRegards,\nK.B. DENARTS'},
   {id:'t4',name:'Order Received',category:'Order Update',body:'Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}'},
@@ -6641,16 +6641,15 @@ function setMsgTemplates(arr){setData('msg-templates',arr);}
 function getMsgHistory(){return getData('msg-history')||[];}
 
 function renderMessagingPage(){
-  // Always sync built-in template t4 to latest version (v3) so cached old bodies are replaced
+  // Always sync built-in templates to latest version so cached old bodies are replaced
+  const T1_BODY='Dear Dr. {doctor},\n\nWe are pleased to inform you that your case is ready.\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\n\nKindly arrange for pickup or let us know if you need it delivered.\n\nWarm regards,\n{labName}';
   const T4_BODY='Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}';
   const _tpls=getData('msg-templates');
   if(_tpls){
-    // Fix t4 by id AND any user-created "Order Received" templates by name
     let _changed=false;
     _tpls.forEach(t=>{
-      if((t.id==='t4'||t.name.toLowerCase()==='order received')&&t.body!==T4_BODY){
-        t.body=T4_BODY;_changed=true;
-      }
+      if((t.id==='t1'||t.name.toLowerCase()==='order ready')&&t.body!==T1_BODY){t.body=T1_BODY;_changed=true;}
+      if((t.id==='t4'||t.name.toLowerCase()==='order received')&&t.body!==T4_BODY){t.body=T4_BODY;_changed=true;}
     });
     if(_changed) setData('msg-templates',_tpls);
   }
@@ -6719,12 +6718,14 @@ function populateMsgCases(doctorId, doctorName, templateId){
   const list=document.getElementById('msg-cases-list');
   if(!row||!list) return;
   if(!doctorId&&!doctorName){row.style.display='none';list.innerHTML='';return;}
-  // For 'Order Received' template: only In Production cases received TODAY
-  // For all other templates: all In Production cases
-  const isOrderReceived=(templateId||document.getElementById('msg-template-select')?.value)==='t4';
+  const _tplId=templateId||document.getElementById('msg-template-select')?.value;
+  const isOrderReceived=_tplId==='t4'||getMsgTemplates().find(t=>t.id===_tplId)?.name?.toLowerCase()==='order received';
+  const isOrderReady=_tplId==='t1'||getMsgTemplates().find(t=>t.id===_tplId)?.name?.toLowerCase()==='order ready';
   const todayStr=today();
   const doctorMatch=o=>(o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName));
-  let orders=getOrders().filter(o=>o.status==='In Production'&&doctorMatch(o));
+  // Order Ready → show Complete cases; others → In Production
+  const targetStatus=isOrderReady?'Complete':'In Production';
+  let orders=getOrders().filter(o=>o.status===targetStatus&&doctorMatch(o));
   if(isOrderReceived){
     // Prefer cases received today; fall back to all In Production if none received today
     const todayOrders=orders.filter(o=>{const d=o.receivedDate||o.date||'';return d===todayStr||d.startsWith(todayStr);});
