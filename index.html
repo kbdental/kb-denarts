@@ -6694,20 +6694,20 @@ function autoFillMsgPhone(){
   const phone=opt?.dataset.phone||'';
   const el=document.getElementById('msg-recipient-display');
   if(el) el.value=phone;
-  populateMsgCases(opt?.value||'');
+  populateMsgCases(opt?.value||'', opt?.dataset.name||'');
   // Re-apply template with the newly selected doctor's details
   const tplSel=document.getElementById('msg-template-select');
   if(tplSel?.value) applyMsgTemplate();
   else updateMsgPreview();
 }
 
-function populateMsgCases(doctorId){
+function populateMsgCases(doctorId, doctorName){
   const row=document.getElementById('msg-cases-row');
   const list=document.getElementById('msg-cases-list');
   if(!row||!list) return;
-  if(!doctorId){row.style.display='none';list.innerHTML='';return;}
+  if(!doctorId&&!doctorName){row.style.display='none';list.innerHTML='';return;}
   const ACTIVE=['In Production','Out for Try-in','On Hold','Complete','Delivered','OverDue','Repeat/Repair'];
-  const orders=getOrders().filter(o=>o.doctorId===doctorId&&ACTIVE.includes(o.status));
+  const orders=getOrders().filter(o=>ACTIVE.includes(o.status)&&(o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName)));
   if(!orders.length){
     list.innerHTML='<div style="color:var(--muted);padding:6px 4px">No active cases for this doctor</div>';
     row.style.display='';
