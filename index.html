@@ -3735,7 +3735,7 @@ function openMsgForOrder(orderId, tplId){
   const o=getOrders().find(x=>x.id===orderId);
   if(!o){toast('Order not found','error');return;}
   closeModal();
-  navigate('messaging');
+  navigate('admin-messaging');
   setTimeout(()=>{
     const dSel=document.getElementById('msg-doctor-select');
     if(dSel){
