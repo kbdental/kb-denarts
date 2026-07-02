@@ -6635,7 +6635,7 @@ function getMsgTemplates(){return getData('msg-templates')||[
   {id:'t1',name:'Order Ready',category:'Order Update',body:'Dear Dr. {doctor},\n\nYour order ({order}) from {clinic} is ready for dispatch.\n\nKindly arrange for pickup or let us know for delivery.\n\nRegards,\nK.B. DENARTS'},
   {id:'t2',name:'Trial Ready',category:'Order Update',body:'Dear Dr. {doctor},\n\nThe trial for your order ({order}) is ready. Please schedule the try-in at your earliest convenience.\n\nRegards,\nK.B. DENARTS'},
   {id:'t3',name:'Payment Reminder',category:'Payment Reminder',body:'Dear Dr. {doctor},\n\nThis is a gentle reminder that your outstanding payment is due. Kindly clear the dues at your earliest.\n\nFor any queries, please contact us.\n\nRegards,\nK.B. DENARTS'},
-  {id:'t4',name:'Order Received',category:'Order Update',body:'Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}'},
+  {id:'t4',name:'Order Received',category:'Order Update',body:'Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}'},
 ];}
 function setMsgTemplates(arr){setData('msg-templates',arr);}
 function getMsgHistory(){return getData('msg-history')||[];}
@@ -6645,8 +6645,8 @@ function renderMessagingPage(){
   const _tpls=getData('msg-templates');
   if(_tpls){
     const _t4=_tpls.find(t=>t.id==='t4');
-    if(_t4&&(!_t4.body.includes('{workType}')||!_t4.body.includes('{modelNo}'))){
-      _t4.body='Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}';
+    if(_t4&&(!_t4.body.includes('{workType}')||!_t4.body.includes('{modelNo}')||!_t4.body.includes('{patientName}'))){
+      _t4.body='Hello Dr. {doctor},\n\nThank you for entrusting us with your case. We truly value the confidence you have placed in our lab for this work.\n\nWe have received the case with the following:\n\nModel No: {modelNo}\nPatient Name: {patientName}\nType of Work: {workType}\nComponents Received: {enclosures}\n\nOur team will handle this case as per instructions provided with the utmost care and attention to detail and ensure highest quality outcome. We would appreciate if you please let us know of any additional instructions or specific requirements. We\'re here to make this process as smooth and successful as possible.\n\nThank you once again for your trust in us.\n\nWarm regards,\n{labName}';
       setData('msg-templates',_tpls);
     }
   }
@@ -6743,7 +6743,8 @@ function populateMsgCases(doctorId, doctorName, templateId){
     const wt=o.allTypes||o.workType||'—';
     const encl=(o.enclosures&&o.enclosures.length)?(o.enclosures.join(', ')):'(not recorded)';
     const mn=o.modelNo||'—';
-    let line=`• ${mn} | ${wt} | ${o.status}`;
+    const pt=o.patientName||'—';
+    let line=`• ${mn} | Patient: ${pt} | ${wt} | ${o.status}`;
     if(o.dueDate) line+=` | Due: ${fmt(o.dueDate)}`;
     return `<label style="display:flex;align-items:flex-start;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);cursor:pointer">
       <input type="checkbox" class="msg-case-check"
@@ -6751,9 +6752,11 @@ function populateMsgCases(doctorId, doctorName, templateId){
         data-worktype="${wt.replace(/"/g,'&quot;')}"
         data-enclosures="${encl.replace(/"/g,'&quot;')}"
         data-modelno="${mn.replace(/"/g,'&quot;')}"
+        data-patient="${pt.replace(/"/g,'&quot;')}"
         style="margin-top:2px;flex-shrink:0">
       <span>
         <span style="font-weight:700;color:var(--blue)">${mn}</span>
+        <span style="color:var(--muted)"> · ${pt}</span>
         <span style="color:var(--muted)"> · ${wt}</span>
         <span style="margin-left:6px;font-size:11px;font-weight:600;color:${STATUS_COLORS[o.status]||'#64748b'}">${o.status}</span>
         ${o.dueDate?`<span style="color:var(--muted);font-size:11px"> · Due: ${fmt(o.dueDate)}</span>`:''}
@@ -6774,10 +6777,12 @@ function insertSelectedCases(){
     const wt=cb.dataset.worktype||'—';
     const encl=cb.dataset.enclosures||'—';
     const mn=cb.dataset.modelno||'—';
+    const pt=cb.dataset.patient||'—';
     const filled=ta.value
       .replace(/\[Type of Work\]/g,wt).replace(/\{workType\}/g,wt)
       .replace(/\[Components Received\]/g,encl).replace(/\{enclosures\}/g,encl)
-      .replace(/\[Order No\]/g,mn).replace(/\[Model No\]/g,mn).replace(/\{modelNo\}/g,mn);
+      .replace(/\[Order No\]/g,mn).replace(/\[Model No\]/g,mn).replace(/\{modelNo\}/g,mn)
+      .replace(/\[Patient Name\]/g,pt).replace(/\{patientName\}/g,pt);
     if(filled!==ta.value){
       ta.value=filled;
       updateMsgPreview();
@@ -6806,11 +6811,13 @@ function applyMsgTemplate(){
   const caseWt=checkedCase?.dataset.worktype||'[Type of Work]';
   const caseEncl=checkedCase?.dataset.enclosures||'[Components Received]';
   const caseMn=checkedCase?.dataset.modelno||'[Order No]';
+  const casePt=checkedCase?.dataset.patient||'[Patient Name]';
   let body=tpl.body
     .replace(/\{doctor\}/g,opt?.dataset.name||'Doctor')
     .replace(/\{clinic\}/g,opt?.dataset.clinic||'[Clinic]')
     .replace(/\{order\}/g,caseMn)
     .replace(/\{modelNo\}/g,caseMn)
+    .replace(/\{patientName\}/g,casePt)
     .replace(/\{workType\}/g,caseWt)
     .replace(/\{enclosures\}/g,caseEncl)
     .replace(/\{labName\}/g,lab.name||'K.B. DENARTS')
