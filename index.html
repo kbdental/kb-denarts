@@ -6703,20 +6703,32 @@ function autoFillMsgPhone(){
   const phone=opt?.dataset.phone||'';
   const el=document.getElementById('msg-recipient-display');
   if(el) el.value=phone;
-  populateMsgCases(opt?.value||'', opt?.dataset.name||'');
+  populateMsgCases(opt?.value||'', opt?.dataset.name||'', document.getElementById('msg-template-select')?.value||'');
   // Re-apply template with the newly selected doctor's details
   const tplSel=document.getElementById('msg-template-select');
   if(tplSel?.value) applyMsgTemplate();
   else updateMsgPreview();
 }
 
-function populateMsgCases(doctorId, doctorName){
+function populateMsgCases(doctorId, doctorName, templateId){
   const row=document.getElementById('msg-cases-row');
   const list=document.getElementById('msg-cases-list');
   if(!row||!list) return;
   if(!doctorId&&!doctorName){row.style.display='none';list.innerHTML='';return;}
-  const ACTIVE=['In Production','Out for Try-in','On Hold','Complete','Delivered','OverDue','Repeat/Repair'];
-  const orders=getOrders().filter(o=>ACTIVE.includes(o.status)&&(o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName)));
+  // For 'Order Received' template: only In Production cases received TODAY
+  // For all other templates: all In Production cases
+  const isOrderReceived=(templateId||document.getElementById('msg-template-select')?.value)==='t4';
+  const todayStr=today();
+  const orders=getOrders().filter(o=>{
+    if(o.status!=='In Production') return false;
+    if(!(o.doctorId===doctorId||(doctorName&&o.doctorName===doctorName))) return false;
+    if(isOrderReceived){
+      // Only show if received/created today
+      const d=o.receivedDate||o.date||'';
+      return d===todayStr||d.startsWith(todayStr);
+    }
+    return true;
+  });
   if(!orders.length){
     list.innerHTML='<div style="color:var(--muted);padding:6px 4px">No active cases for this doctor</div>';
     row.style.display='';
@@ -6729,7 +6741,7 @@ function populateMsgCases(doctorId, doctorName){
   });
   list.innerHTML=orders.map(o=>{
     const wt=o.allTypes||o.workType||'—';
-    const encl=(o.enclosures||[]).join(', ')||'—';
+    const encl=(o.enclosures&&o.enclosures.length)?(o.enclosures.join(', ')):'(not recorded)';
     const mn=o.modelNo||'—';
     let line=`• ${mn} | ${wt} | ${o.status}`;
     if(o.dueDate) line+=` | Due: ${fmt(o.dueDate)}`;
@@ -6805,6 +6817,10 @@ function applyMsgTemplate(){
     .replace(/\{date\}/g,new Date().toLocaleDateString('en-IN'));
   document.getElementById('msg-body').value=body;
   updateMsgPreview();
+  // Refresh cases panel with template-aware filter (e.g. Order Received shows today-only)
+  const _sel=document.getElementById('msg-doctor-select');
+  const _opt=_sel?.selectedOptions[0];
+  if(_opt?.value) populateMsgCases(_opt.value, _opt.dataset.name||'', id);
 }
 
 function updateMsgPreview(){
