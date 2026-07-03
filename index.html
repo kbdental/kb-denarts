@@ -554,7 +554,7 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
           <div class="stat-sub">Active</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Completed</div>
+          <div class="stat-label">Completed (This Month)</div>
           <div class="stat-value" id="d-complete" style="color:var(--green)">0</div>
           <div class="stat-sub">This month</div>
         </div>
@@ -3689,7 +3689,7 @@ function saveOrder(){
     id:editingOrderId||genId(),
     modelNo:editingOrderId?getOrders().find(o=>o.id===editingOrderId)?.modelNo:genSerial(),
     challanNo:editingOrderId?(getOrders().find(o=>o.id===editingOrderId)?.challanNo||''):'',
-    date:today(),
+    date:editingOrderId?(getOrders().find(o=>o.id===editingOrderId)?.date||today()):today(),
     doctorId,doctorName:doctor?.name||'',clinicName:doctor?.clinic||'',clinicAddress:doctor?.address||'',
     patientName:patient,
     workItems:finalItems,workType,allTeeth,allTypes,totalAmount,totalUnits,
@@ -3730,9 +3730,10 @@ function saveOrder(){
   const _isNew=!editingOrderId;
   clearOrderForm();
   currentStatusFilter='all';
-  if(_postSaveAction==='message'&&_isNew){
+  if(_postSaveAction==='message'){
     _postSaveAction=null;
-    openMsgForOrder(_savedId,'t4');
+    const tplId=_isNew?'t4':((getOrders().find(o=>o.id===_savedId)?.status==='Complete'||getOrders().find(o=>o.id===_savedId)?.status==='Delivered')?'t1':'t4');
+    openMsgForOrder(_savedId,tplId);
   } else {
     _postSaveAction=null;
     navigate('all-orders');
@@ -3754,21 +3755,22 @@ function openMsgForOrder(orderId, tplId){
   setTimeout(()=>{
     const dSel=document.getElementById('msg-doctor-select');
     if(dSel){
-      const opt=Array.from(dSel.options).find(op=>op.value===o.doctorId)||Array.from(dSel.options).find(op=>op.dataset.name===o.doctorName);
+      const opt=Array.from(dSel.options).find(op=>op.value&&op.value===o.doctorId)||Array.from(dSel.options).find(op=>op.dataset.name===o.doctorName);
       if(opt){dSel.value=opt.value;autoFillMsgPhone();}
     }
     const tSel=document.getElementById('msg-template-select');
+    let _tplToApply=null;
     if(tSel&&tplId){
-      // Find matching template — prefer exact id, fall back to name match
       const tpls=getMsgTemplates();
       const tpl=tpls.find(t=>t.id===tplId)||tpls.find(t=>t.name.toLowerCase()===(tplId==='t4'?'order received':'order ready'));
-      if(tpl){tSel.value=tpl.id;applyMsgTemplate();}
+      if(tpl){tSel.value=tpl.id;_tplToApply=tpl.id;populateMsgCases();}
     }
-    // After cases panel populates, tick the matching case
+    // Tick the matching case THEN apply template so placeholders fill correctly
     setTimeout(()=>{
       document.querySelectorAll('.msg-case-check').forEach(c=>{
-        if(c.dataset.modelno===o.modelNo){c.checked=true;onMsgCaseToggle(c);}
+        if(c.dataset.modelno===o.modelNo){c.checked=true;}
       });
+      if(_tplToApply) applyMsgTemplate();
     },250);
   },350);
 }
@@ -4519,7 +4521,7 @@ function saveChallanEdits(){
       teeth:[],teethDisplay:'',teethManual:'',
       shade:'',shadeGuide:'',
       units:qty,unitRate:rate,discount:disc,
-      total:rate*(qty||1)*(1-disc/100)
+      total:rate*qty*(1-disc/100)
     });
   });
 
@@ -7774,7 +7776,7 @@ function closeModal(e){
 function printOrder(){window.print()}
 
 // ═══════════════════════════════════════════════ UTILS
-function today(){return new Date().toISOString().slice(0,10)}
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function fmt(d){
   if(!d) return '';
   if(d instanceof Date) return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
@@ -8435,8 +8437,8 @@ function prodLogSave(){
   const log=getProdLog();
   log.push({id:genId(),orderId:_prodSelectedOrderId,modelNo:o?.modelNo||'',patientName:o?.patientName||'',step:step,staffName:staff,note:note,ts:ts});
   setProdLog(log);
-  const isFinishing=step==='Layering & Finishing'||step.toLowerCase().includes('finishing');
   const isPacking=step==='Packing & Dispatch'||step.toLowerCase().includes('packing');
+  const isFinishing=!isPacking&&(step==='Layering & Finishing'||step.toLowerCase().includes('finishing'));
   if((isFinishing||isPacking)&&o){
     const allOrds=getOrders();
     const oidx=allOrds.findIndex(function(x){return x.id===_prodSelectedOrderId;});
