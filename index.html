@@ -4068,92 +4068,94 @@ function renderJobCardPreview(id){
     'Articulator\nPlates','Warranty Card'
   ];
 
-  // Cell style helpers — sized to fill A5 portrait
-  const lbl='border:1px solid #000;padding:3px 5px;font-weight:700;white-space:nowrap;font-size:10px;vertical-align:middle';
-  const val='border:1px solid #000;padding:3px 5px;font-size:10px;vertical-align:middle';
-  const hdr='border:1px solid #000;padding:3px 4px;font-weight:700;font-size:9.5px;background:#f0f0f0;text-align:center;vertical-align:middle';
-  const sub='border:1px solid #000;padding:3px 4px;font-weight:700;font-size:9px;background:#f0f0f0;text-align:center;vertical-align:middle';
-  const cell='border:1px solid #000;padding:0;height:22px;vertical-align:middle';
-  const pkgcell='border:1px solid #000;padding:2px 4px;font-size:9.5px;vertical-align:middle;word-break:break-word;line-height:1.3';
+  // Cell style helpers — sized for A5 landscape (tighter padding)
+  const lbl='border:1px solid #000;padding:2px 4px;font-weight:700;white-space:nowrap;font-size:9.5px;vertical-align:middle';
+  const val='border:1px solid #000;padding:2px 4px;font-size:9.5px;vertical-align:middle';
+  const hdr='border:1px solid #000;padding:2px 3px;font-weight:700;font-size:9px;background:#f0f0f0;text-align:center;vertical-align:middle';
+  const sub='border:1px solid #000;padding:2px 3px;font-weight:700;font-size:8.5px;background:#f0f0f0;text-align:center;vertical-align:middle';
+  const cell='border:1px solid #000;padding:0;height:18px;vertical-align:middle';
+  const pkgcell='border:1px solid #000;padding:1px 4px;font-size:9px;vertical-align:middle;word-break:break-word;line-height:1.2';
+  const yn='border:1px solid #000;padding:0;width:28px;text-align:center;vertical-align:middle';
 
-  // Optimised for A5 portrait: label | value | mid-label | mid-val | packaging | Y/N
+  // A5 landscape: 8 columns — label|value|label|value | pkg-item|Y/N|pkg-item|Y/N
   const colgroup=`<colgroup>
-    <col style="width:18%"><col style="width:17%">
-    <col style="width:14%"><col style="width:14%">
-    <col style="width:28%"><col style="width:9%">
+    <col style="width:13%"><col style="width:14%">
+    <col style="width:13%"><col style="width:14%">
+    <col style="width:22%"><col style="width:6%">
+    <col style="width:12%"><col style="width:6%">
   </colgroup>`;
 
+  // Pair packaging items into 2 columns to save vertical space on A5 landscape
+  const pkgPairs=[];
+  for(let i=0;i<pkgRows.length;i+=2) pkgPairs.push([pkgRows[i],pkgRows[i+1]||'']);
+
+  const _p=(o.priority||'').trim();
+  const _isExp=_p==='Expedite Service', _isVU=_p==='Very Urgent';
+  const _priColor=_isExp?'#dc2626':_isVU?'#ea580c':'inherit';
+
   const sheet=(tag)=>`
-<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:10px;border:2px solid #000;table-layout:fixed">
+<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border:2px solid #000;table-layout:fixed">
   ${colgroup}
   <!-- TITLE -->
-  <tr><td colspan="6" style="text-align:center;font-weight:700;font-size:13px;padding:5px 0;border-bottom:2px solid #000;letter-spacing:1px">JOB SHEET</td></tr>
-  ${(()=>{const _p=(o.priority||'').trim();const _isExp=_p==='Expedite Service';const _isVU=_p==='Very Urgent';if(_isExp||_isVU){const _bg=_isExp?'#dc2626':'#ea580c';return `<tr><td colspan="6" style="text-align:center;font-weight:800;font-size:13px;padding:6px 0;border-bottom:2px solid #000;letter-spacing:2px;background-color:${_bg}!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff!important">⚠&nbsp;&nbsp;${_p.toUpperCase()}&nbsp;&nbsp;⚠</td></tr>`;}return '';})()}
-  <!-- MODEL NO / CHALLAN NO -->
+  <tr><td colspan="8" style="text-align:center;font-weight:700;font-size:12px;padding:4px 0;border-bottom:2px solid #000;letter-spacing:1px">JOB SHEET</td></tr>
+  ${(_isExp||_isVU)?`<tr><td colspan="8" style="text-align:center;font-weight:800;font-size:12px;padding:4px 0;border-bottom:2px solid #000;letter-spacing:2px;background-color:${_isExp?'#dc2626':'#ea580c'};-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff">⚠&nbsp;&nbsp;${_p.toUpperCase()}&nbsp;&nbsp;⚠</td></tr>`:''}
+  <!-- ROW 1: MODEL NO | CHALLAN NO | DOCTOR | PATIENT -->
   <tr>
-    <td style="${lbl}">MODEL NO. :</td>
-    <td id="jc-model-${tag}" style="${val};font-weight:700;color:#000">${o.modelNo||''}</td>
-    <td colspan="2" style="${lbl};text-align:right">CHALLAN NO. :</td>
-    <td colspan="2" id="jc-challan-${tag}" style="${val}">${challanNo}</td>
+    <td style="${lbl}">Model No:</td>
+    <td id="jc-model-${tag}" style="${val};font-weight:700">${o.modelNo||''}</td>
+    <td style="${lbl}">Challan No:</td>
+    <td id="jc-challan-${tag}" style="${val}">${challanNo}</td>
+    <td style="${lbl}">Doctor:</td>
+    <td colspan="3" id="jc-doctor-${tag}" style="${val}">${o.doctorName||''}</td>
   </tr>
-  <!-- DOCTOR / PATIENT -->
+  <!-- ROW 2: CLINIC | PATIENT -->
   <tr>
-    <td style="${lbl}">Doctor Name:</td>
-    <td id="jc-doctor-${tag}" style="${val}">${o.doctorName||''}</td>
-    <td style="${lbl};white-space:nowrap;font-size:9.5px">Patient Name:</td>
+    <td style="${lbl}">Clinic:</td>
+    <td colspan="3" id="jc-clinic-${tag}" style="${val}">${o.clinicName||''}</td>
+    <td style="${lbl}">Patient:</td>
     <td colspan="3" id="jc-patient-${tag}" style="${val};font-weight:700">${o.patientName||''}</td>
   </tr>
-  <!-- CLINIC -->
-  <tr>
-    <td style="${lbl}">Clinic Name:</td>
-    <td colspan="5" id="jc-clinic-${tag}" style="${val}">${o.clinicName||''}</td>
-  </tr>
-  <!-- TYPE OF WORK -->
+  <!-- ROW 3: TYPE OF WORK -->
   <tr>
     <td style="${lbl}">Type of Work:</td>
-    <td colspan="5" id="jc-work-${tag}" style="${val}">${allTypes}</td>
+    <td colspan="7" id="jc-work-${tag}" style="${val}">${allTypes}</td>
   </tr>
-  <!-- RECEIVED ON / EXP DELIVERY DATE / PRIORITY -->
+  <!-- ROW 4: RECEIVED | DUE DATE | PRIORITY | TEETH | SHADE -->
   <tr>
-    <td style="${lbl}">Received On:</td>
+    <td style="${lbl}">Received:</td>
     <td id="jc-recv-${tag}" style="${val}">${o.receivedDate||''}</td>
-    <td colspan="2" style="${lbl};text-align:center;white-space:normal;font-size:10.5px">Exp. Delivery<br>Date:</td>
+    <td style="${lbl}">Due Date:</td>
     <td id="jc-due-${tag}" style="${val}">${o.dueDate||''}</td>
-    <td style="${val};font-weight:700;text-align:center;color:${(o.priority==='Expedite Service')?'#dc2626':(o.priority==='Very Urgent')?'#ea580c':'inherit'}">${o.priority||''}</td>
-  </tr>
-  <!-- TEETH NO / SHADE -->
-  <tr>
-    <td style="${lbl}">Teeth No. :</td>
-    <td colspan="2" id="jc-teeth-${tag}" style="${val};text-align:center">${allTeeth}</td>
-    <td style="${lbl};text-align:right">Shade:</td>
-    <td colspan="2" id="jc-shade-${tag}" style="${val}">${allShades}</td>
-  </tr>
-  <!-- NO. OF UNITS / JOIN TYPE -->
-  <tr>
-    <td style="${lbl}">No. of Units:</td>
+    <td style="${lbl}">Priority:</td>
+    <td id="jc-pri-${tag}" style="${val};font-weight:700;color:${_priColor}">${_p||'Normal'}</td>
+    <td style="${lbl}">Units:</td>
     <td id="jc-units-${tag}" style="${val};text-align:center">${totalUnits}</td>
-    <td colspan="2" style="${lbl};text-align:right">Join Type:</td>
-    <td colspan="2" id="jc-join-${tag}" style="${val};text-align:center">${o.joinType||'NA'}</td>
   </tr>
-  <!-- ARTICLES RECEIVED -->
+  <!-- ROW 5: TEETH | SHADE | JOIN TYPE -->
+  <tr>
+    <td style="${lbl}">Teeth No.:</td>
+    <td colspan="3" id="jc-teeth-${tag}" style="${val}">${allTeeth}</td>
+    <td style="${lbl}">Shade:</td>
+    <td id="jc-shade-${tag}" style="${val}">${allShades}</td>
+    <td style="${lbl}">Join Type:</td>
+    <td id="jc-join-${tag}" style="${val}">${o.joinType||'NA'}</td>
+  </tr>
+  <!-- ROW 6: ARTICLES RECEIVED -->
   <tr>
     <td style="${lbl}">Articles Recd.:</td>
-    <td colspan="5" id="jc-articles-${tag}" style="${val}">${encl}</td>
+    <td colspan="7" id="jc-articles-${tag}" style="${val}">${encl}</td>
   </tr>
-  <!-- IMPLANT SYSTEM -->
+  <!-- ROW 7: IMPLANT SYSTEM | SPECIAL INSTRUCTION -->
   <tr>
     <td style="${lbl}">Implant System:</td>
-    <td colspan="5" id="jc-implant-${tag}" style="${val}">${o.implantSystem||''}</td>
+    <td id="jc-implant-${tag}" style="${val}">${o.implantSystem||''}</td>
+    <td style="${lbl}">Special Instruction:</td>
+    <td colspan="5" id="jc-special-${tag}" style="${val}">${o.notes||''}</td>
   </tr>
-  <!-- SPECIAL INSTRUCTION -->
-  <tr>
-    <td style="${lbl};vertical-align:top;padding-top:4px">Special<br>Instruction:</td>
-    <td colspan="5" id="jc-special-${tag}" style="${val};height:36px">${o.notes||''}</td>
-  </tr>
-  <!-- SECTION HEADERS: LAB WORK FLOW + PACKAGING DETAILS -->
+  <!-- SECTION HEADERS -->
   <tr>
     <td colspan="4" style="${hdr}">Lab Work Flow</td>
-    <td colspan="2" style="${hdr}">Packaging Details</td>
+    <td colspan="4" style="${hdr}">Packaging Details</td>
   </tr>
   <!-- COLUMN HEADERS -->
   <tr>
@@ -4161,20 +4163,20 @@ function renderJobCardPreview(id){
     <td style="${sub}">In Time</td>
     <td style="${sub}">Out Time</td>
     <td style="${sub}">Tech. Name</td>
-    <td style="${sub}"></td>
-    <td style="${sub}">Y / N</td>
+    <td colspan="2" style="${sub}">Item</td>
+    <td colspan="2" style="${sub}">Item</td>
   </tr>
-  <!-- WORKFLOW + PACKAGING ROWS -->
-  ${pkgRows.map(pkg=>`<tr class="pkg-row" style="height:22px">
+  <!-- WORKFLOW + PACKAGING ROWS (paired 2 per row) -->
+  ${pkgPairs.map(([a,b])=>`<tr class="pkg-row" style="height:18px">
     <td style="${cell}"></td>
     <td style="${cell}"></td>
     <td style="${cell}"></td>
     <td style="${cell}"></td>
-    <td style="${pkgcell}">${pkg}</td>
-    <td style="${cell}"></td>
+    <td style="${pkgcell}">${a}</td>
+    <td style="${yn}"></td>
+    <td style="${pkgcell}">${b}</td>
+    <td style="${yn}"></td>
   </tr>`).join('')}
-  <!-- Extra blank rows to fill page -->
-  ${'<tr class="pkg-row" style="height:22px"><td style="'+cell+'"></td><td style="'+cell+'"></td><td style="'+cell+'"></td><td style="'+cell+'"></td><td style="border:1px solid #000;padding:0"></td><td style="'+cell+'"></td></tr>'.repeat(2)}
 </table>`;
 
   document.getElementById('jobcard-preview').innerHTML=`
@@ -6317,7 +6319,7 @@ function genInvoiceSerial(){
 function getPageSetup(doc){
   const ps=getData('page-setup')||{};
   const defaults={
-    jobcard:{size:'A5 portrait',margin:'8mm'},
+    jobcard:{size:'A5 landscape',margin:'5mm'},
     challan:{size:'A4 portrait',margin:'8mm'},
     invoice:{size:'A4 portrait',margin:'8mm'},
     statement:{size:'A4 portrait',margin:'8mm'}
@@ -6327,7 +6329,7 @@ function getPageSetup(doc){
 
 function savePageSetup(){
   const ps={
-    jobcard:{size:document.getElementById('ps-jobcard-size')?.value||'A5 portrait',margin:document.getElementById('ps-jobcard-margin')?.value||'8mm'},
+    jobcard:{size:document.getElementById('ps-jobcard-size')?.value||'A5 landscape',margin:document.getElementById('ps-jobcard-margin')?.value||'5mm'},
     challan:{size:document.getElementById('ps-challan-size')?.value||'A4 portrait',margin:document.getElementById('ps-challan-margin')?.value||'8mm'},
     invoice:{size:document.getElementById('ps-invoice-size')?.value||'A4 portrait',margin:document.getElementById('ps-invoice-margin')?.value||'8mm'},
     statement:{size:document.getElementById('ps-statement-size')?.value||'A4 portrait',margin:document.getElementById('ps-statement-margin')?.value||'8mm'}
@@ -6339,8 +6341,8 @@ function savePageSetup(){
 function loadPageSetup(){
   const ps=getData('page-setup')||{};
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val;};
-  set('ps-jobcard-size',  ps.jobcard?.size||'A5 portrait');
-  set('ps-jobcard-margin',ps.jobcard?.margin||'8mm');
+  set('ps-jobcard-size',  ps.jobcard?.size||'A5 landscape');
+  set('ps-jobcard-margin',ps.jobcard?.margin||'5mm');
   set('ps-challan-size',  ps.challan?.size||'A4 portrait');
   set('ps-challan-margin',ps.challan?.margin||'8mm');
   set('ps-invoice-size',  ps.invoice?.size||'A4 portrait');
