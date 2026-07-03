@@ -8445,6 +8445,10 @@ function prodLogSave(){
       if(allOrds[oidx].status!==newStatus&&allOrds[oidx].status!=='Delivered'){
         allOrds[oidx].status=newStatus;
         allOrds[oidx].updatedAt=Date.now();
+        if(isPacking){
+          if(!allOrds[oidx].challanNo) allOrds[oidx].challanNo=allOrds[oidx].modelNo;
+          if(!allOrds[oidx].dispatchDate) allOrds[oidx].dispatchDate=today();
+        }
         setOrders(allOrds);
       }
     }
