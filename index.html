@@ -4088,7 +4088,7 @@ function renderJobCardPreview(id){
   ${colgroup}
   <!-- TITLE -->
   <tr><td colspan="6" style="text-align:center;font-weight:700;font-size:13px;padding:5px 0;border-bottom:2px solid #000;letter-spacing:1px">JOB SHEET</td></tr>
-  ${(o.priority==='Very Urgent'||o.priority==='Expedite Service')?`<tr><td colspan="6" style="text-align:center;font-weight:700;font-size:12px;padding:5px 0;border-bottom:2px solid #000;letter-spacing:1.5px;background:${o.priority==='Expedite Service'?'#dc2626':'#ea580c'};color:#fff">⚠ ${o.priority.toUpperCase()} ⚠</td></tr>`:''}
+  ${(()=>{const _p=(o.priority||'').trim();const _isExp=_p==='Expedite Service';const _isVU=_p==='Very Urgent';if(_isExp||_isVU){const _bg=_isExp?'#dc2626':'#ea580c';return `<tr><td colspan="6" style="text-align:center;font-weight:800;font-size:13px;padding:6px 0;border-bottom:2px solid #000;letter-spacing:2px;background-color:${_bg}!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;color:#fff!important">⚠&nbsp;&nbsp;${_p.toUpperCase()}&nbsp;&nbsp;⚠</td></tr>`;}return '';})()}
   <!-- MODEL NO / CHALLAN NO -->
   <tr>
     <td style="${lbl}">MODEL NO. :</td>
@@ -4113,12 +4113,13 @@ function renderJobCardPreview(id){
     <td style="${lbl}">Type of Work:</td>
     <td colspan="5" id="jc-work-${tag}" style="${val}">${allTypes}</td>
   </tr>
-  <!-- RECEIVED ON / EXP DELIVERY DATE -->
+  <!-- RECEIVED ON / EXP DELIVERY DATE / PRIORITY -->
   <tr>
     <td style="${lbl}">Received On:</td>
     <td id="jc-recv-${tag}" style="${val}">${o.receivedDate||''}</td>
     <td colspan="2" style="${lbl};text-align:center;white-space:normal;font-size:10.5px">Exp. Delivery<br>Date:</td>
-    <td colspan="2" id="jc-due-${tag}" style="${val}">${o.dueDate||''}</td>
+    <td id="jc-due-${tag}" style="${val}">${o.dueDate||''}</td>
+    <td style="${val};font-weight:700;text-align:center;color:${(o.priority==='Expedite Service')?'#dc2626':(o.priority==='Very Urgent')?'#ea580c':'inherit'}">${o.priority||''}</td>
   </tr>
   <!-- TEETH NO / SHADE -->
   <tr>
