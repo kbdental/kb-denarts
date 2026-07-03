@@ -505,6 +505,9 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
   <div class="sb-item" onclick="navigate('google-sheets')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/></svg>
     Google Sheets</div>
+  <div id="sb-open-sheet" class="sb-item" style="display:none;color:#4ade80;padding-left:28px;font-size:12px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;height:13px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    Open Sheet ↗</div>
   <div style="height:16px"></div>
 </aside>
 
@@ -2222,6 +2225,11 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
             <label class="form-label">Apps Script Web App URL</label>
             <input class="form-control" id="gs-url" placeholder="https://script.google.com/macros/s/AKfy.../exec">
             <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Paste the Web App URL after deploying the script below</div>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Google Sheet Direct URL <span style="font-weight:400;color:var(--muted)">(for quick access from sidebar)</span></label>
+            <input class="form-control" id="gs-sheet-url" placeholder="https://docs.google.com/spreadsheets/d/...">
+            <div style="font-size:11.5px;color:var(--muted);margin-top:4px">Paste the URL of the actual Google Sheet — adds an "Open Sheet" button in the sidebar</div>
           </div>
           <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
             <button class="btn btn-primary" onclick="saveGSConfig()">Save &amp; Test Connection</button>
@@ -7199,8 +7207,22 @@ function loadGSConfig(){
   const cfg=getData('gs-config')||{};
   const el=document.getElementById('gs-url');
   if(el) el.value=cfg.url||'';
+  const el2=document.getElementById('gs-sheet-url');
+  if(el2) el2.value=cfg.sheetUrl||'';
   updateSheetsBadge();
+  updateSidebarSheetBtn();
   loadTallyConfig();
+}
+function updateSidebarSheetBtn(){
+  const cfg=getData('gs-config')||{};
+  const btn=document.getElementById('sb-open-sheet');
+  if(!btn) return;
+  if(cfg.sheetUrl){
+    btn.style.display='flex';
+    btn.onclick=()=>window.open(cfg.sheetUrl,'_blank');
+  } else {
+    btn.style.display='none';
+  }
 }
 
 // ═══════════════════════════════════════════════ TALLY
@@ -7371,9 +7393,11 @@ async function pushOrdersToTally(orderIds){
 function saveGSConfig(){
   const url=document.getElementById('gs-url')?.value.trim();
   if(!url){toast('Enter a Web App URL','error');return;}
-  setData('gs-config',{url});
+  const sheetUrl=document.getElementById('gs-sheet-url')?.value.trim()||'';
+  setData('gs-config',{url,sheetUrl});
   setData('gs-connected',true);
   updateSheetsBadge();
+  updateSidebarSheetBtn();
   testGSConnection(url);
 }
 
@@ -8890,6 +8914,7 @@ function init(){
   })();
   updateTopbarDate();
   updateLastSyncBadge();
+  updateSidebarSheetBtn();
   // Init serial if not set
   if(!getData('serial')) setData('serial',{prefix:'KB',year:'26',next:1});
   // Auto-pull from Google Sheets on every load (mobile needs fresh data always)
