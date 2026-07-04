@@ -3171,6 +3171,7 @@ function addWorkItem(data){
           <select class="form-control" id="${wiId}-product" onchange="calcWITotal('${wiId}')">
             <option value="">-- Select Work Type --</option>
             ${products.map(p=>`<option value="${p.value||p}"${data&&data.productName===(p.value||p)?' selected':''}>${p.value||p}</option>`).join('')}
+            ${data&&data.productName&&!products.some(p=>(p.value||p)===data.productName)?`<option value="${data.productName}" selected>${data.productName}</option>`:''}
           </select>
         </div>
         <div class="form-group">
@@ -3675,6 +3676,11 @@ function saveOrder(){
         total:rate*(teeth.length||units)*(1-disc/100)});
     }
   });
+  // Last-resort fallback for edit mode: use the already-saved workItems from storage
+  if(!finalItems.length&&editingOrderId){
+    const saved=getOrders().find(o=>o.id===editingOrderId);
+    if(saved?.workItems?.length) finalItems=[...saved.workItems];
+  }
   if(!finalItems.length){toast('Please add at least one work item','error');return;}
 
   const doctor=getDoctors().find(d=>d.id===doctorId);
