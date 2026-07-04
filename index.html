@@ -3652,42 +3652,29 @@ function saveOrder(){
 
   // Build final work items
   let finalItems=[];
-  if(editingOrderId){
-    // EDIT MODE: read every rendered form row (wi-1, wi-2, etc.)
-    document.querySelectorAll('.wi-section').forEach(section=>{
-      const wiId=section.id;
-      const prod=document.getElementById(wiId+'-product')?.value||'';
-      if(!prod) return; // skip blank rows
-      const teeth=getWITeeth(wiId);
-      const manual=document.getElementById(wiId+'-manual')?.value||'';
-      const units=getWIUnits(wiId)||1;
-      const rate=parseFloat(document.getElementById(wiId+'-rate')?.value)||0;
-      const disc=parseFloat(document.getElementById(wiId+'-disc')?.value)||0;
-      finalItems.push({id:genId(),productName:prod,teeth,teethManual:manual,
-        teethDisplay:teeth.length?teeth.sort((a,b)=>a-b).join(', '):manual,
+  // Collect from workItemsList (summary table) — present in both new and edit modes
+  finalItems=[...workItemsList];
+  // Also collect from any filled .wi-section form rows not yet confirmed to the list
+  document.querySelectorAll('.wi-section').forEach(section=>{
+    const wiId=section.id;
+    const prod=document.getElementById(wiId+'-product')?.value||'';
+    if(!prod) return;
+    // Skip if already captured via workItemsList (avoid duplicates by product+teeth match)
+    const teeth=getWITeeth(wiId);
+    const manual=document.getElementById(wiId+'-manual')?.value||'';
+    const units=getWIUnits(wiId)||1;
+    const rate=parseFloat(document.getElementById(wiId+'-rate')?.value)||0;
+    const disc=parseFloat(document.getElementById(wiId+'-disc')?.value)||0;
+    const teethDisplay=teeth.length?teeth.sort((a,b)=>a-b).join(', '):manual;
+    const alreadyCaptured=finalItems.some(fi=>fi.productName===prod&&fi.teethDisplay===teethDisplay);
+    if(!alreadyCaptured){
+      finalItems.push({id:genId(),productName:prod,teeth,teethManual:manual,teethDisplay,
         shadeGuide:document.getElementById(wiId+'-shade-guide')?.value||'',
         shade:document.getElementById(wiId+'-shade')?.value||'',
         units:teeth.length||units,unitRate:rate,discount:disc,
         total:rate*(teeth.length||units)*(1-disc/100)});
-    });
-  } else {
-    // NEW ORDER MODE: workItemsList (confirmed items) + current wi-1 form row
-    finalItems=[...workItemsList];
-    const wi1Product=document.getElementById('wi-1-product')?.value||'';
-    if(wi1Product){
-      const teeth=getWITeeth('wi-1');
-      const manual=document.getElementById('wi-1-manual')?.value||'';
-      const units=getWIUnits('wi-1')||1;
-      const rate=parseFloat(document.getElementById('wi-1-rate')?.value)||0;
-      const disc=parseFloat(document.getElementById('wi-1-disc')?.value)||0;
-      finalItems.push({id:genId(),productName:wi1Product,teeth,teethManual:manual,
-        teethDisplay:teeth.length?teeth.sort((a,b)=>a-b).join(', '):manual,
-        shadeGuide:document.getElementById('wi-1-shade-guide')?.value||'',
-        shade:document.getElementById('wi-1-shade')?.value||'',
-        units:teeth.length||units,unitRate:rate,discount:disc,
-        total:rate*(teeth.length||units)*(1-disc/100)});
     }
-  }
+  });
   if(!finalItems.length){toast('Please add at least one work item','error');return;}
 
   const doctor=getDoctors().find(d=>d.id===doctorId);
