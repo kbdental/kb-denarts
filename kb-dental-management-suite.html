@@ -687,6 +687,13 @@ body{background:#F5F6FA}
 .img-add-btn{padding:6px 15px;background:#1357A6;color:#fff;border:none;border-radius:7px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
 .img-save-btn{padding:6px 15px;background:#2E7D32;color:#fff;border:none;border-radius:7px;font-family:'Poppins',sans-serif;font-size:12px;font-weight:600;cursor:pointer}
 
+/* ── COMING SOON ── */
+.coming-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.cs-icon{font-size:48px}
+.cs-title{font-size:16px;font-weight:700;color:#1A237E}
+.cs-sub{font-size:12px;color:#78909C}
+.cs-back{margin-top:8px;padding:8px 20px;background:#1357A6;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Poppins',sans-serif;font-size:12.5px;font-weight:600}
+
 /* ── LEAVE & ATTENDANCE ── */
 .la-shell{display:flex;flex-direction:column;flex:1;overflow:hidden}
 .la-tabs{background:#1A237E;display:flex;align-items:stretch;padding:0 20px;gap:2px;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;-ms-overflow-style:none}
@@ -5196,6 +5203,81 @@ function SettingsTab({
   }, "Data Management"), /*#__PURE__*/React.createElement("button", {
     className: "clr-btn"
   }, "Clear All Completion Data")));
+}
+function AdminTab() {
+  var _c = React.useState(CLIENTS.slice()); var clients = _c[0], setClients = _c[1];
+  var _s = React.useState(false); var showAdd = _s[0], setShowAdd = _s[1];
+  var _e = React.useState(null); var editIdx = _e[0], setEditIdx = _e[1];
+  var today = new Date(); today.setFullYear(today.getFullYear()+1);
+  var defDate = today.toISOString().split('T')[0];
+  var _f = React.useState({clinicId:'',password:'',clinicName:'',plan:'Premium',expiry:defDate,sheetUrl:''});
+  var form = _f[0], setForm = _f[1];
+  var upd = function(k,v){ setForm(function(f){ var n=Object.assign({},f); n[k]=v; return n; }); };
+  var quickSet = function(days){ var d=new Date(); d.setDate(d.getDate()+days); upd('expiry',d.toISOString().split('T')[0]); };
+  var toInputDate = function(str){ if(!str||str==='~ Lifetime') return defDate; var p=str.split('/'); if(p.length===3) return p[2]+'-'+(p[1].length<2?'0'+p[1]:p[1])+'-'+(p[0].length<2?'0'+p[0]:p[0]); return str; };
+  var toDisplay = function(str){ if(!str) return '~ Lifetime'; var d=new Date(str); if(isNaN(d)) return str; return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear(); };
+  var openAdd = function(){ setForm({clinicId:'',password:'',clinicName:'',plan:'Premium',expiry:defDate,sheetUrl:''}); setEditIdx(null); setShowAdd(true); };
+  var openEdit = function(i){ var c=clients[i]; setForm({clinicId:c.clinic,password:c.pass,clinicName:c.clinic,plan:c.plan||'Premium',expiry:toInputDate(c.expiry),sheetUrl:c.sheetUrl||''}); setEditIdx(i); setShowAdd(true); };
+  var inp = {width:'100%',padding:'10px 14px',border:'1.5px solid #E5E7EB',borderRadius:8,fontFamily:"'Poppins',sans-serif",fontSize:13,outline:'none',boxSizing:'border-box'};
+  var lbl = {fontSize:10.5,fontWeight:700,color:'#374151',display:'block',marginBottom:6,letterSpacing:'.04em'};
+  var CE = React.createElement;
+  var PLANS = ['Premium','Basic','Enterprise'];
+  var PLAN_PRICES = {Premium:'2,499',Basic:'1,499',Enterprise:'5,999'};
+  return CE("div", null,
+    showAdd ? CE('div',{style:{position:'fixed',inset:0,background:'rgba(0,0,0,.5)',zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Poppins',sans-serif"}},
+      CE('div',{style:{background:'#fff',borderRadius:14,width:480,maxWidth:'95vw',boxShadow:'0 20px 60px rgba(0,0,0,.3)',overflow:'hidden'}},
+        CE('div',{style:{background:'#0F1C3F',padding:'18px 24px',display:'flex',alignItems:'center',justifyContent:'space-between'}},
+          CE('div',{style:{fontWeight:700,fontSize:15,color:'#fff'}},editIdx!==null?'Edit Client':'Add New Client'),
+          CE('button',{onClick:function(){setShowAdd(false);},style:{background:'rgba(255,255,255,.15)',border:'none',color:'#fff',borderRadius:'50%',width:28,height:28,cursor:'pointer',fontSize:14,lineHeight:'28px',textAlign:'center'}},'x')
+        ),
+        CE('div',{style:{padding:'22px 24px'}},
+          CE('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
+            CE('div',null, CE('label',{style:lbl},'CLINIC ID *'), CE('input',{style:inp,value:form.clinicId,placeholder:'E.G. SMILE001',onChange:function(e){upd('clinicId',e.target.value.toUpperCase());}})),
+            CE('div',null, CE('label',{style:lbl},'PASSWORD *'), CE('input',{style:inp,value:form.password,placeholder:'e.g. smile@2024',onChange:function(e){upd('password',e.target.value);}}))
+          ),
+          CE('div',{style:{marginBottom:14}}, CE('label',{style:lbl},'CLINIC NAME *'), CE('input',{style:inp,value:form.clinicName,placeholder:'e.g. Smile Dental Clinic, Delhi',onChange:function(e){upd('clinicName',e.target.value);}})),
+          CE('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}},
+            CE('div',null, CE('label',{style:lbl},'PLAN'),
+              CE('select',{style:inp,value:form.plan,onChange:function(e){upd('plan',e.target.value);}},
+                PLANS.map(function(p){return CE('option',{key:p,value:p},p+' \u2014 \u20B9'+PLAN_PRICES[p]+'/mo');})
+              )
+            ),
+            CE('div',null, CE('label',{style:lbl},'EXPIRY DATE'), CE('input',{type:'date',style:inp,value:form.expiry,onChange:function(e){upd('expiry',e.target.value);}}))
+          ),
+          CE('div',{style:{marginBottom:14}},
+            CE('label',{style:lbl},'THEIR GOOGLE SHEETS URL ',CE('span',{style:{fontWeight:400,color:'#9CA3AF',fontSize:10}},'(OPTIONAL \u2014 SET UP FOR THEM)')),
+            CE('input',{style:inp,value:form.sheetUrl,placeholder:'https://script.google.com/macros/s/...',onChange:function(e){upd('sheetUrl',e.target.value);}})
+          ),
+          CE('div',{style:{marginBottom:20}},
+            CE('span',{style:{fontSize:11,color:'#6B7280',marginRight:10}},'Quick set:'),
+            [[7,'7 days'],[30,'1 month'],[90,'3 months'],[180,'6 months'],[365,'1 year']].map(function(q){
+              return CE('button',{key:q[0],onClick:function(){quickSet(q[0]);},style:{padding:'5px 13px',border:'1.5px solid #E5E7EB',borderRadius:20,background:'#F9FAFB',fontSize:11.5,cursor:'pointer',fontFamily:"'Poppins',sans-serif",marginRight:6,fontWeight:500}},q[1]);
+            })
+          ),
+          CE('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}},
+            CE('button',{type:'button',onClick:function(e){e.stopPropagation();setShowAdd(false);setEditIdx(null);},style:{padding:'12px',border:'1.5px solid #E5E7EB',borderRadius:9,background:'#fff',cursor:'pointer',fontSize:14,fontWeight:600,fontFamily:"'Poppins',sans-serif",color:'#374151'}},'Cancel'),
+            CE('button',{type:'button',onClick:function(e){e.stopPropagation();
+              if(!form.clinicId||!form.password||!form.clinicName){alert('Clinic ID, Password and Name are required');return;}
+              var expDisplay = toDisplay(form.expiry);
+              var updated = clients.slice();
+              if(editIdx!==null){
+                updated[editIdx]=Object.assign({},updated[editIdx],{clinic:form.clinicName,pass:form.password,plan:form.plan,expiry:expDisplay,sheetUrl:form.sheetUrl});
+              } else {
+                updated.push({clinic:form.clinicName,pass:form.password,plan:form.plan,expiry:expDisplay,sheetUrl:form.sheetUrl,badge:'pb-trial'});
+              }
+              CLIENTS.length=0; updated.forEach(function(c){CLIENTS.push(c);});
+              setClients(updated);
+              setShowAdd(false);
+            },style:{padding:'12px',background:'#0F1C3F',color:'#fff',border:'none',borderRadius:9,cursor:'pointer',fontSize:14,fontWeight:600,fontFamily:"'Poppins',sans-serif"}},editIdx!==null?'Save Changes':'Add Client')
+          )
+        )
+      )
+    ) : null,
+    CE("div",{className:"admin-hd-row"},CE("span",{className:"admin-title"},"Client Management"),CE("button",{className:"btn-add-client",onClick:openAdd},"+Add Client")),
+    CE("div",{style:{fontSize:10.5,color:'#78909C',marginBottom:12}},clients.length+" Clinics \u2022 0 Expired"),
+    CE("div",{className:"admin-kpis"},CE("div",{className:"akpi"},CE("div",{className:"akpi-num"},clients.length),CE("div",{className:"akpi-lbl"},"Total")),CE("div",{className:"akpi"},CE("div",{className:"akpi-num"},clients.length),CE("div",{className:"akpi-lbl"},"Active")),CE("div",{className:"akpi"},CE("div",{className:"akpi-num c-red"},"0"),CE("div",{className:"akpi-lbl"},"Expired")),CE("div",{className:"akpi"},CE("div",{className:"akpi-num",style:{color:'#6A1B9A'}},"1999"),CE("div",{className:"akpi-lbl"},"Monthly \u20B9"))),
+    CE("table",{className:"client-tbl"},CE("thead",null,CE("tr",null,CE("th",null,"Clinic"),CE("th",null,"Password"),CE("th",null,"Plan"),CE("th",null,"Expiry"),CE("th",null,"Actions"))),CE("tbody",null,clients.map(function(c,i){return CE("tr",{key:i},CE("td",null,c.clinic),CE("td",{style:{fontFamily:"monospace",fontSize:11,color:"#78909C"}},c.pass),CE("td",null,CE("span",{className:"plan-badge "+c.badge},c.plan)),CE("td",{style:{color:"#78909C",fontSize:11}},c.expiry),CE("td",null,CE("button",{onClick:function(){openEdit(i);},style:{padding:"3px 10px",borderRadius:5,border:"1px solid #DDE",background:"#fff",fontSize:11,cursor:"pointer"}},"Edit")));})))
+  );
 }
 /* ── Master Checklist Picker Modal ── */
 function MasterChecklistPicker({
@@ -20775,6 +20857,27 @@ function LeaveAttendancePage({ appUser }) {
       tab==='regularise' && React.createElement(LA_Regularisation,{staff,attendance,setAttendance,activeBranch})
     )
   );
+}
+
+function ComingSoonPage({
+  name,
+  icon,
+  onBack
+}) {
+  return /*#__PURE__*/React.createElement("div", {
+    className: "page"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "coming-wrap"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "cs-icon"
+  }, icon), /*#__PURE__*/React.createElement("div", {
+    className: "cs-title"
+  }, name), /*#__PURE__*/React.createElement("div", {
+    className: "cs-sub"
+  }, "This application is coming soon. Stay tuned!"), /*#__PURE__*/React.createElement("button", {
+    className: "cs-back",
+    onClick: onBack
+  }, "\u2190 Back to Dashboard")));
 }
 
 /* ── Per-App PIN Gate ── */
