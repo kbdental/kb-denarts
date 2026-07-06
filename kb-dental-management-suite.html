@@ -1636,6 +1636,20 @@ function sharedStaffGet() {
   // Fall back to shared_staff only if hr_staff is empty
   if (!raw.length) {
     try { raw = JSON.parse(localStorage.getItem(SHARED_STAFF_KEY) || '[]'); } catch(e) {}
+  } else {
+    // Self-heal: pull in any members added via "My Team" that never made it
+    // into kbdc_hr_staff (older bug — see sharedStaffSet), so they don't stay
+    // invisible to Attendance/Leave/Tasks/etc which all read via this function.
+    try {
+      var sharedList = JSON.parse(localStorage.getItem(SHARED_STAFF_KEY) || '[]');
+      var strays = sharedList.filter(function(s) {
+        return s.name && !raw.some(function(h){ return s.id === h.id || s.name === h.name; });
+      });
+      if (strays.length) {
+        raw = raw.concat(strays);
+        localStorage.setItem('kbdc_hr_staff', JSON.stringify(raw));
+      }
+    } catch(e) {}
   }
   if (!raw.length) return [];
   return raw.filter(function(m){ return m.name && m.name !== '—'; }).map(function(m, i) {
@@ -1677,7 +1691,10 @@ function sharedStaffGet() {
 function sharedStaffSet(list) {
   // Write to both keys so everything stays in sync
   localStorage.setItem(SHARED_STAFF_KEY, JSON.stringify(list));
-  // Also update kbdc_hr_staff with any new fields written by My Team
+  // Also update kbdc_hr_staff with any new fields written by My Team,
+  // and append brand-new members that only exist in the My Team list so far
+  // (otherwise sharedStaffGet() — which treats kbdc_hr_staff as authoritative
+  // once it's non-empty — would never see them again).
   try {
     var hr = JSON.parse(localStorage.getItem('kbdc_hr_staff') || '[]');
     var updated = hr.map(function(h) {
@@ -1692,6 +1709,10 @@ function sharedStaffSet(list) {
         reportingManagerName: (match.reportsTo && match.reportsTo.name) || h.reportingManagerName || ''
       });
     });
+    var newOnes = list.filter(function(s) {
+      return s.name && !hr.some(function(h){ return s.id === h.id || s.name === h.name; });
+    });
+    updated = updated.concat(newOnes);
     localStorage.setItem('kbdc_hr_staff', JSON.stringify(updated));
   } catch(e) {}
 }
