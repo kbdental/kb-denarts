@@ -8708,7 +8708,10 @@ function BranchesPanel() {
 
 
 function SettingsClientPanel() {
-  const [clients, setClients] = useState(CLIENTS.slice());
+  const [clients, setClients] = useState(() => {
+    try { const saved = JSON.parse(localStorage.getItem('kbdc_clients')||'null'); if (saved && saved.length) return saved; } catch(e) {}
+    return CLIENTS.slice();
+  });
   const [showAdd, setShowAdd] = useState(false);
   const [editIdx, setEditIdx] = useState(null);
   const today = new Date(); today.setFullYear(today.getFullYear()+1);
@@ -8728,6 +8731,7 @@ function SettingsClientPanel() {
     if(editIdx!==null){ updated[editIdx]=Object.assign({},updated[editIdx],{clinic:form.clinicName,pass:form.password,plan:form.plan,expiry:expDisplay,sheetUrl:form.sheetUrl}); }
     else { updated.push({clinic:form.clinicName,pass:form.password,plan:form.plan,expiry:expDisplay,sheetUrl:form.sheetUrl,badge:'pb-trial'}); }
     CLIENTS.length=0; updated.forEach(c=>CLIENTS.push(c));
+    try { localStorage.setItem('kbdc_clients', JSON.stringify(updated)); } catch(e) {}
     setClients(updated); setShowAdd(false);
   };
   const PLANS = ['Premium','Basic','Enterprise'];
