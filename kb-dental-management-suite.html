@@ -404,6 +404,12 @@ body{background:#F5F6FA}
 .sbtn-push{background:#2E7D32;color:#fff}
 .sbtn-csv{background:#1357A6;color:#fff}
 
+/* ── MGR SHEET ── */
+.sheet-empty{text-align:center;padding:30px;background:#F8F9FE;border-radius:10px;border:2px dashed #DDE;margin-bottom:12px}
+.sheet-empty-icon{font-size:28px;margin-bottom:8px}
+.sheet-empty-txt{font-size:12px;color:#78909C;margin-bottom:12px}
+.sheet-instructions{background:#FFF8E1;border-radius:8px;border:1px solid #FFE082;padding:11px 13px;font-size:11px;color:#E65100;line-height:1.6}
+
 /* ── MGR MASTER ── */
 .master-hd{font-size:12.5px;font-weight:700;color:#1A237E;margin-bottom:5px}
 .master-desc{font-size:11px;color:#78909C;margin-bottom:10px}
@@ -3922,7 +3928,7 @@ function ManagerDashboard({
       return updated;
     });
   };
-  const STABS = ['Overview', 'Activity', 'Pending', '+Roles', '+Tasks', 'History', 'Notes', 'Report', 'Staff', 'Share', 'Sync', 'Master', 'Settings'];
+  const STABS = ['Overview', 'Activity', 'Pending', '+Roles', '+Tasks', 'History', 'Notes', 'Report', 'Staff', 'Share', 'Sync', 'Sheet', 'Master', 'Settings'];
   const copyLink = idx => {
     setCopiedIdx(idx);
     setTimeout(() => setCopiedIdx(null), 2000);
@@ -4231,7 +4237,7 @@ function ManagerDashboard({
     setQrStaff: setQrStaff,
     copiedIdx: copiedIdx,
     copyLink: copyLink
-  }), stab === 'Sync' && /*#__PURE__*/React.createElement(SyncTab, null), stab === 'Master' && /*#__PURE__*/React.createElement(MasterTab, { roles: roles }), stab === 'Settings' && /*#__PURE__*/React.createElement(SettingsTab, {
+  }), stab === 'Sync' && /*#__PURE__*/React.createElement(SyncTab, null), stab === 'Sheet' && /*#__PURE__*/React.createElement(SheetTab, null), stab === 'Master' && /*#__PURE__*/React.createElement(MasterTab, { roles: roles }), stab === 'Settings' && /*#__PURE__*/React.createElement(SettingsTab, {
     staffNames: staffNames,
     setStaffNames: setStaffNames
   }), null));
@@ -4984,6 +4990,40 @@ function SyncTab() {
       React.createElement('button', { className:'sync-btn sbtn-csv', style:{ width:'100%', padding:'8px', fontSize:12 }, onClick:downloadCSV }, '⬇ Download All Tasks CSV')
     )
   );
+}
+function SheetTab() {
+  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "sheet-empty"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "sheet-empty-icon"
+  }, "\uD83D\uDCCA"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontWeight: 700,
+      fontSize: 13,
+      color: '#1A237E',
+      marginBottom: 5
+    }
+  }, "No Sheet URL saved yet"), /*#__PURE__*/React.createElement("div", {
+    className: "sheet-empty-txt"
+  }, "Paste your Google Sheet URL below, then save it."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: 'flex',
+      gap: 8,
+      maxWidth: 340,
+      margin: '10px auto 0'
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    className: "form-inp",
+    placeholder: "https://docs.google.com/..."
+  }), /*#__PURE__*/React.createElement("button", {
+    className: "sync-btn sbtn-save",
+    style: {
+      padding: '7px 14px',
+      whiteSpace: 'nowrap'
+    }
+  }, "Save"))), /*#__PURE__*/React.createElement("div", {
+    className: "sheet-instructions"
+  }, "\uD83D\uDCCC Completions Sheet", /*#__PURE__*/React.createElement("br", null), "Each task tick will send instantly to your Google Sheet. Paste the Apps Script Web App URL above.", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("br", null), "\uD83D\uDCCC How to get your Sheet URL:", /*#__PURE__*/React.createElement("br", null), "Open your Google Sheet \u2192 Extensions \u2192 Apps Script \u2192 Deploy \u2192 Copy web app URL"));
 }
 function MasterTab({ roles }) {
   var ALL_ROLES = [].concat(ROLE_CARDS.clinical, ROLE_CARDS.admin, ROLE_CARDS.mgmt, ROLE_CARDS.lab);
