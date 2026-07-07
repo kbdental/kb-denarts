@@ -14572,8 +14572,6 @@ function HRAdminPage() {
     const allLeaves = ls('leaves');
     const LEAVE_TYPES = ['Casual Leave','Sick / Medical Leave'];
     const hrAllocRaw = (()=>{try{return JSON.parse(localStorage.getItem('kbdc_la_alloc')||'{}');}catch(e){return{};}})();
-    const hrAllocFirst = hrAllocRaw && Object.keys(hrAllocRaw).length>0 ? hrAllocRaw[Object.keys(hrAllocRaw)[0]] : {};
-    const LEAVE_ALLOC = {'Casual Leave': hrAllocFirst['Casual Leave']||12, 'Sick / Medical Leave': hrAllocFirst['Sick / Medical Leave']||12};
 
     // People on leave today
     const onLeaveToday = allLeaves.filter(l => {
@@ -14599,7 +14597,7 @@ function HRAdminPage() {
         usedByType[lt] = days;
       });
       const totalUsed = Object.values(usedByType).reduce((a, b) => a + b, 0);
-      const totalAlloc = Object.values(LEAVE_ALLOC).reduce((a, b) => a + b, 0); // CL+SML
+      const totalAlloc = laGetStaffAlloc(hrAllocRaw,s.name,'Casual Leave')+laGetStaffAlloc(hrAllocRaw,s.name,'Sick / Medical Leave'); // CL+SML
       return { ...s, usedByType, totalUsed, totalAlloc };
     }).filter(s => s.totalUsed > 0 || true).sort((a, b) => b.totalUsed - a.totalUsed).slice(0, 8);
 
@@ -14757,7 +14755,7 @@ function HRAdminPage() {
                       }, 0);
                     });
                     const totalUsed = Object.values(usedByType).reduce((a, b) => a + b, 0);
-                    const allocs = [LEAVE_ALLOC['Casual Leave'], LEAVE_ALLOC['Sick / Medical Leave']];
+                    const allocs = [laGetStaffAlloc(hrAllocRaw,s.name,'Casual Leave'), laGetStaffAlloc(hrAllocRaw,s.name,'Sick / Medical Leave')];
                     return React.createElement('tr', { key: s.id, style: { background: i % 2 === 0 ? '#fff' : '#F8F9FA' } },
                       React.createElement('td', { style: { padding: '7px 10px', fontWeight: 600, color: C.blueDk } }, s.name),
                       React.createElement('td', { style: { padding: '7px 10px', color: C.grey } }, s.role || s.designation || '--'),
@@ -19288,7 +19286,8 @@ function LA_Dashboard({ staff, leaves, attendance, activeBranch, setTab, appUser
             : bStaff.map((s,i)=>{
               const color=s.c||s.color||LA_AV_COLORS[i%LA_AV_COLORS.length];
               const inits=s.i||laInits(s.name);
-              const bal={casual:12,medical:12};
+              const allocData=laGetAlloc();
+              const bal={casual:laGetStaffAlloc(allocData,s.name,'Casual Leave'),medical:laGetStaffAlloc(allocData,s.name,'Sick / Medical Leave')};
               const uc=laLeaveUsed(leaves,s.name,'Casual Leave');
               const um=laLeaveUsed(leaves,s.name,'Sick / Medical Leave')||laLeaveUsed(leaves,s.name,'Medical Leave');
               return React.createElement('tr',{key:s.name},
