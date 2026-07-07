@@ -19174,7 +19174,7 @@ function useLA_Clock() {
 /* ── Dashboard sub-page ── */
 function LA_Dashboard({ staff, leaves, attendance, activeBranch, setTab, appUser }) {
   const shifts = laGetShifts();
-  const bStaff = staff.filter(function(s){return activeBranch==='All Branches'||s.branch===activeBranch||(s.group===activeBranch);});
+  const bStaff = staff.filter(function(s){return activeBranch==='All Branches'||!s.branch||s.branch===activeBranch||(s.group===activeBranch);});
   const todayAtt = attendance.filter(function(a){return a.date===LA_TODAY;});
   const presentN = todayAtt.filter(function(a){return a.checkIn;}).length;
   const onLeaveN = leaves.filter(function(l){return l.status==='approved'&&l.from<=LA_TODAY&&l.to>=LA_TODAY&&(activeBranch==='All Branches'||l.branch===activeBranch);}).length;
@@ -20849,7 +20849,7 @@ function LA_Mood({ staff, activeBranch }) {
   const [note, setNote] = useState('');
   const [success, setSuccess] = useState('');
   const [filterMood, setFilterMood] = useState('all');
-  const branchStaff = staff.filter(s=>activeBranch==='All Branches'||s.branch===activeBranch||(s.group===activeBranch));
+  const branchStaff = staff.filter(s=>activeBranch==='All Branches'||!s.branch||s.branch===activeBranch||(s.group===activeBranch));
 
   function submitMood() {
     if(!selMood) return;
