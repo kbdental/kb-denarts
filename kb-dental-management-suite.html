@@ -1513,6 +1513,248 @@ const ROLE_CARDS = {
   ]
 };
 
+const APPRAISAL_TEMPLATE_V2 = {
+  CLD: {
+    roleName: 'CLINICAL DIRECTOR',
+    kra: [
+      { label:'Clinical Quality Standards', weight:0.5, max:10 },
+      { label:'Treatment Protocol Compliance', weight:0.15, max:10 },
+      { label:'Case Outcome Excellence', weight:0.1, max:10 },
+      { label:'Doctor Training & Mentoring', weight:0.1, max:10 },
+      { label:'Ethical Clinical Practices', weight:0.15, max:10 },
+    ],
+    skills: [
+      { label:'Advanced Clinical Expertise', weight:0.1, max:10 },
+      { label:'Treatment Planning', weight:0.15, max:10 },
+      { label:'Quality Control', weight:0.1, max:6 },
+      { label:'Training & Mentorship', weight:0.15, max:10 },
+      { label:'Decision Making', weight:0.1, max:7 },
+      { label:'Ethics', weight:0.1, max:7 },
+      { label:'Attention to Detail', weight:0.15, max:10 },
+      { label:'Communication', weight:0.15, max:10 },
+    ],
+    culture: [
+      { label:'Clinical Excellence', weight:0.15, max:10 },
+      { label:'Protocol Discipline', weight:0.15, max:10 },
+      { label:'Accountability', weight:0.1, max:6 },
+      { label:'Ethical Practice', weight:0.1, max:7 },
+      { label:'Continuous Learning', weight:0.15, max:10 },
+      { label:'Mentorship Culture', weight:0.15, max:10 },
+      { label:'Precision Mindset', weight:0.1, max:7 },
+      { label:'Patient First', weight:0.1, max:10 },
+    ],
+  },
+  CLH: {
+    roleName: 'CLINIC HEAD',
+    kra: [
+      { label:'Overall Clinic Performance', weight:0.5, max:10 },
+      { label:'Patient Satisfaction Scores', weight:0.15, max:10 },
+      { label:'Team Productivity & Discipline', weight:0.1, max:10 },
+      { label:'Revenue & Target Achievement', weight:0.1, max:10 },
+      { label:'Process & Culture Enforcement', weight:0.15, max:10 },
+    ],
+    skills: [
+      { label:'Leadership', weight:0.1, max:10 },
+      { label:'Business Acumen', weight:0.15, max:10 },
+      { label:'Clinical Understanding', weight:0.1, max:6 },
+      { label:'Decision Making', weight:0.15, max:10 },
+      { label:'Team Management', weight:0.1, max:7 },
+      { label:'Communication', weight:0.1, max:7 },
+      { label:'Strategic Thinking', weight:0.15, max:10 },
+      { label:'Accountability', weight:0.15, max:10 },
+    ],
+    culture: [
+      { label:'Ownership', weight:0.15, max:10 },
+      { label:'Leadership', weight:0.15, max:10 },
+      { label:'Accountability', weight:0.1, max:6 },
+      { label:'Result Orientation', weight:0.1, max:7 },
+      { label:'Discipline', weight:0.15, max:10 },
+      { label:'Team Culture Building', weight:0.15, max:10 },
+      { label:'Decision Making', weight:0.1, max:7 },
+      { label:'Integrity', weight:0.1, max:10 },
+    ],
+  },
+  ASD: {
+    roleName: 'ASSOCIATE DENTIST',
+    kra: [
+      { label:'Treatment Quality & Precision', weight:0.5, max:10 },
+      { label:'Case Acceptance & Conversion', weight:0.15, max:10 },
+      { label:'Patient Communication & Trust', weight:0.1, max:10 },
+      { label:'Clinical Efficiency', weight:0.1, max:10 },
+      { label:'Documentation Accuracy', weight:0.15, max:10 },
+    ],
+    skills: [
+      { label:'Clinical Skills', weight:0.1, max:10 },
+      { label:'Diagnosis & Treatment Planning', weight:0.15, max:10 },
+      { label:'Patient Communication', weight:0.1, max:6 },
+      { label:'Precision & Detail', weight:0.15, max:10 },
+      { label:'Time Management', weight:0.1, max:7 },
+      { label:'Case Presentation', weight:0.1, max:7 },
+      { label:'Ethics', weight:0.15, max:10 },
+      { label:'Adaptability', weight:0.15, max:10 },
+    ],
+    culture: [
+      { label:'Patient First', weight:0.15, max:10 },
+      { label:'Ethical Practice', weight:0.15, max:10 },
+      { label:'Accountability', weight:0.1, max:6 },
+      { label:'Continuous Learning', weight:0.1, max:7 },
+      { label:'Respectful Communication', weight:0.15, max:10 },
+      { label:'Ownership of Cases', weight:0.15, max:10 },
+      { label:'Discipline', weight:0.1, max:7 },
+      { label:'Team Collaboration', weight:0.1, max:10 },
+    ],
+  },
+  DAS: {
+    roleName: 'DENTAL ASSISTANT',
+    kra: [
+      { label:'Patient Satisfaction & Comfort', weight:0.5, max:10 },
+      { label:'Chairside Efficiency', weight:0.15, max:10 },
+      { label:'Infection Control & Sterilization', weight:0.1, max:10 },
+      { label:'Accurate Data Documentation', weight:0.1, max:10 },
+      { label:'Process Compliance (Inventory, Patient Education)', weight:0.15, max:10 },
+    ],
+    skills: [
+      { label:'Clinical Proficiency', weight:0.1, max:10 },
+      { label:'Attention to Detail', weight:0.15, max:10 },
+      { label:'Chairside Efficiency', weight:0.1, max:6 },
+      { label:'Time Management', weight:0.15, max:10 },
+      { label:'Communication', weight:0.1, max:7 },
+      { label:'Adaptability', weight:0.1, max:7 },
+      { label:'Confidentiality & Ethics', weight:0.15, max:10 },
+      { label:'Physical Stamina', weight:0.15, max:10 },
+    ],
+    culture: [
+      { label:'Patient First Attitude', weight:0.15, max:10 },
+      { label:'Discipline & Punctuality', weight:0.15, max:10 },
+      { label:'Cleanliness Ownership', weight:0.1, max:6 },
+      { label:'Team Support', weight:0.1, max:7 },
+      { label:'Accountability', weight:0.15, max:10 },
+      { label:'Respectful Communication', weight:0.15, max:10 },
+      { label:'Positive Energy', weight:0.1, max:7 },
+      { label:'Ownership of Work', weight:0.1, max:10 },
+    ],
+  },
+  STT: {
+    roleName: 'STERLIZATION TECHNICIAN',
+    kra: [
+      { label:'Sterilization Protocol Adherence', weight:0.5, max:10 },
+      { label:'Instrument Turnaround Time', weight:0.15, max:10 },
+      { label:'Infection Control Compliance', weight:0.1, max:10 },
+      { label:'Equipment Maintenance', weight:0.1, max:10 },
+      { label:'Sterilization Records Accuracy', weight:0.15, max:10 },
+    ],
+    skills: [
+      { label:'Sterilization Protocols', weight:0.1, max:10 },
+      { label:'Infection Control Knowledge', weight:0.15, max:10 },
+      { label:'Attention to Detail', weight:0.1, max:6 },
+      { label:'Equipment Handling', weight:0.15, max:10 },
+      { label:'Time Management', weight:0.1, max:7 },
+      { label:'Compliance Awareness', weight:0.1, max:7 },
+      { label:'Documentation', weight:0.15, max:10 },
+      { label:'Discipline', weight:0.15, max:10 },
+    ],
+    culture: [
+      { label:'Zero Compromise on Sterility', weight:0.15, max:10 },
+      { label:'Discipline', weight:0.15, max:10 },
+      { label:'Accountability', weight:0.1, max:6 },
+      { label:'Process Adherence', weight:0.1, max:7 },
+      { label:'Attention to Detail', weight:0.15, max:10 },
+      { label:'Responsibility', weight:0.15, max:10 },
+      { label:'Cleanliness Ownership', weight:0.1, max:7 },
+      { label:'Reliability', weight:0.1, max:10 },
+    ],
+  },
+  HSK: {
+    roleName: 'HOUSEKEEPING',
+    kra: [
+      { label:'Clinic Cleanliness Standards', weight:0.5, max:10 },
+      { label:'Infection Control Support', weight:0.15, max:10 },
+      { label:'Waste Disposal Compliance', weight:0.1, max:10 },
+      { label:'Patient Area Hygiene', weight:0.1, max:10 },
+      { label:'Availability & Responsiveness', weight:0.15, max:10 },
+    ],
+    skills: [
+      { label:'Cleaning Techniques', weight:0.1, max:10 },
+      { label:'Hygiene Knowledge', weight:0.15, max:10 },
+      { label:'Attention to Detail', weight:0.1, max:6 },
+      { label:'Time Management', weight:0.15, max:10 },
+      { label:'Discipline', weight:0.1, max:7 },
+      { label:'Responsibility', weight:0.1, max:7 },
+      { label:'Infection Awareness', weight:0.15, max:10 },
+      { label:'Physical Stamina', weight:0.15, max:10 },
+    ],
+    culture: [
+      { label:'Cleanliness Ownership', weight:0.15, max:10 },
+      { label:'Discipline', weight:0.15, max:10 },
+      { label:'Accountability', weight:0.1, max:6 },
+      { label:'Responsiveness', weight:0.1, max:7 },
+      { label:'Respect', weight:0.15, max:10 },
+      { label:'Consistency', weight:0.15, max:10 },
+      { label:'Responsibility', weight:0.1, max:7 },
+      { label:'Hygiene Focus', weight:0.1, max:10 },
+    ],
+  },
+  MIS: {
+    roleName: 'MIS',
+    kra: [
+      { label:'Data Accuracy & Integrity', weight:0.5, max:10 },
+      { label:'Reporting Timeliness', weight:0.15, max:10 },
+      { label:'Dashboard & KPI Management', weight:0.1, max:10 },
+      { label:'Data Analysis for Decisions', weight:0.1, max:10 },
+      { label:'System & Process Automation', weight:0.15, max:10 },
+    ],
+    skills: [
+      { label:'Data Management', weight:0.1, max:10 },
+      { label:'Analytical Thinking', weight:0.15, max:10 },
+      { label:'Excel/Software Skills', weight:0.1, max:6 },
+      { label:'Reporting', weight:0.15, max:10 },
+      { label:'Accuracy', weight:0.1, max:7 },
+      { label:'System Understanding', weight:0.1, max:7 },
+      { label:'Problem Solving', weight:0.15, max:10 },
+      { label:'Automation Skills', weight:0.15, max:10 },
+    ],
+    culture: [
+      { label:'Accuracy First', weight:0.15, max:10 },
+      { label:'Accountability', weight:0.15, max:10 },
+      { label:'Discipline', weight:0.1, max:6 },
+      { label:'Confidentiality', weight:0.1, max:7 },
+      { label:'Process Orientation', weight:0.15, max:10 },
+      { label:'Ownership', weight:0.15, max:10 },
+      { label:'Problem Solving', weight:0.1, max:7 },
+      { label:'Reliability', weight:0.1, max:10 },
+    ],
+  },
+};
+const APPRAISAL_SECTION_WEIGHTS = { kra: 0.5, skills: 0.3, culture: 0.2 };
+
+function matchAppraisalRoleCode(desig) {
+  if (!desig) return null;
+  var d = desig.toLowerCase();
+  if (d.includes('clinical director')) return 'CLD';
+  if (d.includes('clinic head')) return 'CLH';
+  if (d.includes('associate dentist') || (d.includes('dentist') && !d.includes('chief'))) return 'ASD';
+  if (d.includes('dental assistant')) return 'DAS';
+  if (d.includes('steriliz')) return 'STT';
+  if (d.includes('housekeeping') || d.includes('cleaning') || d.includes('janitor')) return 'HSK';
+  if (d.includes('mis')) return 'MIS';
+  return null;
+}
+
+function apprItemAvg(self, manager) { return ((Number(self)||0) + (Number(manager)||0)) / 2; }
+function apprItemPct(self, manager, max) { var avg = apprItemAvg(self, manager); return max > 0 ? avg / max : 0; }
+function apprItemSalaryPct(sectionWeight, itemWeight, self, manager, max, salaryBudget) {
+  return sectionWeight * (Number(itemWeight)||0) * apprItemPct(self, manager, max) * (Number(salaryBudget)||0);
+}
+function apprSectionSalaryAchieved(items, sectionKey, salaryBudget) {
+  var w = APPRAISAL_SECTION_WEIGHTS[sectionKey];
+  return items.reduce(function(sum, it) {
+    return sum + apprItemSalaryPct(w, it.weight, it.self, it.manager, it.max, salaryBudget);
+  }, 0);
+}
+function apprGetAppraisals() { try { return JSON.parse(localStorage.getItem('kbdc_hr_appraisals')||'[]'); } catch(e) { return []; } }
+function apprSaveAppraisals(list) { try { localStorage.setItem('kbdc_hr_appraisals', JSON.stringify(list)); } catch(e) {} }
+
+
 const COLORS = ['#1357A6', '#00897B', '#C62828', '#6A1B9A', '#E65100', '#37474F', '#F57F17', '#4527A0', '#1B5E20', '#AD1457', '#00695C', '#4A148C'];
 const STAFF_SETTINGS = [
   { code:'CLH', name:'Clinic Head',              employee:'—', pin:'1111', c:'#1357A6' },
@@ -1652,6 +1894,18 @@ function sharedStaffGet() {
     } catch(e) {}
   }
   if (!raw.length) return [];
+  // Self-heal: backfill a stable id for any staff record that never got one
+  // (older bug — My Team's saveMember() didn't assign an id for new members,
+  // breaking anything that looks staff up by id, e.g. Appraisals, Financial).
+  var neededBackfill = false;
+  raw = raw.map(function(m) {
+    if (m.id) return m;
+    neededBackfill = true;
+    return Object.assign({}, m, { id: 'MTGEN_' + (m.name||'').replace(/\s+/g,'_') + '_' + Math.random().toString(36).slice(2,7) });
+  });
+  if (neededBackfill) {
+    try { localStorage.setItem('kbdc_hr_staff', JSON.stringify(raw)); } catch(e) {}
+  }
   return raw.filter(function(m){ return m.name && m.name !== '—'; }).map(function(m, i) {
     // Build reportsTo object from reportingManagerName
     var reporter = m.reportsTo || null;
@@ -8350,7 +8604,7 @@ function MyTeamPage() {
         return updated;
       });
     } else {
-      setMembers(m=>{const updated=[...m,entry];sharedStaffSet(updated);
+      setMembers(m=>{const newEntry=Object.assign({},entry,{id:'MT'+Date.now().toString(36)+Math.random().toString(36).slice(2,5)});const updated=[...m,newEntry];sharedStaffSet(updated);
         // Keep kbdc_reporting_map in sync
         try{const rm=JSON.parse(localStorage.getItem('kbdc_reporting_map')||'{}');if(entry.reportingManagerName)rm[entry.name]=entry.reportingManagerName;else delete rm[entry.name];localStorage.setItem('kbdc_reporting_map',JSON.stringify(rm));}catch(e){}
         return updated;});
@@ -15993,614 +16247,6 @@ function HRAdminPage() {
   // ══════════════════════════════════════════════════════
   // APPRAISALS
   // ══════════════════════════════════════════════════════
-  function Appraisals() {
-    const [selStaff2, setSelStaff2] = React.useState(staff[0]?.id||null);
-    const [view, setView] = React.useState('form'); // 'form' | 'history'
-    const [formData, setFormData] = React.useState({});
-    const [reviewedBy, setReviewedBy] = React.useState('');
-    const [reviewDate, setReviewDate] = React.useState(new Date().toISOString().split('T')[0]);
-    const [nextDue, setNextDue] = React.useState('');
-    const [comments, setComments] = React.useState('');
-    const [nonNeg, setNonNeg] = React.useState({});
-    const [freq, setFreq] = React.useState('Annual');
-
-    const APPRAISAL_DB = {
-      'Dental Assistant': {
-        kra: [
-          { id:'k1', label:'Patient Satisfaction & Comfort',          metric:'Feedback ≥4.5' },
-          { id:'k2', label:'Chairside Efficiency',                     metric:'Setup <5 min' },
-          { id:'k3', label:'Infection Control & Sterilization',        metric:'100% compliance' },
-          { id:'k4', label:'Accurate Data Documentation',              metric:'0 documentation errors' },
-          { id:'k5', label:'Process Compliance (Inventory, Patient Education)', metric:'100% SOP' },
-        ],
-        skills: [
-          { id:'s1', label:'Clinical Proficiency',   metric:'Zero chair error' },
-          { id:'s2', label:'Attention to Detail',    metric:'<2% error' },
-          { id:'s3', label:'Chairside Efficiency',   metric:'No miss' },
-          { id:'s4', label:'Time Management',        metric:'On-time prep' },
-          { id:'s5', label:'Communication',          metric:'No confusion' },
-          { id:'s6', label:'Adaptability',           metric:'Learn <3 days' },
-          { id:'s7', label:'Confidentiality & Ethics', metric:'0 breach' },
-          { id:'s8', label:'Physical Stamina',       metric:'Full stamina' },
-        ],
-        culture: [
-          { id:'c1', label:'Patient First Attitude',  metric:'Patient ≥4.5' },
-          { id:'c2', label:'Discipline & Punctuality', metric:'0 late' },
-          { id:'c3', label:'Cleanliness Ownership',   metric:'Clean maintained' },
-          { id:'c4', label:'Team Support',             metric:'Team support' },
-          { id:'c5', label:'Accountability',           metric:'No reminder' },
-          { id:'c6', label:'Respectful Communication', metric:'Respectful' },
-          { id:'c7', label:'Positive Energy',          metric:'Positive' },
-          { id:'c8', label:'Ownership of Work',        metric:'Ownership' },
-        ],
-        nonNeg: ['Infection control lapse','Patient negligence','Delay in chairside support','Incomplete documentation','Miscommunication with patient/doctor'],
-      },
-      'Nurse': {
-        kra: [
-          { id:'k1', label:'Clinical Protocol Supervision',   metric:'0 protocol deviation' },
-          { id:'k2', label:'Team Discipline & Accountability', metric:'100% discipline' },
-          { id:'k3', label:'Infection Control Compliance',     metric:'100% infection control' },
-          { id:'k4', label:'Training & Skill Development',     metric:'Training weekly' },
-          { id:'k5', label:'Patient Experience Oversight',     metric:'Patient oversight' },
-        ],
-        skills: [
-          { id:'s1', label:'Clinical Supervision',   metric:'Zero supervision gap' },
-          { id:'s2', label:'Leadership',             metric:'Team control' },
-          { id:'s3', label:'Attention to Detail',    metric:'Detail control' },
-          { id:'s4', label:'Training Ability',       metric:'Training ability' },
-          { id:'s5', label:'Communication',          metric:'Clear communication' },
-          { id:'s6', label:'Decision Making',        metric:'Decision clarity' },
-          { id:'s7', label:'Ethics & Compliance',    metric:'Ethics' },
-          { id:'s8', label:'Crisis Handling',        metric:'Crisis handling' },
-        ],
-        culture: [
-          { id:'c1', label:'Leadership by Example',        metric:'Leads by example' },
-          { id:'c2', label:'Team Discipline',              metric:'100% discipline' },
-          { id:'c3', label:'Accountability',               metric:'Accountability' },
-          { id:'c4', label:'Zero Tolerance for Lapses',    metric:'Zero lapse' },
-          { id:'c5', label:'Training Mindset',             metric:'Training mindset' },
-          { id:'c6', label:'Respectful Authority',         metric:'Authority' },
-          { id:'c7', label:'Ownership',                    metric:'Ownership' },
-          { id:'c8', label:'Integrity',                    metric:'Integrity' },
-        ],
-        nonNeg: ['Protocol deviation','Team indiscipline','Infection control breach','Lack of supervision','Unresolved patient issue'],
-      },
-      'Doctor': {
-        kra: [
-          { id:'k1', label:'Business Growth & Revenue',    metric:'Revenue growth %' },
-          { id:'k2', label:'Profitability & Cost Control', metric:'Profit margin' },
-          { id:'k3', label:'Strategic Expansion',         metric:'Expansion targets' },
-          { id:'k4', label:'Brand Positioning',           metric:'Brand visibility' },
-          { id:'k5', label:'Leadership & Culture Building', metric:'Retention rate' },
-        ],
-        skills: [
-          { id:'s1', label:'Strategic Thinking',  metric:'Strategic decisions' },
-          { id:'s2', label:'Financial Acumen',    metric:'Financial accuracy' },
-          { id:'s3', label:'Leadership',          metric:'Leadership clarity' },
-          { id:'s4', label:'Decision Making',     metric:'Decision speed' },
-          { id:'s5', label:'Communication',       metric:'Negotiation' },
-          { id:'s6', label:'Negotiation',         metric:'Market awareness' },
-          { id:'s7', label:'Adaptability',        metric:'Adaptability' },
-          { id:'s8', label:'Market Awareness',    metric:'Adaptability' },
-        ],
-        culture: [
-          { id:'c1', label:'Vision Driven',          metric:'Vision driven' },
-          { id:'c2', label:'Accountability',          metric:'Accountability' },
-          { id:'c3', label:'Ownership Culture',       metric:'Ownership' },
-          { id:'c4', label:'High Standards',          metric:'High standards' },
-          { id:'c5', label:'Decisiveness',            metric:'Decisive' },
-          { id:'c6', label:'Growth Mindset',          metric:'Growth' },
-          { id:'c7', label:'Integrity',               metric:'Integrity' },
-          { id:'c8', label:'Result Orientation',      metric:'Result' },
-        ],
-        nonNeg: ['Lack of accountability','Financial mismanagement','Ethical compromise','Decision paralysis','Culture neglect'],
-      },
-      'Dentist': {
-        kra: [
-          { id:'k1', label:'Clinical Quality Standards',      metric:'Remake <2%' },
-          { id:'k2', label:'Treatment Protocol Compliance',   metric:'100% protocol' },
-          { id:'k3', label:'Case Outcome Excellence',         metric:'Outcome success %' },
-          { id:'k4', label:'Doctor Training & Mentoring',     metric:'Training monthly' },
-          { id:'k5', label:'Ethical Clinical Practices',      metric:'Ethics 0 breach' },
-        ],
-        skills: [
-          { id:'s1', label:'Advanced Clinical Expertise',  metric:'Advanced accuracy' },
-          { id:'s2', label:'Treatment Planning',           metric:'Treatment planning' },
-          { id:'s3', label:'Quality Control',              metric:'Quality audit' },
-          { id:'s4', label:'Training & Mentorship',        metric:'Mentorship' },
-          { id:'s5', label:'Decision Making',              metric:'Ethics' },
-          { id:'s6', label:'Attention to Detail',          metric:'Detail focus' },
-          { id:'s7', label:'Communication',                metric:'Adaptability' },
-          { id:'s8', label:'Ethics',                       metric:'Communication' },
-        ],
-        culture: [
-          { id:'c1', label:'Clinical Excellence',    metric:'Clinical excellence' },
-          { id:'c2', label:'Protocol Discipline',    metric:'Protocol strict' },
-          { id:'c3', label:'Accountability',         metric:'Accountability' },
-          { id:'c4', label:'Ethical Practice',       metric:'Ethics' },
-          { id:'c5', label:'Continuous Learning',    metric:'Learning' },
-          { id:'c6', label:'Mentorship Culture',     metric:'Mentor' },
-          { id:'c7', label:'Precision Mindset',      metric:'Precision' },
-          { id:'c8', label:'Patient First',          metric:'Patient first' },
-        ],
-        nonNeg: ['Clinical compromise','Protocol violation','Wrong treatment planning','Lack of training','Ethical lapse'],
-      },
-      'Dental Hygienist': {
-        kra: [
-          { id:'k1', label:'Treatment Quality & Precision',    metric:'Remake <3%' },
-          { id:'k2', label:'Case Acceptance & Conversion',     metric:'≥70% conversion' },
-          { id:'k3', label:'Patient Communication & Trust',    metric:'Trust score ≥4.5' },
-          { id:'k4', label:'Clinical Efficiency',              metric:'Chair ≥85%' },
-          { id:'k5', label:'Documentation Accuracy',           metric:'100% records' },
-        ],
-        skills: [
-          { id:'s1', label:'Clinical Skills',              metric:'Diagnosis accuracy' },
-          { id:'s2', label:'Diagnosis & Treatment Planning', metric:'Planning accuracy' },
-          { id:'s3', label:'Patient Communication',        metric:'Patient clarity' },
-          { id:'s4', label:'Precision & Detail',           metric:'Time within plan' },
-          { id:'s5', label:'Time Management',              metric:'Case clarity' },
-          { id:'s6', label:'Case Presentation',            metric:'Ethics' },
-          { id:'s7', label:'Ethics',                       metric:'Adaptability' },
-          { id:'s8', label:'Adaptability',                 metric:'Adaptability' },
-        ],
-        culture: [
-          { id:'c1', label:'Patient First',            metric:'Patient first' },
-          { id:'c2', label:'Ethical Practice',         metric:'Ethics' },
-          { id:'c3', label:'Accountability',           metric:'Accountability' },
-          { id:'c4', label:'Continuous Learning',      metric:'Learning' },
-          { id:'c5', label:'Ownership of Cases',       metric:'Ownership' },
-          { id:'c6', label:'Respectful Communication', metric:'Respect' },
-          { id:'c7', label:'Discipline',               metric:'Discipline' },
-          { id:'c8', label:'Team Collaboration',       metric:'Teamwork' },
-        ],
-        nonNeg: ['Wrong diagnosis/treatment','Ethical compromise','Poor patient communication','Incomplete records','Delay in treatment'],
-      },
-      'Receptionist': {
-        kra: [
-          { id:'k1', label:'Patient Experience & Hospitality',   metric:'Rating ≥4.5' },
-          { id:'k2', label:'Appointment Management Efficiency',  metric:'No gap >15 min' },
-          { id:'k3', label:'Billing & Payment Accuracy',         metric:'Billing 0 error' },
-          { id:'k4', label:'Patient Communication',              metric:'Call <3 rings' },
-          { id:'k5', label:'Front Desk Process Compliance',      metric:'SOP 100%' },
-        ],
-        skills: [
-          { id:'s1', label:'Patient Handling',       metric:'Handling zero escalation' },
-          { id:'s2', label:'Communication',          metric:'Clear communication' },
-          { id:'s3', label:'Scheduling Skills',      metric:'Scheduling' },
-          { id:'s4', label:'Billing Knowledge',      metric:'Billing accuracy' },
-          { id:'s5', label:'Conflict Resolution',    metric:'Conflict resolve' },
-          { id:'s6', label:'Multitasking',           metric:'Multitask' },
-          { id:'s7', label:'Attention to Detail',    metric:'Professionalism' },
-          { id:'s8', label:'Professional Etiquette', metric:'Etiquette' },
-        ],
-        culture: [
-          { id:'c1', label:'Patient Delight',           metric:'Patient delight' },
-          { id:'c2', label:'Professionalism',           metric:'Professionalism' },
-          { id:'c3', label:'Responsiveness',            metric:'Responsiveness' },
-          { id:'c4', label:'Ownership',                 metric:'Ownership' },
-          { id:'c5', label:'Discipline',                metric:'Discipline' },
-          { id:'c6', label:'Positive Communication',    metric:'Positive comm' },
-          { id:'c7', label:'Problem Solving Attitude',  metric:'Problem solve' },
-          { id:'c8', label:'Team Coordination',         metric:'Coordination' },
-        ],
-        nonNeg: ['Patient mismanagement','Billing errors','Missed appointments','Poor communication','Unprofessional behavior'],
-      },
-      'Admin': {
-        kra: [
-          { id:'k1', label:'Data Accuracy & Integrity',    metric:'0 data error' },
-          { id:'k2', label:'Reporting Timeliness',         metric:'Daily reports' },
-          { id:'k3', label:'Dashboard & KPI Management',   metric:'KPI dashboard' },
-          { id:'k4', label:'Data Analysis for Decisions',  metric:'Weekly analysis' },
-          { id:'k5', label:'System & Process Automation',  metric:'Automation %' },
-        ],
-        skills: [
-          { id:'s1', label:'Data Management',          metric:'Data accuracy' },
-          { id:'s2', label:'Analytical Thinking',      metric:'Analysis accuracy' },
-          { id:'s3', label:'Excel / Software Skills',  metric:'Excel accuracy' },
-          { id:'s4', label:'Reporting',                metric:'Reporting' },
-          { id:'s5', label:'Accuracy',                 metric:'Accuracy' },
-          { id:'s6', label:'System Understanding',     metric:'System use' },
-          { id:'s7', label:'Problem Solving',          metric:'Problem solving' },
-          { id:'s8', label:'Automation Skills',        metric:'Automation' },
-        ],
-        culture: [
-          { id:'c1', label:'Accuracy First',       metric:'Accuracy first' },
-          { id:'c2', label:'Accountability',       metric:'Accountability' },
-          { id:'c3', label:'Discipline',           metric:'Discipline' },
-          { id:'c4', label:'Confidentiality',      metric:'Confidential' },
-          { id:'c5', label:'Process Orientation',  metric:'Process' },
-          { id:'c6', label:'Ownership',            metric:'Ownership' },
-          { id:'c7', label:'Reliability',          metric:'Reliability' },
-          { id:'c8', label:'Problem Solving',      metric:'Problem solve' },
-        ],
-        nonNeg: ['Data errors','Data breach','Delay in reports','Wrong analysis','System negligence'],
-      },
-      'Dental Assistant_sterilization': {
-        kra: [
-          { id:'k1', label:'Sterilization Protocol Adherence', metric:'100% sterilization' },
-          { id:'k2', label:'Instrument Turnaround Time',       metric:'TAT within cycle' },
-          { id:'k3', label:'Infection Control Compliance',     metric:'0 infection' },
-          { id:'k4', label:'Equipment Maintenance',            metric:'Equipment uptime' },
-          { id:'k5', label:'Sterilization Records Accuracy',   metric:'Logs 100%' },
-        ],
-        skills: [
-          { id:'s1', label:'Sterilization Protocols',     metric:'Sterilization knowledge' },
-          { id:'s2', label:'Infection Control Knowledge', metric:'Infection knowledge' },
-          { id:'s3', label:'Attention to Detail',         metric:'Attention detail' },
-          { id:'s4', label:'Equipment Handling',          metric:'Equipment handling' },
-          { id:'s5', label:'Time Management',             metric:'Time adherence' },
-          { id:'s6', label:'Compliance Awareness',        metric:'Compliance' },
-          { id:'s7', label:'Documentation',               metric:'Documentation' },
-          { id:'s8', label:'Discipline',                  metric:'Discipline' },
-        ],
-        culture: [
-          { id:'c1', label:'Zero Compromise on Sterility', metric:'Zero compromise' },
-          { id:'c2', label:'Discipline',                   metric:'Discipline' },
-          { id:'c3', label:'Accountability',               metric:'Accountability' },
-          { id:'c4', label:'Process Adherence',            metric:'Process' },
-          { id:'c5', label:'Attention to Detail',          metric:'Detail focus' },
-          { id:'c6', label:'Responsibility',               metric:'Responsibility' },
-          { id:'c7', label:'Reliability',                  metric:'Reliability' },
-          { id:'c8', label:'Cleanliness Ownership',        metric:'Cleanliness' },
-        ],
-        nonNeg: ['Sterilization failure','Cross contamination risk','Improper instrument handling','Missing logs','Equipment negligence'],
-      },
-      'Housekeeping Staff': {
-        kra: [
-          { id:'k1', label:'Clinic Cleanliness Standards',  metric:'Audit ≥95%' },
-          { id:'k2', label:'Infection Control Support',     metric:'100% support' },
-          { id:'k3', label:'Waste Disposal Compliance',     metric:'Waste correct' },
-          { id:'k4', label:'Patient Area Hygiene',          metric:'Hygiene clean' },
-          { id:'k5', label:'Availability & Responsiveness', metric:'Response immediate' },
-        ],
-        skills: [
-          { id:'s1', label:'Cleaning Techniques',    metric:'Cleaning accuracy' },
-          { id:'s2', label:'Hygiene Knowledge',      metric:'Hygiene method' },
-          { id:'s3', label:'Attention to Detail',    metric:'No missed area' },
-          { id:'s4', label:'Time Management',        metric:'Time mgmt' },
-          { id:'s5', label:'Discipline',             metric:'Discipline' },
-          { id:'s6', label:'Infection Awareness',    metric:'Infection awareness' },
-          { id:'s7', label:'Responsibility',         metric:'Responsibility' },
-          { id:'s8', label:'Physical Stamina',       metric:'Stamina' },
-        ],
-        culture: [
-          { id:'c1', label:'Cleanliness Ownership', metric:'Cleanliness' },
-          { id:'c2', label:'Discipline',            metric:'Discipline' },
-          { id:'c3', label:'Accountability',        metric:'Accountability' },
-          { id:'c4', label:'Responsiveness',        metric:'Response' },
-          { id:'c5', label:'Respect',               metric:'Respect' },
-          { id:'c6', label:'Consistency',           metric:'Consistency' },
-          { id:'c7', label:'Hygiene Focus',         metric:'Hygiene' },
-          { id:'c8', label:'Responsibility',        metric:'Responsibility' },
-        ],
-        nonNeg: ['Poor cleanliness','Infection risk','Improper waste disposal','Negligence','Delay in cleaning'],
-      },
-      'Manager': {
-        kra: [
-          { id:'k1', label:'Operational Efficiency',     metric:'No stock-out' },
-          { id:'k2', label:'Team Coordination',          metric:'Zero delay' },
-          { id:'k3', label:'Inventory & Vendor Management', metric:'Vendor control' },
-          { id:'k4', label:'Financial Discipline',       metric:'Finance control' },
-          { id:'k5', label:'Process Implementation',     metric:'Process 100%' },
-        ],
-        skills: [
-          { id:'s1', label:'Operations Management',     metric:'Ops efficiency' },
-          { id:'s2', label:'Leadership',                metric:'Leadership' },
-          { id:'s3', label:'Coordination',              metric:'Coordination' },
-          { id:'s4', label:'Financial Understanding',   metric:'Financial control' },
-          { id:'s5', label:'Problem Solving',           metric:'Problem solving' },
-          { id:'s6', label:'Communication',             metric:'Communication' },
-          { id:'s7', label:'Decision Making',           metric:'Decision' },
-          { id:'s8', label:'Process Orientation',       metric:'Process orientation' },
-        ],
-        culture: [
-          { id:'c1', label:'Ownership',           metric:'Ownership' },
-          { id:'c2', label:'Accountability',      metric:'Accountability' },
-          { id:'c3', label:'Leadership',          metric:'Leadership' },
-          { id:'c4', label:'Discipline',          metric:'Discipline' },
-          { id:'c5', label:'Result Orientation',  metric:'Result focus' },
-          { id:'c6', label:'Team Alignment',      metric:'Alignment' },
-          { id:'c7', label:'Integrity',           metric:'Integrity' },
-          { id:'c8', label:'Decision Making',     metric:'Decision' },
-        ],
-        nonNeg: ['Operational failure','Inventory stock-out','Financial mismanagement','Team miscoordination','Process breakdown'],
-      },
-      'Lab Technician': {
-        kra: [
-          { id:'k1', label:'Overall Clinic Performance',  metric:'Target ≥100%' },
-          { id:'k2', label:'Patient Satisfaction Scores', metric:'Patient ≥4.5' },
-          { id:'k3', label:'Team Productivity & Discipline', metric:'Team productivity' },
-          { id:'k4', label:'Revenue & Target Achievement', metric:'Revenue growth' },
-          { id:'k5', label:'Process & Culture Enforcement', metric:'Culture score' },
-        ],
-        skills: [
-          { id:'s1', label:'Leadership',          metric:'Leadership impact' },
-          { id:'s2', label:'Business Acumen',     metric:'Business acumen' },
-          { id:'s3', label:'Clinical Understanding', metric:'Clinical oversight' },
-          { id:'s4', label:'Decision Making',     metric:'Decision making' },
-          { id:'s5', label:'Team Management',     metric:'Team mgmt' },
-          { id:'s6', label:'Strategic Thinking',  metric:'Strategy' },
-          { id:'s7', label:'Communication',       metric:'Communication' },
-          { id:'s8', label:'Accountability',      metric:'Accountability' },
-        ],
-        culture: [
-          { id:'c1', label:'Ownership',              metric:'Ownership' },
-          { id:'c2', label:'Leadership',             metric:'Leadership' },
-          { id:'c3', label:'Accountability',         metric:'Accountability' },
-          { id:'c4', label:'Result Orientation',     metric:'Result focus' },
-          { id:'c5', label:'Discipline',             metric:'Discipline' },
-          { id:'c6', label:'Team Culture Building',  metric:'Culture build' },
-          { id:'c7', label:'Integrity',              metric:'Integrity' },
-          { id:'c8', label:'Decision Making',        metric:'Decision' },
-        ],
-        nonNeg: ['Target failure (consistent)','Poor patient satisfaction','Revenue leakage','Team indiscipline','Culture breakdown'],
-      },
-      'Other': {
-        kra: [
-          { id:'k1', label:'Quality of Work',           metric:'As per role standard' },
-          { id:'k2', label:'Timeliness',                metric:'On-time delivery' },
-          { id:'k3', label:'Process Compliance',        metric:'100% SOP' },
-          { id:'k4', label:'Communication',             metric:'Clear & timely' },
-          { id:'k5', label:'Team Coordination',         metric:'Zero delay' },
-        ],
-        skills: [
-          { id:'s1', label:'Role-specific Skills',  metric:'Proficiency' },
-          { id:'s2', label:'Attention to Detail',   metric:'<2% error' },
-          { id:'s3', label:'Time Management',       metric:'On-time' },
-          { id:'s4', label:'Communication',         metric:'Clear' },
-          { id:'s5', label:'Adaptability',          metric:'Quick to learn' },
-          { id:'s6', label:'Problem Solving',       metric:'Resolve issues' },
-          { id:'s7', label:'Documentation',         metric:'Accurate records' },
-          { id:'s8', label:'Discipline',            metric:'0 late' },
-        ],
-        culture: [
-          { id:'c1', label:'Ownership',            metric:'Ownership' },
-          { id:'c2', label:'Accountability',       metric:'No reminder' },
-          { id:'c3', label:'Discipline',           metric:'0 late' },
-          { id:'c4', label:'Teamwork',             metric:'Team support' },
-          { id:'c5', label:'Reliability',          metric:'Reliable' },
-          { id:'c6', label:'Respectful Communication', metric:'Respectful' },
-          { id:'c7', label:'Positive Attitude',    metric:'Positive' },
-          { id:'c8', label:'Integrity',            metric:'Honest' },
-        ],
-        nonNeg: ['Negligence','Insubordination','Data breach','Deliberate misconduct','Dishonesty'],
-      },
-    };
-
-    const getRoleData = (desig) => {
-      if (!desig) return APPRAISAL_DB['Other'];
-      const d = desig.toLowerCase();
-      if (d.includes('dental assistant')) return APPRAISAL_DB['Dental Assistant'];
-      if (d.includes('hygienist'))        return APPRAISAL_DB['Dental Hygienist'];
-      if (d.includes('dentist') || d.includes('associate')) return APPRAISAL_DB['Dentist'];
-      if (d.includes('doctor') || d.includes('surgeon'))    return APPRAISAL_DB['Doctor'];
-      if (d.includes('nurse') || d.includes('chief dental')) return APPRAISAL_DB['Nurse'];
-      if (d.includes('receptionist') || d.includes('front desk') || d.includes('front office')) return APPRAISAL_DB['Receptionist'];
-      if (d.includes('lab') || d.includes('plaster') || d.includes('wax') || d.includes('cad') || d.includes('ceramic') || d.includes('acrylic')) return APPRAISAL_DB['Lab Technician'];
-      if (d.includes('housekeeping') || d.includes('cleaning')) return APPRAISAL_DB['Housekeeping Staff'];
-      if (d.includes('steriliz'))         return APPRAISAL_DB['Dental Assistant_sterilization'];
-      if (d.includes('admin') || d.includes('mis') || d.includes('data')) return APPRAISAL_DB['Admin'];
-      if (d.includes('manager') || d.includes('director') || d.includes('head') || d.includes('ceo') || d.includes('chief')) return APPRAISAL_DB['Manager'];
-      return APPRAISAL_DB['Other'];
-    };
-
-    const selStaffObj = staff.find(s=>s.id===selStaff2);
-    const roleData = getRoleData(selStaffObj?.role||selStaffObj?.designation);
-    const allItems = [...roleData.kra.map(x=>({...x,section:'kra'})), ...roleData.skills.map(x=>({...x,section:'skills'})), ...roleData.culture.map(x=>({...x,section:'culture'}))];
-    const empAppraisals = appraisals.filter(a=>a.staffId===selStaff2).sort((a,b)=>new Date(b.date)-new Date(a.date));
-
-    const setRating = (id, val) => setFormData(f=>({...f,[id]:f[id]===val?0:val}));
-    const toggleNonNeg = (item) => setNonNeg(n=>({...n,[item]:!n[item]}));
-
-    const kraScore    = roleData.kra.length    ? (roleData.kra.reduce((sum,x)=>sum+(formData[x.id]||0),0)    / (roleData.kra.length*5)*100)    : 0;
-    const skillScore  = roleData.skills.length  ? (roleData.skills.reduce((sum,x)=>sum+(formData[x.id]||0),0)  / (roleData.skills.length*5)*100)  : 0;
-    const cultureScore= roleData.culture.length ? (roleData.culture.reduce((sum,x)=>sum+(formData[x.id]||0),0) / (roleData.culture.length*5)*100) : 0;
-    const overallScore= Math.round((kraScore*0.5 + skillScore*0.3 + cultureScore*0.2));
-    const hasViolation = Object.values(nonNeg).some(Boolean);
-
-    const scoreColor = overallScore>=80?C.green:overallScore>=60?C.orange:C.red;
-    const scoreLabel = overallScore>=80?'Outstanding':overallScore>=70?'Exceeds Expectations':overallScore>=60?'Meets Expectations':overallScore>=40?'Needs Improvement':'Unsatisfactory';
-
-    const StarRating = ({id,val}) => React.createElement('div',{style:{display:'flex',gap:3}},
-      [1,2,3,4,5].map(n=>React.createElement('button',{
-        key:n,
-        style:{width:26,height:26,border:'none',background:'none',cursor:'pointer',fontSize:18,color:(formData[id]||0)>=n?'#FFB300':'#DDD',padding:0,lineHeight:1},
-        onClick:()=>setRating(id,n)
-      },'★'))
-    );
-
-    const SectionBlock = ({title,icon,items,color}) => React.createElement('div',{style:{marginBottom:20}},
-      React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10,paddingBottom:6,borderBottom:`2px solid ${color}`}},
-        React.createElement('span',{style:{fontSize:16}},icon),
-        React.createElement('span',{style:{fontWeight:700,fontSize:13,color:C.blueDk}},title),
-        React.createElement('span',{style:{fontSize:11,color:C.grey,marginLeft:'auto'}},
-          items.reduce((s,x)=>s+(formData[x.id]||0),0)+'/'+items.length*5+' pts')
-      ),
-      items.map(item=>React.createElement('div',{key:item.id,style:{display:'flex',alignItems:'center',gap:10,padding:'8px 0',borderBottom:`1px solid ${C.border}`}},
-        React.createElement('div',{style:{flex:1}},
-          React.createElement('div',{style:{fontWeight:600,fontSize:12,color:C.blueDk}},item.label),
-          React.createElement('div',{style:{fontSize:10,color:C.grey,marginTop:1}},'\uD83D\uDCCB '+item.metric)
-        ),
-        React.createElement(StarRating,{id:item.id,val:formData[item.id]||0}),
-        React.createElement('div',{style:{width:28,textAlign:'center',fontSize:12,fontWeight:700,color:(formData[item.id]||0)>=4?C.green:(formData[item.id]||0)>=3?C.orange:C.grey}},
-          (formData[item.id]||0)||'—')
-      ))
-    );
-
-    return React.createElement('div', {style:{fontFamily:"'Poppins',sans-serif"}},
-
-      // Header
-      React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16}},
-        React.createElement('div',{style:{fontSize:15,fontWeight:700,color:C.blueDk}},'⭐ Appraisals'),
-        React.createElement('div',{style:{display:'flex',gap:8}},
-          React.createElement('button',{style:pill(view==='form',C.purple),onClick:()=>setView('form')},'📝 New Appraisal'),
-          React.createElement('button',{style:pill(view==='history',C.blue),onClick:()=>setView('history')},'📋 History'+(empAppraisals.length?' ('+empAppraisals.length+')':''))
-        )
-      ),
-
-      // Staff selector + freq
-      React.createElement('div',{style:{display:'flex',gap:10,marginBottom:16,alignItems:'center',flexWrap:'wrap'}},
-        React.createElement('select',{style:{...inp,maxWidth:260,flex:1},value:selStaff2||'',
-          onChange:e=>{ setSelStaff2(e.target.value); setFormData({}); setNonNeg({}); setComments(''); }},
-          staff.filter(s=>s.active!==false).map(s=>React.createElement('option',{key:s.id,value:s.id},s.name+' — '+(s.designation||'Staff')))
-        ),
-        APPRAISAL_FREQ.map(f=>React.createElement('button',{key:f,style:pill(freq===f,C.purple),onClick:()=>setFreq(f)},f)),
-        selStaffObj && React.createElement('span',{style:{fontSize:11,color:C.grey,background:C.blueLt,padding:'4px 10px',borderRadius:20}},
-          selStaffObj.role||selStaffObj.designation||'No role')
-      ),
-
-      staff.length===0
-        ? React.createElement('div',{style:{textAlign:'center',padding:40,color:C.grey}},'Add staff members first from Employee Master')
-        : view==='history'
-
-        // ── HISTORY VIEW ─────────────────────────────────────
-        ? empAppraisals.length===0
-          ? React.createElement('div',{style:{textAlign:'center',padding:40,color:C.grey,border:`2px dashed ${C.border}`,borderRadius:10}},
-              React.createElement('div',{style:{fontSize:32,marginBottom:8}},'⭐'),
-              React.createElement('div',null,'No appraisals on record for '+(selStaffObj?.name||'this employee'))
-            )
-          : React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:12}},
-              empAppraisals.map(a=>{
-                const sc = a.overallScore||0;
-                const scCol = sc>=80?C.green:sc>=60?C.orange:C.red;
-                const scLbl = sc>=80?'Outstanding':sc>=70?'Exceeds Expectations':sc>=60?'Meets Expectations':sc>=40?'Needs Improvement':'Unsatisfactory';
-                return React.createElement('div',{key:a.id,style:{...card,borderLeft:`4px solid ${scCol}`}},
-                  React.createElement('div',{style:{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}},
-                    React.createElement('div',null,
-                      React.createElement('div',{style:{fontWeight:700,fontSize:13,color:C.blueDk}},fdt(a.date)+' · '+(a.freq||'Annual')),
-                      React.createElement('div',{style:{fontSize:11,color:C.grey}},'Reviewed by: '+(a.reviewedBy||'--')+(a.nextDue?' · Next: '+fdt(a.nextDue):''))
-                    ),
-                    React.createElement('div',{style:{textAlign:'right'}},
-                      React.createElement('div',{style:{fontSize:22,fontWeight:800,color:scCol}},sc+'%'),
-                      React.createElement('div',{style:{fontSize:11,color:scCol,fontWeight:600}},scLbl)
-                    )
-                  ),
-                  React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:8}},
-                    [['KRA',a.kraScore,'50%'],['Skills',a.skillScore,'30%'],['Culture',a.cultureScore,'20%']].map(([lbl,sc2,wt])=>
-                      React.createElement('div',{key:lbl,style:{background:C.greyLt,padding:'8px 10px',borderRadius:8,textAlign:'center'}},
-                        React.createElement('div',{style:{fontSize:11,color:C.grey}}),
-                        React.createElement('div',{style:{fontWeight:700,fontSize:16,color:sc2>=80?C.green:sc2>=60?C.orange:C.red}},(sc2||0)+'%'),
-                        React.createElement('div',{style:{fontSize:11,color:C.grey}},lbl+' (wt '+wt+')')
-                      )
-                    )
-                  ),
-                  a.violation && React.createElement('div',{style:{background:'#FFEBEE',color:C.red,padding:'6px 10px',borderRadius:7,fontSize:11,fontWeight:600,marginBottom:8}},
-                    '⚠️ Non-Negotiable Violation Flagged'
-                  ),
-                  a.comments && React.createElement('div',{style:{fontSize:12,color:C.grey,fontStyle:'italic',padding:'8px 0',borderTop:`1px solid ${C.border}`}},
-                    '"'+a.comments+'"'),
-                  React.createElement('button',{style:{...btn(C.white,C.red,'#FFCDD2'),padding:'4px 10px',fontSize:11,marginTop:8},
-                    onClick:()=>{ if(!confirm('Delete this appraisal?'))return; saveAppraisals(appraisals.filter(x=>x.id!==a.id)); showToast('Deleted'); }
-                  },'🗑 Delete')
-                );
-              })
-            )
-
-        // ── FORM VIEW ─────────────────────────────────────────
-        : React.createElement('div',null,
-
-            // Meta row
-            React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12,marginBottom:16}},
-              React.createElement('div',null,
-                React.createElement('label',{style:lbl},'Appraisal Date *'),
-                React.createElement('input',{style:inp,type:'date',value:reviewDate,onChange:e=>setReviewDate(e.target.value)})
-              ),
-              React.createElement('div',null,
-                React.createElement('label',{style:lbl},'Reviewed By'),
-                React.createElement('input',{style:inp,placeholder:'Reviewer name',value:reviewedBy,onChange:e=>setReviewedBy(e.target.value)})
-              ),
-              React.createElement('div',null,
-                React.createElement('label',{style:lbl},'Next Review Due'),
-                React.createElement('input',{style:inp,type:'date',value:nextDue,onChange:e=>setNextDue(e.target.value)})
-              )
-            ),
-
-            // Live score bar
-            React.createElement('div',{style:{...card,background:`linear-gradient(135deg,${C.blueDk},#1565C0)`,color:'#fff',padding:'16px 20px',marginBottom:16,display:'flex',alignItems:'center',gap:20}},
-              React.createElement('div',{style:{flex:1}},
-                React.createElement('div',{style:{fontSize:11,opacity:.8,marginBottom:4}},'OVERALL APPRAISAL SCORE'),
-                React.createElement('div',{style:{height:8,background:'rgba(255,255,255,.2)',borderRadius:4}},
-                  React.createElement('div',{style:{height:8,width:overallScore+'%',background:overallScore>=80?'#69F0AE':overallScore>=60?'#FFD740':'#FF5252',borderRadius:4,transition:'width .3s'}})
-                )
-              ),
-              React.createElement('div',{style:{textAlign:'center'}},
-                React.createElement('div',{style:{fontSize:32,fontWeight:800,color:overallScore>=80?'#69F0AE':overallScore>=60?'#FFD740':'#FF5252'}},overallScore+'%'),
-                React.createElement('div',{style:{fontSize:11,opacity:.9}},scoreLabel)
-              ),
-              React.createElement('div',{style:{display:'flex',flexDirection:'column',gap:4,fontSize:11,opacity:.85}},
-                React.createElement('div',null,'KRA: '+Math.round(kraScore)+'%  (50%)'),
-                React.createElement('div',null,'Skills: '+Math.round(skillScore)+'%  (30%)'),
-                React.createElement('div',null,'Culture: '+Math.round(cultureScore)+'%  (20%)')
-              )
-            ),
-
-            // KRA Section
-            React.createElement(SectionBlock,{title:'Key Result Areas',icon:'🎯',items:roleData.kra,color:C.blue}),
-
-            // Skills Section
-            React.createElement(SectionBlock,{title:'Skills & Knowledge',icon:'🧠',items:roleData.skills,color:C.purple}),
-
-            // Culture Section
-            React.createElement(SectionBlock,{title:'Culture & Values',icon:'🌟',items:roleData.culture,color:C.green}),
-
-            // Non-Negotiables
-            React.createElement('div',{style:{marginBottom:20}},
-              React.createElement('div',{style:{display:'flex',alignItems:'center',gap:8,marginBottom:10,paddingBottom:6,borderBottom:`2px solid ${C.red}`}},
-                React.createElement('span',{style:{fontSize:16}},'🚫'),
-                React.createElement('span',{style:{fontWeight:700,fontSize:13,color:C.blueDk}},'Non-Negotiables'),
-                React.createElement('span',{style:{fontSize:11,color:C.grey,marginLeft:'auto'}},'Flag any violation observed')
-              ),
-              React.createElement('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:8}},
-                roleData.nonNeg.map((item,i)=>React.createElement('label',{key:i,
-                  style:{display:'flex',alignItems:'center',gap:8,cursor:'pointer',padding:'8px 10px',borderRadius:8,
-                    background:nonNeg[item]?'#FFEBEE':'#F8F9FA',border:`1px solid ${nonNeg[item]?C.red:C.border}`}},
-                  React.createElement('input',{type:'checkbox',checked:!!nonNeg[item],onChange:()=>toggleNonNeg(item)}),
-                  React.createElement('span',{style:{fontSize:12,color:nonNeg[item]?C.red:C.tx,fontWeight:nonNeg[item]?700:400}},
-                    (nonNeg[item]?'⚠️ ':'')+item)
-                ))
-              ),
-              hasViolation && React.createElement('div',{style:{marginTop:8,padding:'8px 12px',background:'#FFEBEE',borderRadius:8,fontSize:12,color:C.red,fontWeight:600}},
-                '⚠️ A non-negotiable violation has been flagged. This will be recorded on the appraisal.')
-            ),
-
-            // Comments
-            React.createElement('div',{style:{marginBottom:20}},
-              React.createElement('label',{style:lbl},'Overall Comments & Feedback'),
-              React.createElement('textarea',{style:{...inp,minHeight:80,resize:'vertical',fontSize:12},
-                placeholder:'Strengths, areas for improvement, goals for next period...',
-                value:comments,onChange:e=>setComments(e.target.value)})
-            ),
-
-            // Submit
-            React.createElement('div',{style:{display:'flex',gap:10,justifyContent:'flex-end',alignItems:'center'}},
-              hasViolation && React.createElement('span',{style:{fontSize:11,color:C.red,fontWeight:600}},'⚠️ Violation flagged'),
-              React.createElement('button',{style:btn(C.white,C.grey,C.border),onClick:()=>{setFormData({});setNonNeg({});setComments('');}},
-                'Clear Form'),
-              React.createElement('button',{
-                style:btn(C.purple),
-                onClick:()=>{
-                  if(!reviewDate){showToast('Date required',false);return;}
-                  if(!selStaff2){showToast('Select staff',false);return;}
-                  const record = {
-                    id:uid(), staffId:selStaff2, freq,
-                    date:reviewDate, reviewedBy, nextDue,
-                    kraScore:Math.round(kraScore), skillScore:Math.round(skillScore),
-                    cultureScore:Math.round(cultureScore), overallScore,
-                    scoreLabel, ratings:formData,
-                    nonNeg:Object.keys(nonNeg).filter(k=>nonNeg[k]),
-                    violation:hasViolation, comments,
-                    createdAt:new Date().toISOString()
-                  };
-                  saveAppraisals([...appraisals,record]);
-                  showToast('Appraisal saved');
-                  setFormData({}); setNonNeg({}); setComments('');
-                  setView('history');
-                }
-              },'💾 Save Appraisal')
-            )
-          )
-    );
-  }
 
 
   // ══════════════════════════════════════════════════════
@@ -19195,7 +18841,7 @@ function HRAdminPage() {
       tab==='dashboard'  ? React.createElement(HRDashboard)    :
       tab==='directory'  ? React.createElement(StaffDirectory)  :
       tab==='docs'       ? React.createElement(DocsAndPolicies) :
-      tab==='appraisals' ? React.createElement(Appraisals)      :
+      tab==='appraisals' ? React.createElement(Appraisals, { staff, appraisals, saveAppraisals, showToast, C, pill, btn, inp, lbl, card, uid }) :
       tab==='hiring'     ? React.createElement(HiringStaffing)  :
       tab==='assets'     ? React.createElement(AccessAssets)    :
       tab==='training'   ? React.createElement(TrainingDevelopment) :
@@ -19203,6 +18849,273 @@ function HRAdminPage() {
     )
   );
 }
+
+  function Appraisals({ staff, appraisals, saveAppraisals, showToast, C, pill, btn, inp, lbl, card, uid }) {
+    const [selStaff2, setSelStaff2] = React.useState(staff[0]?.id||null);
+    const [view, setView] = React.useState('form');
+    const [roleOverride, setRoleOverride] = React.useState('');
+    const [currentSalaryIn, setCurrentSalaryIn] = React.useState('');
+    const [salaryBudgetIn, setSalaryBudgetIn] = React.useState('');
+    const [scores, setScores] = React.useState({});
+    const [reviewedBy, setReviewedBy] = React.useState('');
+    const [nextDue, setNextDue] = React.useState('');
+    const [comments, setComments] = React.useState('');
+    const [activeDraftId, setActiveDraftId] = React.useState(null);
+
+    const selStaffObj = staff.find(s=>s.id===selStaff2);
+    const autoRoleCode = matchAppraisalRoleCode(selStaffObj && (selStaffObj.role||selStaffObj.designation));
+    const roleCode = roleOverride || autoRoleCode;
+    const template = roleCode ? APPRAISAL_TEMPLATE_V2[roleCode] : null;
+
+    const empAppraisals = appraisals.filter(a=>a.staffId===selStaff2).sort((a,b)=>new Date(b.date||b.createdAt)-new Date(a.date||a.createdAt));
+    const pendingDraft = appraisals.find(a=>a.staffId===selStaff2 && a.status!=='completed');
+
+    function resetForm() {
+      setActiveDraftId(null); setScores({}); setRoleOverride('');
+      setCurrentSalaryIn(''); setSalaryBudgetIn(''); setReviewedBy(''); setNextDue(''); setComments('');
+    }
+
+    function loadRecordIntoForm(record) {
+      setActiveDraftId(record.id);
+      setRoleOverride(record.roleCode);
+      setCurrentSalaryIn(record.currentSalary||'');
+      setSalaryBudgetIn(record.salaryHikeBudget||'');
+      setReviewedBy(record.reviewedBy||'');
+      setNextDue(record.nextDue||'');
+      setComments(record.comments||'');
+      var sc = {};
+      ['kra','skills','culture'].forEach(function(sec){
+        (record.items && record.items[sec] || []).forEach(function(it,i){ sc[sec+'-'+i] = {self:it.self, manager:it.manager}; });
+      });
+      setScores(sc);
+    }
+
+    function onSelectStaff(id) {
+      setSelStaff2(id);
+      var draft = appraisals.find(a=>a.staffId===id && a.status!=='completed');
+      if (draft) { loadRecordIntoForm(draft); } else { resetForm(); }
+    }
+
+    function setScore(sectionKey, idx, who, val) {
+      setScores(function(prev){
+        var key = sectionKey+'-'+idx;
+        var cur = prev[key] || {};
+        var next = Object.assign({}, cur); next[who] = val;
+        var out = Object.assign({}, prev); out[key] = next;
+        return out;
+      });
+    }
+
+    function buildItemsSnapshot() {
+      var out = {};
+      ['kra','skills','culture'].forEach(function(sec){
+        out[sec] = (template[sec]||[]).map(function(it,i){
+          var sc = scores[sec+'-'+i] || {};
+          return { label: it.label, weight: it.weight, max: it.max, self: Number(sc.self)||0, manager: Number(sc.manager)||0 };
+        });
+      });
+      return out;
+    }
+
+    function persist(status) {
+      if (!template) { showToast('No appraisal template for this role', false); return; }
+      if (!currentSalaryIn) { showToast('Enter current salary', false); return; }
+      var items = buildItemsSnapshot();
+      var existing = activeDraftId ? appraisals.find(a=>a.id===activeDraftId) : null;
+      var record = {
+        id: activeDraftId || uid(),
+        staffId: selStaff2,
+        staffName: (selStaffObj && selStaffObj.name) || '',
+        roleCode: roleCode,
+        roleName: template.roleName,
+        currentSalary: Number(currentSalaryIn)||0,
+        salaryHikeBudget: Number(salaryBudgetIn)||0,
+        items: items,
+        status: status,
+        reviewedBy: reviewedBy,
+        nextDue: nextDue,
+        comments: comments,
+        date: new Date().toISOString(),
+        createdAt: (existing && existing.createdAt) || new Date().toISOString(),
+      };
+      var updated = activeDraftId ? appraisals.map(function(a){ return a.id===activeDraftId ? record : a; }) : [...appraisals, record];
+      saveAppraisals(updated);
+      setActiveDraftId(record.id);
+      return record;
+    }
+
+    function sendForSelfAssessment() {
+      var record = persist('awaiting_self');
+      if (record) showToast('Sent for self-assessment — share the self-appraisal link with ' + record.staffName);
+    }
+    function saveDraft() {
+      var record = persist(pendingDraft ? pendingDraft.status : 'awaiting_manager');
+      if (record) showToast('Saved');
+    }
+    function completeAppraisal() {
+      var record = persist('completed');
+      if (record) { showToast('Appraisal completed'); setView('history'); resetForm(); }
+    }
+    function deleteAppraisal(id) {
+      if (!confirm('Delete this appraisal?')) return;
+      saveAppraisals(appraisals.filter(function(a){ return a.id!==id; }));
+      if (activeDraftId===id) resetForm();
+      showToast('Deleted');
+    }
+
+    var sectionTotals = { kra:0, skills:0, culture:0 };
+    if (template) {
+      ['kra','skills','culture'].forEach(function(sec){
+        var items = (template[sec]||[]).map(function(it,i){
+          var sc = scores[sec+'-'+i]||{};
+          return Object.assign({}, it, { self: Number(sc.self)||0, manager: Number(sc.manager)||0 });
+        });
+        sectionTotals[sec] = apprSectionSalaryAchieved(items, sec, Number(salaryBudgetIn)||0);
+      });
+    }
+    var totalIncrement = sectionTotals.kra + sectionTotals.skills + sectionTotals.culture;
+    var appraisedSalary = (Number(currentSalaryIn)||0) + totalIncrement;
+
+    function renderSectionTable(sectionKey, sectionLabel, sectionColor) {
+      var items = template[sectionKey] || [];
+      return React.createElement('div', { style: Object.assign({}, card, {marginBottom:16}) },
+        React.createElement('div', { style:{fontSize:13,fontWeight:700,color:sectionColor,marginBottom:10} },
+          sectionLabel + ' (' + Math.round(APPRAISAL_SECTION_WEIGHTS[sectionKey]*100) + '%)'
+        ),
+        React.createElement('div', { style:{overflowX:'auto'} },
+          React.createElement('table', { style:{width:'100%',borderCollapse:'collapse',fontSize:11.5,minWidth:720} },
+            React.createElement('thead', null, React.createElement('tr', { style:{background:C.greyLt} },
+              ['Item','Weight','Max','Self','Manager','Avg','% Achieved','% Salary'].map(function(h){
+                return React.createElement('th', { key:h, style:{padding:'7px 9px',textAlign: h==='Item'?'left':'center',fontSize:9.5,fontWeight:700,textTransform:'uppercase',color:C.grey,borderBottom:'1.5px solid '+C.border,whiteSpace:'nowrap'} }, h);
+              })
+            )),
+            React.createElement('tbody', null,
+              items.map(function(it, i){
+                var sc = scores[sectionKey+'-'+i] || {};
+                var avg = apprItemAvg(sc.self, sc.manager);
+                var pct = apprItemPct(sc.self, sc.manager, it.max);
+                var salPct = apprItemSalaryPct(APPRAISAL_SECTION_WEIGHTS[sectionKey], it.weight, sc.self, sc.manager, it.max, Number(salaryBudgetIn)||0);
+                return React.createElement('tr', { key:i },
+                  React.createElement('td', { style:{padding:'7px 9px',fontWeight:600,color:C.tx} }, it.label),
+                  React.createElement('td', { style:{padding:'7px 9px',textAlign:'center',color:C.grey} }, Math.round(it.weight*100)+'%'),
+                  React.createElement('td', { style:{padding:'7px 9px',textAlign:'center',color:C.grey} }, it.max),
+                  React.createElement('td', { style:{padding:'5px 6px',textAlign:'center'} },
+                    React.createElement('input', { type:'number', min:0, max:it.max, value:sc.self||'', onChange:function(e){ setScore(sectionKey,i,'self',e.target.value); },
+                      style:{width:52,padding:'4px 5px',border:'1.5px solid '+C.border,borderRadius:6,textAlign:'center',fontSize:11.5,fontFamily:"'Poppins',sans-serif"} })
+                  ),
+                  React.createElement('td', { style:{padding:'5px 6px',textAlign:'center'} },
+                    React.createElement('input', { type:'number', min:0, max:it.max, value:sc.manager||'', onChange:function(e){ setScore(sectionKey,i,'manager',e.target.value); },
+                      style:{width:52,padding:'4px 5px',border:'1.5px solid '+C.border,borderRadius:6,textAlign:'center',fontSize:11.5,fontFamily:"'Poppins',sans-serif"} })
+                  ),
+                  React.createElement('td', { style:{padding:'7px 9px',textAlign:'center',color:C.tx} }, avg.toFixed(1)),
+                  React.createElement('td', { style:{padding:'7px 9px',textAlign:'center',color: pct>=0.8?C.green:pct>=0.5?C.orange:C.red,fontWeight:600} }, Math.round(pct*100)+'%'),
+                  React.createElement('td', { style:{padding:'7px 9px',textAlign:'center',color:C.blue,fontWeight:600} }, '₹'+salPct.toFixed(0))
+                );
+              })
+            ),
+            React.createElement('tfoot', null, React.createElement('tr', { style:{background:C.blueLt} },
+              React.createElement('td', { colSpan:7, style:{padding:'8px 9px',fontWeight:700,color:C.blueDk,fontSize:11.5} }, 'Salary Achieved (this section)'),
+              React.createElement('td', { style:{padding:'8px 9px',textAlign:'center',fontWeight:700,color:C.blueDk} }, '₹'+sectionTotals[sectionKey].toFixed(0))
+            ))
+          )
+        )
+      );
+    }
+
+    return React.createElement('div', null,
+      React.createElement('div', { style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10} },
+        React.createElement('div', { style:{fontSize:15,fontWeight:700,color:C.blueDk} }, '⭐ Appraisals'),
+        React.createElement('div', { style:{display:'flex',gap:8} },
+          React.createElement('button', { style:pill(view==='form',C.purple), onClick:function(){ setView('form'); } }, '📝 New / Edit Appraisal'),
+          React.createElement('button', { style:pill(view==='history',C.blue), onClick:function(){ setView('history'); } }, '📋 History'+(empAppraisals.length?' ('+empAppraisals.length+')':''))
+        )
+      ),
+      view === 'form' && React.createElement('div', { style:Object.assign({}, card, {marginBottom:16}) },
+        React.createElement('div', { style:{display:'grid',gridTemplateColumns:'2fr 1fr',gap:14} },
+          React.createElement('div', null,
+            React.createElement('label', { style:lbl }, 'Employee'),
+            React.createElement('select', { style:inp, value:selStaff2||'', onChange:function(e){ onSelectStaff(e.target.value); } },
+              staff.map(function(s){ return React.createElement('option', { key:s.id, value:s.id }, s.name + ' — ' + (s.role||s.designation||'')); })
+            )
+          ),
+          React.createElement('div', null,
+            React.createElement('label', { style:lbl }, 'Appraisal Template'),
+            React.createElement('select', { style:inp, value:roleCode||'', onChange:function(e){ setRoleOverride(e.target.value); } },
+              React.createElement('option', { value:'' }, '-- Select template --'),
+              Object.keys(APPRAISAL_TEMPLATE_V2).map(function(code){ return React.createElement('option', { key:code, value:code }, APPRAISAL_TEMPLATE_V2[code].roleName); })
+            )
+          )
+        )
+      ),
+      view === 'form' ? (
+        !template
+          ? React.createElement('div', { style:Object.assign({}, card, {textAlign:'center',padding:40,color:C.grey}) },
+              'No appraisal template configured for this role yet. Select one above.'
+            )
+          : React.createElement('div', null,
+              pendingDraft && React.createElement('div', { style:{padding:'10px 14px',background:C.orangeLt,borderRadius:8,marginBottom:14,fontSize:12,color:C.orange,fontWeight:600} },
+                pendingDraft.status === 'awaiting_self' ? '⏳ Waiting on employee self-assessment (share the self-appraisal link).' : '⏳ Self-assessment submitted — enter Manager Assessment below to complete.'
+              ),
+              React.createElement('div', { style:Object.assign({}, card, {marginBottom:16}) },
+                React.createElement('div', { style:{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:14} },
+                  React.createElement('div', null, React.createElement('label',{style:lbl},'Current Salary (Monthly) ₹'),
+                    React.createElement('input', { style:inp, type:'number', value:currentSalaryIn, onChange:function(e){ setCurrentSalaryIn(e.target.value); } })),
+                  React.createElement('div', null, React.createElement('label',{style:lbl},'Salary Hike Budget ₹'),
+                    React.createElement('input', { style:inp, type:'number', value:salaryBudgetIn, onChange:function(e){ setSalaryBudgetIn(e.target.value); } })),
+                  React.createElement('div', null, React.createElement('label',{style:lbl},'Reviewed By'),
+                    React.createElement('input', { style:inp, value:reviewedBy, onChange:function(e){ setReviewedBy(e.target.value); } })),
+                  React.createElement('div', null, React.createElement('label',{style:lbl},'Next Review Due'),
+                    React.createElement('input', { style:inp, type:'date', value:nextDue, onChange:function(e){ setNextDue(e.target.value); } }))
+                )
+              ),
+              renderSectionTable('kra', 'KRA (Execution & Results)', C.blue),
+              renderSectionTable('skills', 'Competence (Skills & Knowledge)', C.purple),
+              renderSectionTable('culture', 'Culture / Attitude', C.orange),
+              React.createElement('div', { style:Object.assign({}, card, {marginBottom:16,background:C.blueLt}) },
+                React.createElement('div', { style:{display:'flex',justifyContent:'space-between',fontSize:13,fontWeight:700,color:C.blueDk,marginBottom:6} },
+                  React.createElement('span', null, 'Total Salary Increment'), React.createElement('span', null, '₹'+totalIncrement.toFixed(0))
+                ),
+                React.createElement('div', { style:{display:'flex',justifyContent:'space-between',fontSize:14,fontWeight:700,color:C.green} },
+                  React.createElement('span', null, 'Appraised Salary'), React.createElement('span', null, '₹'+appraisedSalary.toFixed(0))
+                )
+              ),
+              React.createElement('div', null, React.createElement('label',{style:lbl},'Comments'),
+                React.createElement('textarea', { style:Object.assign({},inp,{minHeight:70}), value:comments, onChange:function(e){ setComments(e.target.value); } })),
+              React.createElement('div', { style:{display:'flex',gap:10,marginTop:14,flexWrap:'wrap'} },
+                React.createElement('button', { style:btn(C.white,C.blue,C.blue), onClick:sendForSelfAssessment }, '📤 Send for Self-Assessment'),
+                React.createElement('button', { style:btn(C.blue), onClick:saveDraft }, '💾 Save Draft'),
+                React.createElement('button', { style:btn(C.green), onClick:completeAppraisal }, '✅ Complete Appraisal')
+              )
+            )
+      ) : (
+        empAppraisals.length === 0
+          ? React.createElement('div', { style:Object.assign({}, card, {textAlign:'center',padding:40,color:C.grey}) }, 'No appraisals recorded yet for this employee.')
+          : React.createElement('div', { style:{display:'flex',flexDirection:'column',gap:12} },
+              empAppraisals.map(function(a){
+                var totIncr = ['kra','skills','culture'].reduce(function(sum,sec){ return sum + apprSectionSalaryAchieved((a.items&&a.items[sec])||[], sec, a.salaryHikeBudget); }, 0);
+                return React.createElement('div', { key:a.id, style:card },
+                  React.createElement('div', { style:{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:8} },
+                    React.createElement('div', null,
+                      React.createElement('div', { style:{fontWeight:700,color:C.blueDk,fontSize:13} }, a.roleName + ' — ' + new Date(a.date).toLocaleDateString('en-IN')),
+                      React.createElement('div', { style:{fontSize:11,color:C.grey,marginTop:2} }, 'Status: ' + (a.status==='completed'?'✅ Completed':a.status==='awaiting_manager'?'⏳ Awaiting Manager':'⏳ Awaiting Self-Assessment')),
+                      a.reviewedBy && React.createElement('div', { style:{fontSize:11,color:C.grey} }, 'Reviewed by: '+a.reviewedBy)
+                    ),
+                    React.createElement('div', { style:{textAlign:'right'} },
+                      React.createElement('div', { style:{fontSize:13,fontWeight:700,color:C.green} }, '+₹'+totIncr.toFixed(0)),
+                      React.createElement('div', { style:{fontSize:11,color:C.grey} }, '₹'+a.currentSalary+' → ₹'+(a.currentSalary+totIncr).toFixed(0))
+                    )
+                  ),
+                  React.createElement('div', { style:{display:'flex',gap:8,marginTop:10} },
+                    React.createElement('button', { style:btn(C.white,C.blue,C.blue), onClick:function(){ loadRecordIntoForm(a); setView('form'); } }, 'Open'),
+                    React.createElement('button', { style:btn(C.white,C.red,C.red), onClick:function(){ deleteAppraisal(a.id); } }, 'Delete')
+                  )
+                );
+              })
+            )
+      )
+    );
+  }
+
 
 
 /* ════════════════════════════════════════════════
@@ -21184,7 +21097,131 @@ function PinGateModal({ appName, session, onVerified, onCancel }) {
 
 /* ── Root App ── */
 /* ── Client Login Screen ── */
+function SelfAppraisalPortal() {
+  const e = React.createElement;
+  const [pin, setPin] = React.useState('');
+  const [matchedStaff, setMatchedStaff] = React.useState(null);
+  const [err, setErr] = React.useState('');
+  const [record, setRecord] = React.useState(null);
+  const [scores, setScores] = React.useState({});
+  const [submitted, setSubmitted] = React.useState(false);
+
+  const C = { blueDk:'#1A237E', blue:'#1357A6', grey:'#546E7A', border:'#E0E0E0', green:'#2E7D32', red:'#C62828', greyLt:'#F5F7FA' };
+  const inp = { width:'100%', padding:'10px 12px', border:'1.5px solid '+C.border, borderRadius:8, fontSize:14, fontFamily:"'Poppins',sans-serif", outline:'none', boxSizing:'border-box' };
+  const wrap = { minHeight:'100vh', background:'#F5F6FA', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'40px 16px', fontFamily:"'Poppins',sans-serif" };
+  const card = { background:'#fff', borderRadius:14, border:'1px solid '+C.border, padding:24, maxWidth:800, width:'100%', boxShadow:'0 4px 20px rgba(26,35,126,.08)' };
+
+  function tryLogin() {
+    if (pin.length < 4) { setErr('Enter your 4-digit PIN'); return; }
+    var staffList = (typeof sharedStaffGet === 'function') ? sharedStaffGet() : [];
+    var match = staffList.find(function(s){ return s.pin && String(s.pin) === String(pin); });
+    if (!match) { setErr('Incorrect PIN, or no PIN set for your account yet. Contact HR.'); return; }
+    setMatchedStaff(match);
+    setErr('');
+    var all = apprGetAppraisals();
+    var pending = all.find(function(a){ return a.staffId === match.id && a.status === 'awaiting_self'; });
+    setRecord(pending || null);
+  }
+
+  function setScore(sec, idx, val) {
+    setScores(function(prev){
+      var key = sec+'-'+idx;
+      var out = Object.assign({}, prev); out[key] = val; return out;
+    });
+  }
+
+  function submitSelfAssessment() {
+    var all = apprGetAppraisals();
+    var updated = all.map(function(a){
+      if (a.id !== record.id) return a;
+      var items = {};
+      ['kra','skills','culture'].forEach(function(sec){
+        items[sec] = (a.items[sec]||[]).map(function(it,i){
+          var v = scores[sec+'-'+i];
+          return Object.assign({}, it, { self: Number(v)||0 });
+        });
+      });
+      return Object.assign({}, a, { items: items, status: 'awaiting_manager', selfSubmittedAt: new Date().toISOString() });
+    });
+    apprSaveAppraisals(updated);
+    setSubmitted(true);
+  }
+
+  function renderSectionInput(sectionKey, sectionLabel) {
+    var items = (record.items && record.items[sectionKey]) || [];
+    return e('div', { style:{marginBottom:22} },
+      e('div', { style:{fontSize:13,fontWeight:700,color:C.blueDk,marginBottom:10} }, sectionLabel),
+      items.map(function(it, i) {
+        var key = sectionKey+'-'+i;
+        return e('div', { key:key, style:{display:'flex',alignItems:'center',gap:12,padding:'9px 0',borderBottom:'1px solid '+C.greyLt} },
+          e('div', { style:{flex:1,fontSize:12.5,color:'#37474F'} }, it.label, e('span',{style:{color:C.grey,fontSize:11}}, ' (max '+it.max+')')),
+          e('input', {
+            type:'number', min:0, max:it.max, value:scores[key]||'',
+            onChange:function(ev){ setScore(sectionKey, i, ev.target.value); },
+            style:{width:70,padding:'7px 8px',border:'1.5px solid '+C.border,borderRadius:7,textAlign:'center',fontSize:13,fontFamily:"'Poppins',sans-serif"}
+          })
+        );
+      })
+    );
+  }
+
+  if (submitted) {
+    return e('div', { style:wrap }, e('div', { style:Object.assign({},card,{textAlign:'center',maxWidth:480}) },
+      e('div', { style:{fontSize:40,marginBottom:12} }, '✅'),
+      e('div', { style:{fontSize:16,fontWeight:700,color:C.blueDk,marginBottom:8} }, 'Self-assessment submitted'),
+      e('div', { style:{fontSize:13,color:C.grey} }, 'Thank you — your manager will complete the review shortly.')
+    ));
+  }
+
+  if (matchedStaff && record) {
+    return e('div', { style:wrap }, e('div', { style:card },
+      e('div', { style:{fontSize:16,fontWeight:700,color:C.blueDk,marginBottom:2} }, '⭐ Self-Assessment'),
+      e('div', { style:{fontSize:12.5,color:C.grey,marginBottom:18} }, matchedStaff.name + ' — ' + record.roleName),
+      e('div', { style:{padding:'10px 14px',background:'#FFF3E0',borderRadius:8,fontSize:12,color:'#E65100',marginBottom:18} },
+        'Rate yourself honestly on each item below (out of the max shown). Your manager will fill in their own assessment separately.'
+      ),
+      renderSectionInput('kra', 'KRA (Execution & Results)'),
+      renderSectionInput('skills', 'Competence (Skills & Knowledge)'),
+      renderSectionInput('culture', 'Culture / Attitude'),
+      e('button', {
+        onClick: submitSelfAssessment,
+        style:{width:'100%',padding:'12px',background:C.green,color:'#fff',border:'none',borderRadius:9,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:"'Poppins',sans-serif",marginTop:8}
+      }, '✓ Submit Self-Assessment')
+    ));
+  }
+
+  if (matchedStaff && !record) {
+    return e('div', { style:wrap }, e('div', { style:Object.assign({},card,{textAlign:'center',maxWidth:480}) },
+      e('div', { style:{fontSize:40,marginBottom:12} }, '📭'),
+      e('div', { style:{fontSize:15,fontWeight:700,color:C.blueDk,marginBottom:8} }, 'No self-assessment pending'),
+      e('div', { style:{fontSize:13,color:C.grey} }, 'You don’t have a self-assessment waiting for you right now, ' + matchedStaff.name + '.')
+    ));
+  }
+
+  return e('div', { style:wrap }, e('div', { style:Object.assign({},card,{maxWidth:380}) },
+    e('div', { style:{textAlign:'center',marginBottom:20} },
+      e('div', { style:{fontSize:32,marginBottom:6} }, '🦷'),
+      e('div', { style:{fontSize:16,fontWeight:700,color:C.blueDk} }, 'K.B. Dental Clinic'),
+      e('div', { style:{fontSize:12,color:C.grey} }, 'Self-Assessment Portal')
+    ),
+    e('label', { style:{display:'block',fontSize:11,fontWeight:700,color:C.grey,marginBottom:6,textTransform:'uppercase'} }, 'Enter your PIN'),
+    e('input', {
+      type:'password', value:pin, maxLength:6, style:inp,
+      onChange:function(ev){ setPin(ev.target.value.replace(/\D/g,'')); },
+      onKeyDown:function(ev){ if (ev.key==='Enter') tryLogin(); }
+    }),
+    err && e('div', { style:{color:C.red,fontSize:12,marginTop:8} }, err),
+    e('button', {
+      onClick: tryLogin,
+      style:{width:'100%',padding:'11px',background:C.blue,color:'#fff',border:'none',borderRadius:9,fontSize:14,fontWeight:700,cursor:'pointer',fontFamily:"'Poppins',sans-serif",marginTop:14}
+    }, 'Continue')
+  ));
+}
+
 function App() {
+  if (typeof window !== 'undefined' && window.location.hash === '#self-appraisal') {
+    return React.createElement(SelfAppraisalPortal, null);
+  }
     /* Sync HR Admin → role cards on every open */
   React.useEffect(function(){ kbdcSyncRoleEmployeesFromHR(); }, []);
   const [nav, setNav] = useState('home');
