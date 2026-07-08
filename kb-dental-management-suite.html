@@ -5151,10 +5151,81 @@ function MasterTab({ roles }) {
   );
 }
 
+function taskAllRoleCards() {
+  return [].concat(ROLE_CARDS.clinical, ROLE_CARDS.admin, ROLE_CARDS.mgmt, ROLE_CARDS.lab);
+}
+function parseAllRolesTaskCSV(text) {
+  var lines = text.trim().split(/\r\n|\r|\n/).filter(function(l){ return l.trim(); });
+  if (!lines.length) return { byRole: {}, unknownRoles: [], errors: [] };
+  function splitLine(line) {
+    var out = [], cur = '', inQ = false;
+    for (var i = 0; i < line.length; i++) {
+      var c = line[i];
+      if (c === '"') { if (inQ && line[i+1] === '"') { cur += '"'; i++; } else inQ = !inQ; }
+      else if (c === ',' && !inQ) { out.push(cur); cur = ''; }
+      else cur += c;
+    }
+    out.push(cur);
+    return out.map(function(s){ return s.trim(); });
+  }
+  var header = splitLine(lines[0]).map(function(h){ return h.toLowerCase().replace(/[^a-z]/g,''); });
+  var iRole = header.indexOf('role');
+  var iCode = header.findIndex(function(h){ return h.includes('code'); });
+  var iEn = header.findIndex(function(h){ return h.includes('english'); });
+  var iHi = header.findIndex(function(h){ return h.includes('hindi'); });
+  var iFreq = header.findIndex(function(h){ return h.includes('freq'); });
+  if (iRole < 0 || iEn < 0) return { byRole: {}, unknownRoles: [], errors: [{line:1, reason:'Missing Role or Task (English) column'}] };
+  var allRoles = taskAllRoleCards();
+  var byRole = {}, unknownRoles = {}, errors = [];
+  for (var i = 1; i < lines.length; i++) {
+    var cols = splitLine(lines[i]);
+    var roleLabel = (cols[iRole]||'').trim();
+    var en = (cols[iEn]||'').trim();
+    if (!roleLabel || !en) { errors.push({line:i+1, reason: !roleLabel?'Missing Role':'Missing Task (English)'}); continue; }
+    var roleCard = allRoles.find(function(r){ return r.label.toLowerCase() === roleLabel.toLowerCase(); });
+    if (!roleCard) { unknownRoles[roleLabel] = (unknownRoles[roleLabel]||0) + 1; continue; }
+    var code = roleCard.code;
+    if (!byRole[code]) byRole[code] = [];
+    byRole[code].push({
+      code: iCode >= 0 ? (cols[iCode]||'') : (code + (byRole[code].length + 1)),
+      en: en,
+      hi: iHi >= 0 ? (cols[iHi]||'') : '',
+      freq: iFreq >= 0 ? (cols[iFreq]||'Daily') : 'Daily',
+      done: false
+    });
+  }
+  return { byRole: byRole, unknownRoles: Object.keys(unknownRoles).map(function(l){ return { label: l, count: unknownRoles[l] }; }), errors: errors };
+}
 function SettingsTab({
   staffNames,
   setStaffNames
 }) {
+  const [taskImpText, setTaskImpText] = useState('');
+  const [taskImpResult, setTaskImpResult] = useState(null);
+  const [taskImpMsg, setTaskImpMsg] = useState('');
+  const allRoleCards = taskAllRoleCards();
+  function taskImpParse() {
+    setTaskImpResult(parseAllRolesTaskCSV(taskImpText));
+  }
+  function taskImpFile(input) {
+    var f = input.files && input.files[0];
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function(e) { setTaskImpText(e.target.result); };
+    reader.readAsText(f);
+  }
+  function taskImpCommit() {
+    if (!taskImpResult) return;
+    Object.keys(taskImpResult.byRole).forEach(function(code) {
+      setRoleTasks(code, taskImpResult.byRole[code]);
+    });
+    var roleCount = Object.keys(taskImpResult.byRole).length;
+    var taskCount = Object.values(taskImpResult.byRole).reduce(function(a,arr){ return a+arr.length; }, 0);
+    setTaskImpMsg('✓ Imported ' + taskCount + ' tasks across ' + roleCount + ' role(s)');
+    setTaskImpText('');
+    setTaskImpResult(null);
+    setTimeout(function(){ setTaskImpMsg(''); }, 4000);
+  }
   return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     className: "settings-section"
   }, /*#__PURE__*/React.createElement("div", {
@@ -5264,7 +5335,41 @@ function SettingsTab({
     className: "ss-title"
   }, "Data Management"), /*#__PURE__*/React.createElement("button", {
     className: "clr-btn"
-  }, "Clear All Completion Data")));
+  }, "Clear All Completion Data")), /*#__PURE__*/React.createElement("div", {
+    className: "settings-section"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "ss-title"
+  }, "📁 Bulk Import Tasks"), /*#__PURE__*/React.createElement("div", {
+    style: { fontSize: 11, color: '#78909C', marginBottom: 10 }
+  }, "Load tasks for one or more roles in one go. Upload a CSV or paste cells with columns: Role, Task Code, Task (English), Task (Hindi), Frequency. Importing a role replaces its existing task list entirely — matches the format from “Download All Tasks CSV” in the Sync tab."),
+  /*#__PURE__*/React.createElement("input", { type: "file", accept: ".csv,.txt", onChange: function(e){ taskImpFile(e.target); }, style: { marginBottom: 10 } }),
+  /*#__PURE__*/React.createElement("textarea", {
+    value: taskImpText, onChange: function(e){ setTaskImpText(e.target.value); },
+    rows: 6, placeholder: "Role,Task Code,Task (English),Task (Hindi),Frequency\nClinic Head,CLH01,Review appointment schedule,...,Daily",
+    style: { width: '100%', padding: '9px 11px', border: '1.5px solid #DDE3F0', borderRadius: 7, fontSize: 11.5, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box', marginBottom: 10, resize: 'vertical' }
+  }),
+  /*#__PURE__*/React.createElement("button", { className: "sync-btn sbtn-test", onClick: taskImpParse }, "🔎 Parse & Preview"),
+  taskImpMsg && /*#__PURE__*/React.createElement("div", { style: { marginTop: 10, padding: '8px 12px', background: '#E8F5E9', color: '#2E7D32', borderRadius: 7, fontSize: 11.5, fontWeight: 600 } }, taskImpMsg),
+  taskImpResult && /*#__PURE__*/React.createElement("div", { style: { marginTop: 12, padding: '10px 14px', background: '#F8F9FF', borderRadius: 8, fontSize: 11.5 } },
+    Object.keys(taskImpResult.byRole).length === 0
+      ? /*#__PURE__*/React.createElement("div", { style: { color: '#C62828' } }, "No matching roles found in this data.")
+      : /*#__PURE__*/React.createElement("div", null,
+          Object.keys(taskImpResult.byRole).map(function(code) {
+            var role = allRoleCards.find(function(r){ return r.code === code; });
+            return /*#__PURE__*/React.createElement("div", { key: code, style: { padding: '2px 0' } }, "✓ ", role ? role.label : code, " — ", taskImpResult.byRole[code].length, " task(s)");
+          })
+        ),
+    taskImpResult.unknownRoles.length > 0 && /*#__PURE__*/React.createElement("div", { style: { marginTop: 8, color: '#E65100' } },
+      "⚠ Unrecognised role name(s), skipped: ", taskImpResult.unknownRoles.map(function(u){ return u.label + ' (' + u.count + ')'; }).join(', ')
+    ),
+    taskImpResult.errors.length > 0 && /*#__PURE__*/React.createElement("div", { style: { marginTop: 8, color: '#C62828' } },
+      taskImpResult.errors.length, " row(s) skipped (missing Role or Task)."
+    ),
+    Object.keys(taskImpResult.byRole).length > 0 && /*#__PURE__*/React.createElement("button", {
+      className: "sync-btn sbtn-push", style: { marginTop: 10 }, onClick: taskImpCommit
+    }, "✓ Import Tasks for ", Object.keys(taskImpResult.byRole).length, " Role(s)")
+  )
+  ));
 }
 function AdminTab() {
   var _c = React.useState(CLIENTS.slice()); var clients = _c[0], setClients = _c[1];
