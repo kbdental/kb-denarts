@@ -12377,27 +12377,27 @@ function AchieversClubPage() {
   var COLORS = ['#1357A6','#C62828','#6A1B9A','#00897B','#E65100','#2E7D32','#7B1FA2','#AD1457','#F57F17','#00695C','#37474F','#1565C0','#4E342E'];
 
   var BANDS = [
-    {min:90, icon:'🌟', label:'Behtareen',      color:'#F57F17', bg:'#FFF8E1', border:'#FFE082'},
-    {min:75, icon:'✅', label:'Accha',           color:'#2E7D32', bg:'#E8F5E9', border:'#A5D6A7'},
-    {min:60, icon:'🔵', label:'Theek-Thaak',     color:'#1565C0', bg:'#E3F2FD', border:'#90CAF9'},
-    {min:40, icon:'⚠️', label:'Sudhaar Zaroori', color:'#E65100', bg:'#FFF3E0', border:'#FFCC80'},
-    {min:0,  icon:'❌', label:'Kamzor',          color:'#C62828', bg:'#FFEBEE', border:'#FFCDD2'}
+    {id:'exceptional', min:90, icon:'🌟', en:'Exceptional',        hi:'Behtareen',      color:'#F57F17', bg:'#FFF8E1', border:'#FFE082'},
+    {id:'good',         min:75, icon:'✅', en:'Good',               hi:'Accha',           color:'#2E7D32', bg:'#E8F5E9', border:'#A5D6A7'},
+    {id:'meets',        min:60, icon:'🔵', en:'Meets Expectations', hi:'Theek-Thaak',     color:'#1565C0', bg:'#E3F2FD', border:'#90CAF9'},
+    {id:'needs',        min:40, icon:'⚠️', en:'Needs Improvement',  hi:'Sudhaar Zaroori', color:'#E65100', bg:'#FFF3E0', border:'#FFCC80'},
+    {id:'poor',         min:0,  icon:'❌', en:'Poor',               hi:'Kamzor',          color:'#C62828', bg:'#FFEBEE', border:'#FFCDD2'}
   ];
 
   var ROLES = [
-    {id:'ldn',icon:'🩺',name:'Lead Dental Nurse',     cats:[{k:'c1',l:'Ilaj Mein Sahayata ki Quality',max:20},{k:'c2',l:'Mareez ki Dekhbhal aur Ghabrahat Kam Karna',max:20},{k:'c3',l:'Team Leadership aur Margdarshan',max:20},{k:'c4',l:'Sterilization aur SOP Palan',max:15},{k:'c5',l:'Professionalism aur Samay ki Pabandi',max:15},{k:'c6',l:'Training aur Khud ki Pahal',max:10}]},
-    {id:'das',icon:'💉',name:'Dental Assistant',       cats:[{k:'c1',l:'Chairside Sahayata ki Quality',max:20},{k:'c2',l:'Mareez ka Aaram aur Baatcheet',max:20},{k:'c3',l:'Sterilization Mein Sahyog',max:20},{k:'c4',l:'Professionalism aur Samay ki Pabandi',max:15},{k:'c5',l:'Teamwork aur Lacheelapan',max:15},{k:'c6',l:'Naye Hunar Sikhna',max:10}]},
-    {id:'hsk',icon:'🧹',name:'Housekeeping',           cats:[{k:'c1',l:'Clinic ki Safai ke Standard',max:25},{k:'c2',l:'OT aur Dental Unit ki Safai',max:25},{k:'c3',l:'Infection Control ka Palan',max:20},{k:'c4',l:'Kachra Prabandhan aur Suraksha',max:15},{k:'c5',l:'Samay ki Pabandi aur Bharosemandi',max:10},{k:'c6',l:'Vyavhaar aur Sahyog',max:5}]},
-    {id:'rec',icon:'📞',name:'Receptionist',           cats:[{k:'c1',l:'Mareez Se Vyavhaar aur Pehla Prabhav',max:25},{k:'c2',l:'Appointment ka Prabandhan',max:20},{k:'c3',l:'Mareez Follow-up aur Judaav',max:20},{k:'c4',l:'Prashasnik Kaam Mein Shudhata',max:20},{k:'c5',l:'Professionalism aur Samay ki Pabandi',max:10},{k:'c6',l:'Teamwork aur Lacheelapan',max:5}]},
-    {id:'mis',icon:'💻',name:'MIS',                    cats:[{k:'c1',l:'Data ki Shudhata aur Reporting',max:25},{k:'c2',l:'System Sambhaalna aur Uptime',max:20},{k:'c3',l:'Report ki Quality aur Samay Par',max:20},{k:'c4',l:'IT Sahayata aur Samasya Suljhana',max:15},{k:'c5',l:'Kaam Mein Sudhaar Laana',max:10},{k:'c6',l:'Professionalism aur Attendance',max:10}]},
-    {id:'clh',icon:'🏥',name:'Clinic Head',            cats:[{k:'c1',l:'Clinic ka Performance aur Revenue',max:25},{k:'c2',l:'Team Prabandhan aur Netritva',max:20},{k:'c3',l:'Mareez Santushti ki Nigrani',max:20},{k:'c4',l:'Kaam ki Dakshata',max:15},{k:'c5',l:'Aage ki Yojana Banana',max:10},{k:'c6',l:'Staff Vikas aur Tikau Rakhna',max:10}]},
-    {id:'lbt',icon:'🔬',name:'Lab Technician',         cats:[{k:'c1',l:'Kaam ki Quality aur Satikta',max:25},{k:'c2',l:'Samay Par Kaam Poora Karna',max:25},{k:'c3',l:'Saman Prabandhan',max:15},{k:'c4',l:'Kam Galtiyaan / Dobara Kaam Kam',max:15},{k:'c5',l:'Professionalism aur Attendance',max:10},{k:'c6',l:'Sikhna aur Naye Tarike',max:10}]},
-    {id:'rdr',icon:'🚗',name:'Rider',                  cats:[{k:'c1',l:'Samay Par Sahi Delivery',max:30},{k:'c2',l:'Saman Sambhalna aur Suraksha',max:25},{k:'c3',l:'Attendance aur Uplabdhata',max:20},{k:'c4',l:'Baatcheet aur Update Dena',max:15},{k:'c5',l:'Vehicle ki Dekhbhal',max:5},{k:'c6',l:'Vyavhaar aur Sahyog',max:5}]},
-    {id:'ptc',icon:'📋',name:'Treatment Coordinator',  cats:[{k:'c1',l:'Treatment Plan Convert Karna',max:25},{k:'c2',l:'Mareez Se Baatcheet aur Samjhana',max:20},{k:'c3',l:'Follow-up aur Mareez ko Jode Rakhna',max:20},{k:'c4',l:'Paise Sambandhi Salah',max:15},{k:'c5',l:'CRM aur Kagzi Kaam',max:10},{k:'c6',l:'Professionalism aur Attendance',max:10}]},
-    {id:'stt',icon:'♻️',name:'Sterilization Tech',    cats:[{k:'c1',l:'Sterilization SOP ka Palan',max:30},{k:'c2',l:'Instrument Tracking aur Prabandhan',max:25},{k:'c3',l:'Kaam ki Raftar',max:20},{k:'c4',l:'Sahi Documentation',max:10},{k:'c5',l:'Attendance aur Bharosemandi',max:10},{k:'c6',l:'Infection Control ki Jaankari',max:5}]},
-    {id:'ofm',icon:'📊',name:'Office Manager',         cats:[{k:'c1',l:'Prashasnik Kaam ki Dakshata',max:20},{k:'c2',l:'HR aur Staff Samanvay',max:20},{k:'c3',l:'Paisa aur Billing Prabandhan',max:20},{k:'c4',l:'Vendor aur Saman ki Supply',max:15},{k:'c5',l:'Niyam Palan aur Rikord Rakhna',max:15},{k:'c6',l:'Netritva aur Samasya Suljhana',max:10}]},
-    {id:'asd',icon:'🦷',name:'Associate Dentist',      cats:[{k:'c1',l:'Ilaj ki Quality aur Natije',max:25},{k:'c2',l:'Mareez ki Santushti',max:20},{k:'c3',l:'Ilaj Mein Dakshata',max:15},{k:'c4',l:'Protocol aur Documentation',max:15},{k:'c5',l:'Teamwork aur Baatcheet',max:15},{k:'c6',l:'Naya Sikhna (CPD)',max:10}]},
-    {id:'ccd',icon:'👑',name:'Chief Dentist',          cats:[{k:'c1',l:'Ilaj Mein Shreshtata aur Natije',max:20},{k:'c2',l:'Netritva aur Vision',max:20},{k:'c3',l:'Revenue Badhana',max:20},{k:'c4',l:'Team Vikas aur Margdarshan',max:15},{k:'c5',l:'Mareez Santushti ki Nigrani',max:15},{k:'c6',l:'Research aur Naye Tarike',max:10}]}
+    {id:'ldn',icon:'🩺',name:'Lead Dental Nurse',     cats:[{k:'c1',en:'Clinical Assistance Quality',hi:'Ilaj Mein Sahayata ki Quality',max:20},{k:'c2',en:'Patient Care & Anxiety Mgmt',hi:'Mareez ki Dekhbhal aur Ghabrahat Kam Karna',max:20},{k:'c3',en:'Team Leadership & Mentoring',hi:'Team Leadership aur Margdarshan',max:20},{k:'c4',en:'Sterilization & SOP',hi:'Sterilization aur SOP Palan',max:15},{k:'c5',en:'Professionalism & Punctuality',hi:'Professionalism aur Samay ki Pabandi',max:15},{k:'c6',en:'Training & Initiative',hi:'Training aur Khud ki Pahal',max:10}]},
+    {id:'das',icon:'💉',name:'Dental Assistant',       cats:[{k:'c1',en:'Chairside Assistance Quality',hi:'Chairside Sahayata ki Quality',max:20},{k:'c2',en:'Patient Comfort & Communication',hi:'Mareez ka Aaram aur Baatcheet',max:20},{k:'c3',en:'Sterilization Support',hi:'Sterilization Mein Sahyog',max:20},{k:'c4',en:'Professionalism & Punctuality',hi:'Professionalism aur Samay ki Pabandi',max:15},{k:'c5',en:'Teamwork & Flexibility',hi:'Teamwork aur Lacheelapan',max:15},{k:'c6',en:'Skill Development',hi:'Naye Hunar Sikhna',max:10}]},
+    {id:'hsk',icon:'🧹',name:'Housekeeping',           cats:[{k:'c1',en:'Clinic Cleanliness Standards',hi:'Clinic ki Safai ke Standard',max:25},{k:'c2',en:'OT & Dental Unit Hygiene',hi:'OT aur Dental Unit ki Safai',max:25},{k:'c3',en:'Infection Control Compliance',hi:'Infection Control ka Palan',max:20},{k:'c4',en:'Waste Management & Safety',hi:'Kachra Prabandhan aur Suraksha',max:15},{k:'c5',en:'Punctuality & Reliability',hi:'Samay ki Pabandi aur Bharosemandi',max:10},{k:'c6',en:'Attitude & Cooperation',hi:'Vyavhaar aur Sahyog',max:5}]},
+    {id:'rec',icon:'📞',name:'Receptionist',           cats:[{k:'c1',en:'Patient Handling & First Impression',hi:'Mareez Se Vyavhaar aur Pehla Prabhav',max:25},{k:'c2',en:'Appointment Management',hi:'Appointment ka Prabandhan',max:20},{k:'c3',en:'Patient Follow-up & Retention',hi:'Mareez Follow-up aur Judaav',max:20},{k:'c4',en:'Administrative Accuracy',hi:'Prashasnik Kaam Mein Shudhata',max:20},{k:'c5',en:'Professionalism & Punctuality',hi:'Professionalism aur Samay ki Pabandi',max:10},{k:'c6',en:'Teamwork & Flexibility',hi:'Teamwork aur Lacheelapan',max:5}]},
+    {id:'mis',icon:'💻',name:'MIS',                    cats:[{k:'c1',en:'Data Accuracy & Reporting',hi:'Data ki Shudhata aur Reporting',max:25},{k:'c2',en:'System Management & Uptime',hi:'System Sambhaalna aur Uptime',max:20},{k:'c3',en:'Report Quality & Timeliness',hi:'Report ki Quality aur Samay Par',max:20},{k:'c4',en:'IT Support & Issue Resolution',hi:'IT Sahayata aur Samasya Suljhana',max:15},{k:'c5',en:'Process Improvement',hi:'Kaam Mein Sudhaar Laana',max:10},{k:'c6',en:'Professionalism & Attendance',hi:'Professionalism aur Attendance',max:10}]},
+    {id:'clh',icon:'🏥',name:'Clinic Head',            cats:[{k:'c1',en:'Clinic Performance & Revenue',hi:'Clinic ka Performance aur Revenue',max:25},{k:'c2',en:'Team Management & Leadership',hi:'Team Prabandhan aur Netritva',max:20},{k:'c3',en:'Patient Satisfaction Oversight',hi:'Mareez Santushti ki Nigrani',max:20},{k:'c4',en:'Operational Efficiency',hi:'Kaam ki Dakshata',max:15},{k:'c5',en:'Strategic Planning',hi:'Aage ki Yojana Banana',max:10},{k:'c6',en:'Staff Development & Retention',hi:'Staff Vikas aur Tikau Rakhna',max:10}]},
+    {id:'lbt',icon:'🔬',name:'Lab Technician',         cats:[{k:'c1',en:'Work Quality & Precision',hi:'Kaam ki Quality aur Satikta',max:25},{k:'c2',en:'Turnaround Time',hi:'Samay Par Kaam Poora Karna',max:25},{k:'c3',en:'Material Management',hi:'Saman Prabandhan',max:15},{k:'c4',en:'Low Rework Rate',hi:'Kam Galtiyaan / Dobara Kaam Kam',max:15},{k:'c5',en:'Professionalism & Attendance',hi:'Professionalism aur Attendance',max:10},{k:'c6',en:'Learning & Innovation',hi:'Sikhna aur Naye Tarike',max:10}]},
+    {id:'rdr',icon:'🚗',name:'Rider',                  cats:[{k:'c1',en:'Delivery Timeliness & Accuracy',hi:'Samay Par Sahi Delivery',max:30},{k:'c2',en:'Material Handling & Safety',hi:'Saman Sambhalna aur Suraksha',max:25},{k:'c3',en:'Attendance & Availability',hi:'Attendance aur Uplabdhata',max:20},{k:'c4',en:'Communication & Updates',hi:'Baatcheet aur Update Dena',max:15},{k:'c5',en:'Vehicle Maintenance',hi:'Vehicle ki Dekhbhal',max:5},{k:'c6',en:'Attitude & Cooperation',hi:'Vyavhaar aur Sahyog',max:5}]},
+    {id:'ptc',icon:'📋',name:'Treatment Coordinator',  cats:[{k:'c1',en:'Treatment Plan Conversion',hi:'Treatment Plan Convert Karna',max:25},{k:'c2',en:'Patient Communication & Educ.',hi:'Mareez Se Baatcheet aur Samjhana',max:20},{k:'c3',en:'Follow-up & Patient Retention',hi:'Follow-up aur Mareez ko Jode Rakhna',max:20},{k:'c4',en:'Financial Counselling',hi:'Paise Sambandhi Salah',max:15},{k:'c5',en:'CRM & Documentation',hi:'CRM aur Kagzi Kaam',max:10},{k:'c6',en:'Professionalism & Attendance',hi:'Professionalism aur Attendance',max:10}]},
+    {id:'stt',icon:'♻️',name:'Sterilization Tech',    cats:[{k:'c1',en:'Sterilization Protocol (SOP)',hi:'Sterilization SOP ka Palan',max:30},{k:'c2',en:'Instrument Tracking & Mgmt',hi:'Instrument Tracking aur Prabandhan',max:25},{k:'c3',en:'Work Speed & Throughput',hi:'Kaam ki Raftar',max:20},{k:'c4',en:'Documentation Accuracy',hi:'Sahi Documentation',max:10},{k:'c5',en:'Attendance & Reliability',hi:'Attendance aur Bharosemandi',max:10},{k:'c6',en:'Infection Control Knowledge',hi:'Infection Control ki Jaankari',max:5}]},
+    {id:'ofm',icon:'📊',name:'Office Manager',         cats:[{k:'c1',en:'Administrative Efficiency',hi:'Prashasnik Kaam ki Dakshata',max:20},{k:'c2',en:'HR & Staff Coordination',hi:'HR aur Staff Samanvay',max:20},{k:'c3',en:'Financial & Billing Mgmt',hi:'Paisa aur Billing Prabandhan',max:20},{k:'c4',en:'Vendor & Supply Management',hi:'Vendor aur Saman ki Supply',max:15},{k:'c5',en:'Compliance & Record Keeping',hi:'Niyam Palan aur Rikord Rakhna',max:15},{k:'c6',en:'Leadership & Problem-Solving',hi:'Netritva aur Samasya Suljhana',max:10}]},
+    {id:'asd',icon:'🦷',name:'Associate Dentist',      cats:[{k:'c1',en:'Clinical Quality & Outcomes',hi:'Ilaj ki Quality aur Natije',max:25},{k:'c2',en:'Patient Satisfaction',hi:'Mareez ki Santushti',max:20},{k:'c3',en:'Treatment Efficiency',hi:'Ilaj Mein Dakshata',max:15},{k:'c4',en:'Protocol & Documentation',hi:'Protocol aur Documentation',max:15},{k:'c5',en:'Teamwork & Communication',hi:'Teamwork aur Baatcheet',max:15},{k:'c6',en:'Learning & CPD',hi:'Naya Sikhna (CPD)',max:10}]},
+    {id:'ccd',icon:'👑',name:'Chief Dentist',          cats:[{k:'c1',en:'Clinical Excellence & Outcomes',hi:'Ilaj Mein Shreshtata aur Natije',max:20},{k:'c2',en:'Strategic Leadership & Vision',hi:'Netritva aur Vision',max:20},{k:'c3',en:'Revenue Generation & Growth',hi:'Revenue Badhana',max:20},{k:'c4',en:'Team Development & Mentoring',hi:'Team Vikas aur Margdarshan',max:15},{k:'c5',en:'Patient Satisfaction Oversight',hi:'Mareez Santushti ki Nigrani',max:15},{k:'c6',en:'Research & Innovation',hi:'Research aur Naye Tarike',max:10}]}
   ];
 
   var now = new Date();
@@ -12467,7 +12467,8 @@ function AchieversClubPage() {
     scoreSt: null, scoreVals: {},
     addOpen: false, addName: '', addRid: 'das',
     soEval: '', soDec: '', soNote: '',
-    toast: null
+    toast: null,
+    lang: (function(){ try { return localStorage.getItem('kbdc_ach_lang')||'en'; } catch(ex) { return 'en'; } })()
   });
   var st = s[0], setState = s[1];
 
@@ -12476,6 +12477,14 @@ function AchieversClubPage() {
       return Object.assign({}, prev, patch);
     });
   }
+
+  function setLang(l) {
+    try { localStorage.setItem('kbdc_ach_lang', l); } catch(ex) {}
+    set({lang: l});
+  }
+
+  function catLabel(cat) { return st.lang === 'hi' ? (cat.hi || cat.en) : cat.en; }
+  function bandLabel(band) { return st.lang === 'hi' ? (band.hi || band.en) : band.en; }
 
   function showToast(msg, ok) {
     set({toast: {msg: msg, ok: ok !== false}});
@@ -12563,6 +12572,10 @@ function AchieversClubPage() {
           e('div', {style:{fontSize:11,color:'rgba(255,255,255,.65)'}}, 'K.B. Dental — Performance-Based Recognition')
         ),
         e('div', {style:{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}},
+          e('div', {style:{display:'flex',background:'rgba(255,255,255,.15)',borderRadius:20,padding:2,gap:2}},
+            e('button', {onClick:function(){setLang('en');}, style:{padding:'6px 13px',borderRadius:18,border:'none',fontSize:11.5,fontWeight:700,cursor:'pointer',background:st.lang==='en'?'#fff':'transparent',color:st.lang==='en'?'#C62828':'rgba(255,255,255,.8)'}}, 'EN'),
+            e('button', {onClick:function(){setLang('hi');}, style:{padding:'6px 13px',borderRadius:18,border:'none',fontSize:11.5,fontWeight:700,cursor:'pointer',background:st.lang==='hi'?'#fff':'transparent',color:st.lang==='hi'?'#C62828':'rgba(255,255,255,.8)'}}, 'हिंदी')
+          ),
           e('select', {value:st.mo, onChange:function(ev){set({mo:parseInt(ev.target.value)});},
             style:{padding:'6px 10px',borderRadius:8,border:'none',fontSize:12,background:'rgba(255,255,255,.2)',color:'#fff',fontFamily:"'Poppins',sans-serif",fontWeight:600,cursor:'pointer'}},
             MN.map(function(m,i){return e('option',{key:i,value:i,style:{background:'#B71C1C'}},m);})),
@@ -12611,7 +12624,7 @@ function AchieversClubPage() {
             e('div',{style:{flex:1,minWidth:0}},
               e('div',{style:{fontSize:20,fontWeight:800,color:'#fff',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',marginBottom:4}}, winner.sf.name),
               e('div',{style:{fontSize:12,color:'rgba(255,255,255,.8)',marginBottom:6}}, winner.role ? winner.role.icon+' '+winner.role.name : '—'),
-              e('span',{style:{background:'rgba(255,255,255,.25)',borderRadius:20,padding:'3px 12px',fontSize:11,fontWeight:700,color:'#fff'}}, winner.band.icon+' '+winner.band.label)
+              e('span',{style:{background:'rgba(255,255,255,.25)',borderRadius:20,padding:'3px 12px',fontSize:11,fontWeight:700,color:'#fff'}}, winner.band.icon+' '+bandLabel(winner.band))
             ),
             e('div',{style:{textAlign:'center',background:'rgba(255,255,255,.25)',borderRadius:12,padding:'10px 18px',flexShrink:0,border:'2px solid rgba(255,255,255,.3)'}},
               e('div',{style:{fontSize:32,fontWeight:900,color:'#fff',lineHeight:1}}, winner.pts),
@@ -12640,10 +12653,10 @@ function AchieversClubPage() {
           e('div',{style:{fontWeight:700,fontSize:13,color:'#B71C1C',marginBottom:12}},'📈 Score Distribution — '+MN[st.mo]+' '+st.yr),
           BANDS.map(function(band){
             var count = 0;
-            for (var i = 0; i < lb.length; i++) { if (lb[i].pts > 0 && lb[i].band.label === band.label) count++; }
+            for (var i = 0; i < lb.length; i++) { if (lb[i].pts > 0 && lb[i].band.id === band.id) count++; }
             var pct = st.data.staff.length > 0 ? Math.round(count/st.data.staff.length*100) : 0;
-            return e('div',{key:band.label,style:{display:'flex',alignItems:'center',gap:10,marginBottom:6}},
-              e('div',{style:{width:138,fontSize:11,fontWeight:600,color:band.color,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},band.icon+' '+band.label),
+            return e('div',{key:band.id,style:{display:'flex',alignItems:'center',gap:10,marginBottom:6}},
+              e('div',{style:{width:138,fontSize:11,fontWeight:600,color:band.color,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},band.icon+' '+bandLabel(band)),
               e('div',{style:{flex:1,height:8,background:'#F5F5F5',borderRadius:4,overflow:'hidden'}},
                 e('div',{style:{height:'100%',width:pct+'%',background:band.color,borderRadius:4}})
               ),
@@ -12664,7 +12677,7 @@ function AchieversClubPage() {
                 e('div',{style:{fontWeight:600,fontSize:12.5,color:'#1A237E',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},row.sf.name),
                 e('div',{style:{fontSize:10,color:'#90A4AE'}},row.role?row.role.icon+' '+row.role.name:'—')
               ),
-              e('span',{style:{fontSize:10,fontWeight:700,padding:'3px 9px',borderRadius:20,background:row.band.bg,color:row.band.color,border:'1px solid '+row.band.border,flexShrink:0,whiteSpace:'nowrap'}},row.band.icon+' '+row.band.label),
+              e('span',{style:{fontSize:10,fontWeight:700,padding:'3px 9px',borderRadius:20,background:row.band.bg,color:row.band.color,border:'1px solid '+row.band.border,flexShrink:0,whiteSpace:'nowrap'}},row.band.icon+' '+bandLabel(row.band)),
               e('div',{style:{fontWeight:800,fontSize:16,color:'#C62828',minWidth:32,textAlign:'right',flexShrink:0}},row.pts)
             );
           })
@@ -12809,7 +12822,7 @@ function AchieversClubPage() {
                       e('div',{style:{width:32,height:32,borderRadius:'50%',background:row.sf.c,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',flexShrink:0}},inits(row.sf.name)),
                       e('div',{style:{flex:1,minWidth:0}},
                         e('div',{style:{fontWeight:600,fontSize:12.5,color:'#1A237E',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}},row.sf.name),
-                        e('div',{style:{fontSize:10,color:'#90A4AE'}},row.pts>0?row.band.icon+' '+row.band.label:'Not scored yet')
+                        e('div',{style:{fontSize:10,color:'#90A4AE'}},row.pts>0?row.band.icon+' '+bandLabel(row.band):'Not scored yet')
                       ),
                       e('div',{style:{fontWeight:800,fontSize:16,color:row.pts>0?'#C62828':'#CFD8DC',minWidth:32,textAlign:'right',flexShrink:0}},row.pts||'—'),
                       e('button',{onClick:function(){var k=sKey(row.sf.id,st.yr,st.mo);set({scoreSt:row.sf,scoreVals:Object.assign({},st.data.scores[k]||{})});},
@@ -12894,7 +12907,7 @@ function AchieversClubPage() {
                     var val=Number(curSc[cat.k])||0;
                     var pct=Math.round(val/cat.max*100);
                     return e('div',{key:cat.k,style:{display:'flex',alignItems:'center',gap:6,marginBottom:3}},
-                      e('div',{style:{fontSize:10,color:'#78909C',width:110,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}},cat.l),
+                      e('div',{style:{fontSize:10,color:'#78909C',width:110,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flexShrink:0}},catLabel(cat)),
                       e('div',{style:{flex:1,height:4,background:'#F5F5F5',borderRadius:2,overflow:'hidden'}},
                         e('div',{style:{height:'100%',width:pct+'%',background:sf.c,borderRadius:2}})
                       ),
@@ -12930,9 +12943,9 @@ function AchieversClubPage() {
           e('div',{style:{fontWeight:700,fontSize:13,color:'#B71C1C',marginBottom:12}},'🎯 Performance Bands'),
           e('div',{style:{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:8}},
             BANDS.map(function(b){
-              return e('div',{key:b.label,style:{background:b.bg,borderRadius:10,padding:'12px',border:'1.5px solid '+b.border,textAlign:'center'}},
+              return e('div',{key:b.id,style:{background:b.bg,borderRadius:10,padding:'12px',border:'1.5px solid '+b.border,textAlign:'center'}},
                 e('div',{style:{fontSize:20,marginBottom:4}},b.icon),
-                e('div',{style:{fontWeight:700,fontSize:12,color:b.color}},b.label),
+                e('div',{style:{fontWeight:700,fontSize:12,color:b.color}},bandLabel(b)),
                 e('div',{style:{fontSize:10.5,color:'#78909C',marginTop:2}},b.min+'+ points')
               );
             })
@@ -12949,7 +12962,7 @@ function AchieversClubPage() {
               role.cats.map(function(cat,ci){
                 return e('div',{key:cat.k,style:{display:'flex',alignItems:'center',gap:10,padding:'9px 14px',borderBottom:ci<role.cats.length-1?'1px solid #FFF5F5':'none',background:ci%2?'#FAFAFA':'#fff'}},
                   e('div',{style:{width:22,height:22,borderRadius:'50%',background:'#FFEBEE',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9.5,fontWeight:800,color:'#C62828',flexShrink:0}},ci+1),
-                  e('div',{style:{flex:1,fontSize:12,fontWeight:600,color:'#263238'}},cat.l),
+                  e('div',{style:{flex:1,fontSize:12,fontWeight:600,color:'#263238'}},catLabel(cat)),
                   e('div',{style:{background:'#FFEBEE',borderRadius:20,padding:'2px 10px',fontSize:11,fontWeight:800,color:'#C62828',flexShrink:0}},cat.max+' pts')
                 );
               })
@@ -12985,7 +12998,7 @@ function AchieversClubPage() {
               ),
               e('div',{style:{background:'rgba(255,255,255,.2)',borderRadius:10,padding:'8px 14px',textAlign:'center'}},
                 e('div',{style:{fontSize:16}},liveBand.icon),
-                e('div',{style:{fontSize:10.5,fontWeight:700,color:'#fff',marginTop:2}},liveBand.label)
+                e('div',{style:{fontSize:10.5,fontWeight:700,color:'#fff',marginTop:2}},bandLabel(liveBand))
               )
             )
           ),
@@ -12995,7 +13008,7 @@ function AchieversClubPage() {
               var pct = Math.round(val/cat.max*100);
               return e('div',{key:cat.k,style:{marginBottom:16}},
                 e('div',{style:{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}},
-                  e('label',{style:{fontSize:12.5,fontWeight:600,color:'#263238'}},cat.l),
+                  e('label',{style:{fontSize:12.5,fontWeight:600,color:'#263238'}},catLabel(cat)),
                   e('div',{style:{display:'flex',alignItems:'center',gap:6}},
                     e('span',{style:{fontSize:11,color:'#90A4AE'}},'/'+cat.max),
                     e('span',{style:{fontSize:16,fontWeight:800,color:'#C62828',minWidth:24,textAlign:'right'}},val)
