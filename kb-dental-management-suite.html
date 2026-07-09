@@ -3025,6 +3025,33 @@ function TaskListView({
   useEffect(function(){setTasks(getRoleTasks(role.code));},[role.code]);
   const [syncMsg, setSyncMsg] = useState('');
 
+  function toggleTaskDone(t) {
+    var nowDone = !t.done;
+    var stamp = new Date().toISOString();
+    var updated = tasks.map(function(x){
+      return x === t ? Object.assign({}, x, { done: nowDone, doneAt: nowDone ? stamp : null }) : x;
+    });
+    setTasks(updated);
+    setRoleTasks(role.code, updated);
+    try {
+      var log = JSON.parse(localStorage.getItem('kbdc_task_log') || '[]');
+      if (nowDone) {
+        log.push({
+          id: 'tl' + Date.now().toString(36) + Math.random().toString(36).slice(2,5),
+          roleCode: role.code, staffName: role.name || '',
+          taskCode: t.code || '', taskEn: t.en || '', taskHi: t.hi || '', frequency: t.freq || 'Daily',
+          date: stamp.slice(0,10), time: stamp.slice(11,16)
+        });
+      } else {
+        var today = stamp.slice(0,10);
+        for (var i = log.length - 1; i >= 0; i--) {
+          if (log[i].roleCode === role.code && log[i].taskCode === (t.code||'') && log[i].date === today) { log.splice(i, 1); break; }
+        }
+      }
+      localStorage.setItem('kbdc_task_log', JSON.stringify(log));
+    } catch(e) {}
+  }
+
   const handleCSVUpload = () => {
     const inp = document.createElement('input');
     inp.type = 'file'; inp.accept = '.csv,.txt';
@@ -3738,10 +3765,7 @@ function TaskListView({
           }, ttab.toUpperCase() + " (" + visibleTasks.length + ")"), visibleTasks.map((t, i) => React.createElement("div", {
     key: i,
     className: "task-row",
-    onClick: () => setTasks(ts => ts.map((x, j) => j === i ? {
-      ...x,
-      done: !x.done
-    } : x))
+    onClick: () => toggleTaskDone(t)
   }, /*#__PURE__*/React.createElement("div", {
     className: `task-circle${t.done ? ' done' : ''}`
   }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
@@ -9399,6 +9423,7 @@ function kbdcAllocRows() {
 var KBDC_BACKEND_MODULES = [
   { id:'staff',       label:'Staff / Employees',        sheet:'Staff',              get: function(){ return sharedStaffGet().map(function(s){ return { id:s.id, name:s.name, role:s.role||s.designation, email:s.email, mobile:s.mobile||s.phone, accessLevel:s.accessLevel, department:s.dept||s.group, status:s.s, joined:s.joined, reportsTo:(s.reportsTo&&s.reportsTo.name)||s.reportingManagerName||'' }; }); } },
   { id:'tasks',       label:'Task Lists & Completion',  sheet:'Tasks',              get: function(){ return kbdcScanPrefixed('kbdc_tasks_').map(function(t){ return { roleCode:t.sourceKey, taskCode:t.code, taskEn:t.en, taskHi:t.hi, frequency:t.freq, done:t.done }; }); } },
+  { id:'taskcompletions', label:'Task Completions Log',  sheet:'TaskCompletions',    get: function(){ return kbdcLsArray('kbdc_task_log'); } },
   { id:'leaves',      label:'Leave Requests',           sheet:'LeaveRequests',      get: function(){ return kbdcLsArray('kbdc_la_leaves'); } },
   { id:'attendance',  label:'Attendance',               sheet:'Attendance',         get: function(){ return kbdcLsArray('kbdc_la_attendance'); } },
   { id:'leavealloc',  label:'Leave Allocations',        sheet:'LeaveAllocations',   get: kbdcAllocRows },
