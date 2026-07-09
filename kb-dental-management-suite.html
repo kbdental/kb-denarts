@@ -9331,9 +9331,14 @@ function kbdcLsArray(key) { try { return JSON.parse(localStorage.getItem(key) ||
 
 async function kbdcBackendReqAt(u, sheet, action, payload) {
   if (!u) throw new Error('No backend URL set. Paste your Apps Script Web App URL above and click Save first.');
+  // Content-Type must stay "text/plain" here — sending "application/json" makes the
+  // browser send a CORS preflight (OPTIONS) request first, which Apps Script Web Apps
+  // don't handle, so the real POST never goes out ("Failed to fetch"). Apps Script
+  // reads the raw body via e.postData.contents regardless of the header, so this is
+  // still valid JSON on the receiving end.
   var r = await fetch(u, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(Object.assign({ sheet: sheet, action: action }, payload || {}))
   });
   if (!r.ok) throw new Error('HTTP ' + r.status);
