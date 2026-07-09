@@ -9295,6 +9295,237 @@ function SettingsClientPanel() {
   );
 }
 
+/* ═══════════════ DATA BACKEND (Google Sheets sync) ═══════════════ */
+function kbdcBackendUrl() { try { return localStorage.getItem('kbdc_backend_url') || ''; } catch(e) { return ''; } }
+function kbdcSetBackendUrl(u) { try { localStorage.setItem('kbdc_backend_url', u || ''); } catch(e) {} }
+
+function kbdcFlattenRow(obj) {
+  var out = {};
+  Object.keys(obj || {}).forEach(function(k) {
+    var v = obj[k];
+    out[k] = (v && typeof v === 'object') ? JSON.stringify(v) : v;
+  });
+  return out;
+}
+
+function kbdcScanPrefixed(prefix) {
+  var out = [];
+  try {
+    Object.keys(localStorage).forEach(function(k) {
+      if (k.indexOf(prefix) === 0) {
+        var suffix = k.slice(prefix.length);
+        var arr = [];
+        try { arr = JSON.parse(localStorage.getItem(k) || '[]'); } catch(e) {}
+        if (Array.isArray(arr)) {
+          arr.forEach(function(item) { out.push(Object.assign({ sourceKey: suffix }, item)); });
+        }
+      }
+    });
+  } catch(e) {}
+  return out;
+}
+
+function kbdcLsArray(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; } }
+
+async function kbdcBackendReq(sheet, action, payload) {
+  var u = kbdcBackendUrl();
+  if (!u) throw new Error('No backend URL set. Paste your Apps Script Web App URL above and click Save first.');
+  var r = await fetch(u, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ sheet: sheet, action: action }, payload || {}))
+  });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+function kbdcAchieversRows() {
+  var d = {};
+  try { d = JSON.parse(localStorage.getItem('kbdc_ach_v1') || '{}'); } catch(e) {}
+  var staffById = {};
+  (d.staff || []).forEach(function(s) { staffById[s.id] = s; });
+  var rows = [];
+  Object.keys(d.scores || {}).forEach(function(key) {
+    var parts = key.split('_');
+    var mo = parts.pop(), yr = parts.pop(), sid = parts.join('_');
+    var sc = d.scores[key] || {};
+    var total = 0;
+    Object.keys(sc).forEach(function(k) { total += Number(sc[k]) || 0; });
+    var sf = staffById[sid] || {};
+    rows.push({ staffId: sid, staffName: sf.name || '', role: sf.rid || '', year: yr, month: mo, totalPoints: total });
+  });
+  return rows;
+}
+
+function kbdcAppraisalRows() {
+  var list = [];
+  try { list = apprGetAppraisals(); } catch(e) {}
+  return list.map(function(a) {
+    function avg(sec) {
+      var items = (a.items && a.items[sec]) || [];
+      if (!items.length) return 0;
+      return items.reduce(function(s, it) { return s + ((Number(it.self)||0)+(Number(it.manager)||0))/2; }, 0);
+    }
+    return {
+      id: a.id, staffName: a.staffName, roleName: a.roleName, status: a.status,
+      currentSalary: a.currentSalary, salaryHikeBudget: a.salaryHikeBudget,
+      kraAvg: avg('kra'), skillsAvg: avg('skills'), cultureAvg: avg('culture'),
+      reviewedBy: a.reviewedBy, nextDue: a.nextDue, date: a.date
+    };
+  });
+}
+
+function kbdcAllocRows() {
+  var alloc = {};
+  try { alloc = JSON.parse(localStorage.getItem('kbdc_la_alloc') || '{}'); } catch(e) {}
+  var rows = [];
+  Object.keys(alloc).forEach(function(name) {
+    var byType = alloc[name] || {};
+    Object.keys(byType).forEach(function(type) {
+      rows.push({ staffName: name, leaveType: type, allocatedDays: byType[type] });
+    });
+  });
+  return rows;
+}
+
+var KBDC_BACKEND_MODULES = [
+  { id:'staff',       label:'Staff / Employees',        sheet:'Staff',              get: function(){ return sharedStaffGet().map(function(s){ return { id:s.id, name:s.name, role:s.role||s.designation, email:s.email, mobile:s.mobile||s.phone, accessLevel:s.accessLevel, department:s.dept||s.group, status:s.s, joined:s.joined, reportsTo:(s.reportsTo&&s.reportsTo.name)||s.reportingManagerName||'' }; }); } },
+  { id:'tasks',       label:'Task Lists & Completion',  sheet:'Tasks',              get: function(){ return kbdcScanPrefixed('kbdc_tasks_').map(function(t){ return { roleCode:t.sourceKey, taskCode:t.code, taskEn:t.en, taskHi:t.hi, frequency:t.freq, done:t.done }; }); } },
+  { id:'leaves',      label:'Leave Requests',           sheet:'LeaveRequests',      get: function(){ return kbdcLsArray('kbdc_la_leaves'); } },
+  { id:'attendance',  label:'Attendance',               sheet:'Attendance',         get: function(){ return kbdcLsArray('kbdc_la_attendance'); } },
+  { id:'leavealloc',  label:'Leave Allocations',        sheet:'LeaveAllocations',   get: kbdcAllocRows },
+  { id:'invitems',    label:'Inventory Items',          sheet:'InventoryItems',     get: function(){ return kbdcLsArray('kbdc_inv_items'); } },
+  { id:'invtx',       label:'Inventory Transactions',   sheet:'InventoryTransactions', get: function(){ return kbdcLsArray('kbdc_inv_tx'); } },
+  { id:'appraisals',  label:'Appraisals',               sheet:'Appraisals',         get: kbdcAppraisalRows },
+  { id:'achievers',   label:'Achievers Club Scores',    sheet:'AchieversScores',    get: kbdcAchieversRows },
+  { id:'payroll',     label:'Payroll',                  sheet:'Payroll',            get: function(){ return kbdcLsArray('kbdc_fin_payroll'); } },
+  { id:'claims',      label:'Reimbursement Claims',     sheet:'Claims',             get: function(){ return kbdcLsArray('kbdc_fin_claims'); } },
+  { id:'advances',    label:'Advances & Loans',         sheet:'Advances',           get: function(){ return kbdcLsArray('kbdc_loans_v2'); } },
+  { id:'ideas',       label:'Idea Board',               sheet:'Ideas',              get: function(){ return kbdcLsArray('kbdc_ideas'); } },
+  { id:'assets',      label:'Assets',                   sheet:'Assets',             get: function(){ return kbdcLsArray('kbdc_hr_assets2'); } },
+  { id:'onboarding',  label:'Onboarding',               sheet:'Onboarding',         get: function(){ return kbdcLsArray('kbdc_hr_onboardings'); } },
+  { id:'separations', label:'Separations',              sheet:'Separations',       get: function(){ return kbdcLsArray('kbdc_hr_separations'); } },
+  { id:'trainings',   label:'Trainings',                sheet:'Trainings',          get: function(){ return kbdcLsArray('kbdc_hr_trainings'); } },
+  { id:'forms',       label:'Form Builder Responses',   sheet:'FormResponses',      get: function(){ return kbdcScanPrefixed('kbdc_resp_'); } },
+];
+
+function DataBackendTab() {
+  var e2 = React.createElement;
+  var u0 = React.useState(kbdcBackendUrl()); var url = u0[0]; var setUrl = u0[1];
+  var savedMsg0 = React.useState(''); var savedMsg = savedMsg0[0]; var setSavedMsg = savedMsg0[1];
+  var status0 = React.useState({}); var rowStatus = status0[0]; var setRowStatus = status0[1];
+  var busyAll0 = React.useState(false); var busyAll = busyAll0[0]; var setBusyAll = busyAll0[1];
+  var connMsg0 = React.useState(''); var connMsg = connMsg0[0]; var setConnMsg = connMsg0[1];
+
+  function saveUrl() {
+    kbdcSetBackendUrl(url.trim());
+    setSavedMsg('✓ Saved');
+    setTimeout(function(){ setSavedMsg(''); }, 2500);
+  }
+
+  function setOne(id, patch) {
+    setRowStatus(function(prev) { var o = Object.assign({}, prev); o[id] = Object.assign({}, o[id], patch); return o; });
+  }
+
+  async function pushModule(mod) {
+    setOne(mod.id, { busy: true, msg: '' });
+    try {
+      var rows = mod.get().map(kbdcFlattenRow);
+      await kbdcBackendReq(mod.sheet, 'saveAll', { rows: rows });
+      setOne(mod.id, { busy: false, msg: '✅ Pushed ' + rows.length + ' rows' });
+    } catch (ex) {
+      setOne(mod.id, { busy: false, msg: '⚠ ' + ex.message });
+    }
+  }
+
+  async function pullModule(mod) {
+    if (!window.confirm('Pull "' + mod.label + '" from the Google Sheet? This will not remove anything locally — pulled rows are for review only in this version.')) return;
+    setOne(mod.id, { busy: true, msg: '' });
+    try {
+      var d = await kbdcBackendReq(mod.sheet, 'getData', {});
+      setOne(mod.id, { busy: false, msg: '✅ Sheet has ' + ((d.rows||[]).length) + ' rows' });
+    } catch (ex) {
+      setOne(mod.id, { busy: false, msg: '⚠ ' + ex.message });
+    }
+  }
+
+  async function testConn() {
+    setConnMsg('Testing...');
+    try {
+      await kbdcBackendReq('_ping', 'ping', {});
+      setConnMsg('✅ Connection OK — your Google Sheet is ready.');
+    } catch (ex) {
+      setConnMsg('❌ ' + ex.message);
+    }
+  }
+
+  async function pushEverything() {
+    setBusyAll(true);
+    for (var i = 0; i < KBDC_BACKEND_MODULES.length; i++) {
+      await pushModule(KBDC_BACKEND_MODULES[i]);
+    }
+    setBusyAll(false);
+  }
+
+  var card = { background:'#fff', borderRadius:12, border:'1px solid #E5E7EB', padding:'20px 22px', marginBottom:16 };
+  var btn = { border:'none', borderRadius:8, fontWeight:600, cursor:'pointer', fontFamily:"'Poppins',sans-serif", fontSize:13, padding:'9px 18px' };
+  var iS = { flex:1, padding:'9px 12px', border:'1.5px solid #C7D2FE', borderRadius:8, fontSize:12, outline:'none', fontFamily:'monospace' };
+
+  return e2('div', { style:{ maxWidth:760 } },
+    e2('div', { style:{ fontSize:15, fontWeight:700, color:'#1A237E', marginBottom:4 } }, '🔄 Data Backend — Google Sheets'),
+    e2('div', { style:{ fontSize:12, color:'#6B7280', marginBottom:20, lineHeight:1.6 } },
+      'Every module below can push its data to one shared Google Sheet, so everything you fill in across the app — Task Management, Leave & Attendance, Inventory, HR, Financial and the rest — can be collected and reviewed in one place. One Apps Script Web App URL powers all of it.'
+    ),
+    e2('div', { style:card },
+      e2('div', { style:{ fontSize:13, fontWeight:700, color:'#1A237E', marginBottom:6 } }, 'Apps Script Web App URL'),
+      e2('div', { style:{ fontSize:11, color:'#6B7280', marginBottom:10, lineHeight:1.6 } }, 'Paste your deployed Google Apps Script Web App URL below (see setup guide at the bottom).'),
+      e2('div', { style:{ display:'flex', gap:8, marginBottom:8 } },
+        e2('input', { type:'text', value:url, onChange:function(ev){ setUrl(ev.target.value); },
+          placeholder:'https://script.google.com/macros/s/YOUR_ID/exec', style:iS }),
+        e2('button', { onClick:saveUrl, style:Object.assign({}, btn, { background:'#1A237E', color:'#fff' }) }, savedMsg || 'Save URL'),
+        e2('button', { onClick:testConn, style:Object.assign({}, btn, { background:'#fff', color:'#546E7A', border:'1.5px solid #C7D2FE' }) }, 'Test Connection')
+      ),
+      connMsg && e2('div', { style:{ fontSize:12, fontWeight:600, marginTop:4, color:connMsg.charAt(0)==='❌'?'#C62828':'#2E7D32' } }, connMsg)
+    ),
+    e2('div', { style:card },
+      e2('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 } },
+        e2('div', { style:{ fontSize:13, fontWeight:700, color:'#1A237E' } }, 'Modules'),
+        e2('button', { onClick:pushEverything, disabled:busyAll, style:Object.assign({}, btn, { background:'#2E7D32', color:'#fff', opacity:busyAll?0.6:1 }) },
+          busyAll ? 'Pushing everything...' : '⬆ Push Everything Now')
+      ),
+      e2('div', { style:{ display:'flex', flexDirection:'column', gap:0 } },
+        KBDC_BACKEND_MODULES.map(function(mod) {
+          var rs = rowStatus[mod.id] || {};
+          var count = 0;
+          try { count = mod.get().length; } catch(ex) {}
+          return e2('div', { key:mod.id, style:{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:'1px solid #F3F4F6' } },
+            e2('div', { style:{ flex:1, minWidth:0 } },
+              e2('div', { style:{ fontSize:13, fontWeight:600, color:'#111827' } }, mod.label),
+              e2('div', { style:{ fontSize:11, color:'#9CA3AF' } }, count + ' local records' + (rs.msg ? ' · ' + rs.msg : ''))
+            ),
+            e2('button', { onClick:function(){ pushModule(mod); }, disabled:rs.busy, style:Object.assign({}, btn, { background:'#EEF2FF', color:'#1A237E', fontSize:11.5, padding:'6px 14px', opacity:rs.busy?0.6:1 }) }, '⬆ Push'),
+            e2('button', { onClick:function(){ pullModule(mod); }, disabled:rs.busy, style:Object.assign({}, btn, { background:'#F5F6FA', color:'#546E7A', fontSize:11.5, padding:'6px 14px', opacity:rs.busy?0.6:1 }) }, '⬇ Check Sheet')
+          );
+        })
+      )
+    ),
+    e2('div', { style:{ background:'#E8F5E9', borderRadius:12, border:'1px solid #A5D6A7', padding:'16px 18px' } },
+      e2('div', { style:{ fontSize:12, fontWeight:700, color:'#2E7D32', marginBottom:8 } }, 'Setup Guide (one-time)'),
+      e2('ol', { style:{ fontSize:11.5, color:'#37474F', lineHeight:2, paddingLeft:18, margin:0 } },
+        e2('li', null, 'Create a new Google Sheet (or open one you want to use for this app).'),
+        e2('li', null, 'Extensions → Apps Script.'),
+        e2('li', null, 'Delete anything in the editor and paste the KB Dental Backend script provided to you.'),
+        e2('li', null, 'Deploy → New deployment → type: Web app.'),
+        e2('li', null, 'Execute as: Me · Who has access: Anyone.'),
+        e2('li', null, 'Click Deploy, authorize access, then copy the Web app URL.'),
+        e2('li', null, 'Paste the URL above → Save URL → Test Connection.'),
+        e2('li', null, 'Click "Push Everything Now" — a tab will be created in your Sheet for each module.')
+      )
+    )
+  );
+}
+
+
 function SettingsPage() {
   var e2 = React.createElement;
   var iS = {width:'100%',padding:'9px 13px',border:'1px solid #E5E7EB',borderRadius:8,fontFamily:"'Poppins',sans-serif",fontSize:13,outline:'none',boxSizing:'border-box'};
@@ -9314,6 +9545,7 @@ function SettingsPage() {
     {id:'jobboard', icon:'\uD83D\uDD17', label:'Job Board Integration'},
     {id:'clients',  icon:'\uD83E\uDD1D', label:'Client Management'},
     {id:'master',   icon:'\uD83D\uDCCB', label:'Master Data'},
+    {id:'backend',  icon:'\uD83D\uDD04', label:'Data Backend'},
     {id:'general',  icon:'\u2699\uFE0F', label:'General'},
   ];
 
@@ -9520,103 +9752,6 @@ function SettingsPage() {
   }
 
   /* ═══ GENERAL ═══ */
-  function InventorySyncTab(){
-  var e2=React.createElement;
-  var gasUrl0=React.useState(function(){try{return localStorage.getItem('kbdc_inv_gas_url')||'';}catch(x){return '';}});
-  var gasUrl=gasUrl0[0]; var setGasUrl=gasUrl0[1];
-  var status0=React.useState('idle'); var status=status0[0]; var setStatus=status0[1];
-  var msg0=React.useState(''); var msg=msg0[0]; var setMsg=msg0[1];
-
-  function saveUrl(){
-    try{localStorage.setItem('kbdc_inv_gas_url',gasUrl);}catch(x){}
-    setMsg(gasUrl?'URL saved ✓':'URL cleared');
-    setTimeout(function(){setMsg('');},3000);
-  }
-  function getItems(){try{return JSON.parse(localStorage.getItem('kbdc_inv_items')||'[]');}catch(x){return[];}}
-  function getTx(){try{return JSON.parse(localStorage.getItem('kbdc_inv_tx')||'[]');}catch(x){return[];}}
-
-  async function gasReq(action,payload){
-    var u=localStorage.getItem('kbdc_inv_gas_url')||'';
-    if(!u)throw new Error('No Sheet URL. Add it above and click Save URL.');
-    var r=await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({action:action},payload||{}))});
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    return r.json();
-  }
-
-  async function pushAll(){
-    setStatus('busy'); setMsg('Pushing...');
-    try{
-      var items=getItems(); var tx=getTx();
-      await gasReq('saveItems',{items:items});
-      await gasReq('saveTxAll',{transactions:tx});
-      setMsg('✅ Pushed '+items.length+' items and '+tx.length+' transactions to Google Sheet.');
-    }catch(e){setMsg('⚠ Push failed: '+e.message);}
-    setStatus('idle');
-  }
-
-  async function pullAll(){
-    if(!window.confirm('Pull from Google Sheet? This REPLACES all local inventory data.'))return;
-    setStatus('busy'); setMsg('Pulling...');
-    try{
-      var d=await gasReq('getData',{});
-      if(d.items){localStorage.setItem('kbdc_inv_items',JSON.stringify(d.items));}
-      if(d.transactions){localStorage.setItem('kbdc_inv_tx',JSON.stringify(d.transactions));}
-      setMsg('✅ Restored '+((d.items||[]).length)+' items and '+((d.transactions||[]).length)+' transactions.');
-    }catch(e){setMsg('⚠ Pull failed: '+e.message);}
-    setStatus('idle');
-  }
-
-  async function testConn(){
-    setStatus('busy'); setMsg('Testing...');
-    try{await gasReq('ping',{});setMsg('✅ Connection OK — Google Sheet is ready.');}
-    catch(e){setMsg('❌ Failed: '+e.message);}
-    setStatus('idle');
-  }
-
-  var busy=status==='busy';
-  var card={background:'#fff',borderRadius:12,border:'1px solid #E5E7EB',padding:'20px 22px',marginBottom:16};
-  var btn={border:'none',borderRadius:8,fontWeight:600,cursor:'pointer',fontFamily:"'Poppins',sans-serif",fontSize:13,padding:'10px 22px'};
-
-  return e2('div',{style:{maxWidth:640}},
-    e2('div',{style:{fontSize:15,fontWeight:700,color:'#1A237E',marginBottom:4}},'🔄 Inventory — Google Sheet Sync'),
-    e2('div',{style:{fontSize:12,color:'#6B7280',marginBottom:20}},'Connect a Google Apps Script Web App to push or pull all inventory data as a backup.'),
-    e2('div',{style:card},
-      e2('div',{style:{fontSize:13,fontWeight:700,color:'#1A237E',marginBottom:6}},'Apps Script Web App URL'),
-      e2('div',{style:{fontSize:11,color:'#6B7280',marginBottom:10,lineHeight:1.6}},'Paste your deployed Google Apps Script Web App URL below.'),
-      e2('div',{style:{display:'flex',gap:8,marginBottom:8}},
-        e2('input',{type:'text',value:gasUrl,onChange:function(ev){setGasUrl(ev.target.value);},
-          placeholder:'https://script.google.com/macros/s/YOUR_ID/exec',
-          style:{flex:1,padding:'9px 12px',border:'1.5px solid #C7D2FE',borderRadius:8,fontSize:12,outline:'none',fontFamily:'monospace'}}),
-        e2('button',{onClick:saveUrl,disabled:busy,style:Object.assign({},btn,{background:'#1A237E',color:'#fff',fontSize:12,padding:'9px 18px'})},'Save URL')
-      ),
-      msg&&e2('div',{style:{fontSize:12,fontWeight:600,color:msg.charAt(0)==='⚠'||msg.charAt(0)==='❌'?'#C62828':'#2E7D32',marginTop:4}},msg)
-    ),
-    e2('div',{style:card},
-      e2('div',{style:{fontSize:13,fontWeight:700,color:'#1A237E',marginBottom:6}},'Push / Pull Data'),
-      e2('div',{style:{fontSize:11,color:'#6B7280',marginBottom:14}},
-        'Local data: ',e2('b',null,getItems().length+' items'),', ',e2('b',null,getTx().length+' transactions')
-      ),
-      e2('div',{style:{display:'flex',gap:10,flexWrap:'wrap'}},
-        e2('button',{onClick:busy?undefined:pushAll,disabled:busy,style:Object.assign({},btn,{background:'#2E7D32',color:'#fff',opacity:busy?0.6:1})},busy?'Pushing...':'⬆ Push to Sheet'),
-        e2('button',{onClick:busy?undefined:pullAll,disabled:busy,style:Object.assign({},btn,{background:'#1565C0',color:'#fff',opacity:busy?0.6:1})},busy?'Pulling...':'⬇ Pull from Sheet'),
-        e2('button',{onClick:busy?undefined:testConn,disabled:busy,style:Object.assign({},btn,{background:'#fff',color:'#546E7A',border:'1.5px solid #C7D2FE',opacity:busy?0.6:1})},busy?'Testing...':'Test Connection')
-      )
-    ),
-    e2('div',{style:{background:'#E8F5E9',borderRadius:12,border:'1px solid #A5D6A7',padding:'16px 18px'}},
-      e2('div',{style:{fontSize:12,fontWeight:700,color:'#2E7D32',marginBottom:8}},'Setup Guide'),
-      e2('ol',{style:{fontSize:11.5,color:'#37474F',lineHeight:2,paddingLeft:18,margin:0}},
-        e2('li',null,'Open Google Sheet → Extensions → Apps Script'),
-        e2('li',null,'Paste the KB Dental Inventory Apps Script code'),
-        e2('li',null,'Deploy → New Deployment → Web App'),
-        e2('li',null,'Execute as: Me · Who has access: Anyone'),
-        e2('li',null,'Copy the Web App URL → paste above → Save URL'),
-        e2('li',null,'Click Test Connection, then Push to Sheet for first backup')
-      )
-    )
-  );
-}
-
-
 function GeneralTab(){
     var sheetUrl0=useS(function(){try{var id=localStorage.getItem('kbdc_gsheet_id')||'';return id?'https://docs.google.com/spreadsheets/d/'+id+'/edit':'';}catch(xx){return '';}});
     var sheetUrl=sheetUrl0[0];var setSheetUrl=sheetUrl0[1];
@@ -9681,6 +9816,7 @@ function GeneralTab(){
       activeTab==='jobboard'  && e2(JobBoardTab,null),
       activeTab==='clients'   && e2(SettingsClientPanel,null),
       activeTab==='master'    && e2(MasterDataTab,null),
+      activeTab==='backend'   && e2(DataBackendTab,null),
       activeTab==='general'   && e2(GeneralTab,null),
       false /* Inventory Sync moved to Inventory module → Settings tab */
     )
