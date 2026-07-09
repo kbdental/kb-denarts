@@ -9298,6 +9298,8 @@ function SettingsClientPanel() {
 /* ═══════════════ DATA BACKEND (Google Sheets sync) ═══════════════ */
 function kbdcBackendUrl() { try { return localStorage.getItem('kbdc_backend_url') || ''; } catch(e) { return ''; } }
 function kbdcSetBackendUrl(u) { try { localStorage.setItem('kbdc_backend_url', u || ''); } catch(e) {} }
+function kbdcInvBackendUrl() { try { return localStorage.getItem('kbdc_backend_url_inventory') || ''; } catch(e) { return ''; } }
+function kbdcSetInvBackendUrl(u) { try { localStorage.setItem('kbdc_backend_url_inventory', u || ''); } catch(e) {} }
 
 function kbdcFlattenRow(obj) {
   var out = {};
@@ -9327,8 +9329,7 @@ function kbdcScanPrefixed(prefix) {
 
 function kbdcLsArray(key) { try { return JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) { return []; } }
 
-async function kbdcBackendReq(sheet, action, payload) {
-  var u = kbdcBackendUrl();
+async function kbdcBackendReqAt(u, sheet, action, payload) {
   if (!u) throw new Error('No backend URL set. Paste your Apps Script Web App URL above and click Save first.');
   var r = await fetch(u, {
     method: 'POST',
@@ -9338,6 +9339,8 @@ async function kbdcBackendReq(sheet, action, payload) {
   if (!r.ok) throw new Error('HTTP ' + r.status);
   return r.json();
 }
+async function kbdcBackendReq(sheet, action, payload) { return kbdcBackendReqAt(kbdcBackendUrl(), sheet, action, payload); }
+async function kbdcInvBackendReq(sheet, action, payload) { return kbdcBackendReqAt(kbdcInvBackendUrl(), sheet, action, payload); }
 
 function kbdcAchieversRows() {
   var d = {};
@@ -9394,8 +9397,6 @@ var KBDC_BACKEND_MODULES = [
   { id:'leaves',      label:'Leave Requests',           sheet:'LeaveRequests',      get: function(){ return kbdcLsArray('kbdc_la_leaves'); } },
   { id:'attendance',  label:'Attendance',               sheet:'Attendance',         get: function(){ return kbdcLsArray('kbdc_la_attendance'); } },
   { id:'leavealloc',  label:'Leave Allocations',        sheet:'LeaveAllocations',   get: kbdcAllocRows },
-  { id:'invitems',    label:'Inventory Items',          sheet:'InventoryItems',     get: function(){ return kbdcLsArray('kbdc_inv_items'); } },
-  { id:'invtx',       label:'Inventory Transactions',   sheet:'InventoryTransactions', get: function(){ return kbdcLsArray('kbdc_inv_tx'); } },
   { id:'appraisals',  label:'Appraisals',               sheet:'Appraisals',         get: kbdcAppraisalRows },
   { id:'achievers',   label:'Achievers Club Scores',    sheet:'AchieversScores',    get: kbdcAchieversRows },
   { id:'payroll',     label:'Payroll',                  sheet:'Payroll',            get: function(){ return kbdcLsArray('kbdc_fin_payroll'); } },
@@ -9409,117 +9410,128 @@ var KBDC_BACKEND_MODULES = [
   { id:'forms',       label:'Form Builder Responses',   sheet:'FormResponses',      get: function(){ return kbdcScanPrefixed('kbdc_resp_'); } },
 ];
 
+var KBDC_INVENTORY_MODULES = [
+  { id:'invitems', label:'Inventory Items',        sheet:'InventoryItems',        get: function(){ return kbdcLsArray('kbdc_inv_items'); } },
+  { id:'invtx',    label:'Inventory Transactions', sheet:'InventoryTransactions', get: function(){ return kbdcLsArray('kbdc_inv_tx'); } },
+];
+
 function DataBackendTab() {
   var e2 = React.createElement;
-  var u0 = React.useState(kbdcBackendUrl()); var url = u0[0]; var setUrl = u0[1];
-  var savedMsg0 = React.useState(''); var savedMsg = savedMsg0[0]; var setSavedMsg = savedMsg0[1];
-  var status0 = React.useState({}); var rowStatus = status0[0]; var setRowStatus = status0[1];
-  var busyAll0 = React.useState(false); var busyAll = busyAll0[0]; var setBusyAll = busyAll0[1];
-  var connMsg0 = React.useState(''); var connMsg = connMsg0[0]; var setConnMsg = connMsg0[1];
-
-  function saveUrl() {
-    kbdcSetBackendUrl(url.trim());
-    setSavedMsg('✓ Saved');
-    setTimeout(function(){ setSavedMsg(''); }, 2500);
-  }
-
-  function setOne(id, patch) {
-    setRowStatus(function(prev) { var o = Object.assign({}, prev); o[id] = Object.assign({}, o[id], patch); return o; });
-  }
-
-  async function pushModule(mod) {
-    setOne(mod.id, { busy: true, msg: '' });
-    try {
-      var rows = mod.get().map(kbdcFlattenRow);
-      await kbdcBackendReq(mod.sheet, 'saveAll', { rows: rows });
-      setOne(mod.id, { busy: false, msg: '✅ Pushed ' + rows.length + ' rows' });
-    } catch (ex) {
-      setOne(mod.id, { busy: false, msg: '⚠ ' + ex.message });
-    }
-  }
-
-  async function pullModule(mod) {
-    if (!window.confirm('Pull "' + mod.label + '" from the Google Sheet? This will not remove anything locally — pulled rows are for review only in this version.')) return;
-    setOne(mod.id, { busy: true, msg: '' });
-    try {
-      var d = await kbdcBackendReq(mod.sheet, 'getData', {});
-      setOne(mod.id, { busy: false, msg: '✅ Sheet has ' + ((d.rows||[]).length) + ' rows' });
-    } catch (ex) {
-      setOne(mod.id, { busy: false, msg: '⚠ ' + ex.message });
-    }
-  }
-
-  async function testConn() {
-    setConnMsg('Testing...');
-    try {
-      await kbdcBackendReq('_ping', 'ping', {});
-      setConnMsg('✅ Connection OK — your Google Sheet is ready.');
-    } catch (ex) {
-      setConnMsg('❌ ' + ex.message);
-    }
-  }
-
-  async function pushEverything() {
-    setBusyAll(true);
-    for (var i = 0; i < KBDC_BACKEND_MODULES.length; i++) {
-      await pushModule(KBDC_BACKEND_MODULES[i]);
-    }
-    setBusyAll(false);
-  }
-
   var card = { background:'#fff', borderRadius:12, border:'1px solid #E5E7EB', padding:'20px 22px', marginBottom:16 };
   var btn = { border:'none', borderRadius:8, fontWeight:600, cursor:'pointer', fontFamily:"'Poppins',sans-serif", fontSize:13, padding:'9px 18px' };
   var iS = { flex:1, padding:'9px 12px', border:'1.5px solid #C7D2FE', borderRadius:8, fontSize:12, outline:'none', fontFamily:'monospace' };
 
+  function BackendGroup(props) {
+    var modules = props.modules, getUrl = props.getUrl, setUrl = props.setUrl, reqFn = props.reqFn, pushLabel = props.pushLabel;
+    var u0 = React.useState(getUrl()); var url = u0[0]; var setUrlSt = u0[1];
+    var savedMsg0 = React.useState(''); var savedMsg = savedMsg0[0]; var setSavedMsg = savedMsg0[1];
+    var status0 = React.useState({}); var rowStatus = status0[0]; var setRowStatus = status0[1];
+    var busyAll0 = React.useState(false); var busyAll = busyAll0[0]; var setBusyAll = busyAll0[1];
+    var connMsg0 = React.useState(''); var connMsg = connMsg0[0]; var setConnMsg = connMsg0[1];
+
+    function saveUrl() {
+      setUrl(url.trim());
+      setSavedMsg('✓ Saved');
+      setTimeout(function(){ setSavedMsg(''); }, 2500);
+    }
+    function setOne(id, patch) {
+      setRowStatus(function(prev) { var o = Object.assign({}, prev); o[id] = Object.assign({}, o[id], patch); return o; });
+    }
+    async function pushModule(mod) {
+      setOne(mod.id, { busy: true, msg: '' });
+      try {
+        var rows = mod.get().map(kbdcFlattenRow);
+        await reqFn(mod.sheet, 'saveAll', { rows: rows });
+        setOne(mod.id, { busy: false, msg: '✅ Pushed ' + rows.length + ' rows' });
+      } catch (ex) {
+        setOne(mod.id, { busy: false, msg: '⚠ ' + ex.message });
+      }
+    }
+    async function pullModule(mod) {
+      if (!window.confirm('Check "' + mod.label + '" on the Google Sheet? This will not remove anything locally — it just tells you how many rows are there.')) return;
+      setOne(mod.id, { busy: true, msg: '' });
+      try {
+        var d = await reqFn(mod.sheet, 'getData', {});
+        setOne(mod.id, { busy: false, msg: '✅ Sheet has ' + ((d.rows||[]).length) + ' rows' });
+      } catch (ex) {
+        setOne(mod.id, { busy: false, msg: '⚠ ' + ex.message });
+      }
+    }
+    async function testConn() {
+      setConnMsg('Testing...');
+      try {
+        await reqFn('_ping', 'ping', {});
+        setConnMsg('✅ Connection OK — your Google Sheet is ready.');
+      } catch (ex) {
+        setConnMsg('❌ ' + ex.message);
+      }
+    }
+    async function pushEverything() {
+      setBusyAll(true);
+      for (var i = 0; i < modules.length; i++) { await pushModule(modules[i]); }
+      setBusyAll(false);
+    }
+
+    return e2('div', null,
+      e2('div', { style:card },
+        e2('div', { style:{ fontSize:13, fontWeight:700, color:'#1A237E', marginBottom:6 } }, 'Apps Script Web App URL'),
+        e2('div', { style:{ fontSize:11, color:'#6B7280', marginBottom:10, lineHeight:1.6 } }, 'Paste your deployed Google Apps Script Web App URL below (see setup guide at the bottom).'),
+        e2('div', { style:{ display:'flex', gap:8, marginBottom:8 } },
+          e2('input', { type:'text', value:url, onChange:function(ev){ setUrlSt(ev.target.value); },
+            placeholder:'https://script.google.com/macros/s/YOUR_ID/exec', style:iS }),
+          e2('button', { onClick:saveUrl, style:Object.assign({}, btn, { background:'#1A237E', color:'#fff' }) }, savedMsg || 'Save URL'),
+          e2('button', { onClick:testConn, style:Object.assign({}, btn, { background:'#fff', color:'#546E7A', border:'1.5px solid #C7D2FE' }) }, 'Test Connection')
+        ),
+        connMsg && e2('div', { style:{ fontSize:12, fontWeight:600, marginTop:4, color:connMsg.charAt(0)==='❌'?'#C62828':'#2E7D32' } }, connMsg)
+      ),
+      e2('div', { style:card },
+        e2('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 } },
+          e2('div', { style:{ fontSize:13, fontWeight:700, color:'#1A237E' } }, 'Modules'),
+          e2('button', { onClick:pushEverything, disabled:busyAll, style:Object.assign({}, btn, { background:'#2E7D32', color:'#fff', opacity:busyAll?0.6:1 }) },
+            busyAll ? 'Pushing...' : pushLabel)
+        ),
+        e2('div', { style:{ display:'flex', flexDirection:'column', gap:0 } },
+          modules.map(function(mod) {
+            var rs = rowStatus[mod.id] || {};
+            var count = 0;
+            try { count = mod.get().length; } catch(ex) {}
+            return e2('div', { key:mod.id, style:{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:'1px solid #F3F4F6' } },
+              e2('div', { style:{ flex:1, minWidth:0 } },
+                e2('div', { style:{ fontSize:13, fontWeight:600, color:'#111827' } }, mod.label),
+                e2('div', { style:{ fontSize:11, color:'#9CA3AF' } }, count + ' local records' + (rs.msg ? ' · ' + rs.msg : ''))
+              ),
+              e2('button', { onClick:function(){ pushModule(mod); }, disabled:rs.busy, style:Object.assign({}, btn, { background:'#EEF2FF', color:'#1A237E', fontSize:11.5, padding:'6px 14px', opacity:rs.busy?0.6:1 }) }, '⬆ Push'),
+              e2('button', { onClick:function(){ pullModule(mod); }, disabled:rs.busy, style:Object.assign({}, btn, { background:'#F5F6FA', color:'#546E7A', fontSize:11.5, padding:'6px 14px', opacity:rs.busy?0.6:1 }) }, '⬇ Check Sheet')
+            );
+          })
+        )
+      )
+    );
+  }
+
   return e2('div', { style:{ maxWidth:760 } },
     e2('div', { style:{ fontSize:15, fontWeight:700, color:'#1A237E', marginBottom:4 } }, '🔄 Data Backend — Google Sheets'),
     e2('div', { style:{ fontSize:12, color:'#6B7280', marginBottom:20, lineHeight:1.6 } },
-      'Every module below can push its data to one shared Google Sheet, so everything you fill in across the app — Task Management, Leave & Attendance, Inventory, HR, Financial and the rest — can be collected and reviewed in one place. One Apps Script Web App URL powers all of it.'
+      'Every module below can push its data to a Google Sheet so everything you fill in across the app can be collected and reviewed in one place. Inventory is kept on its own separate Sheet (and its own Web App URL) so its data isn’t mixed in with everything else — every other module shares one Sheet.'
     ),
-    e2('div', { style:card },
-      e2('div', { style:{ fontSize:13, fontWeight:700, color:'#1A237E', marginBottom:6 } }, 'Apps Script Web App URL'),
-      e2('div', { style:{ fontSize:11, color:'#6B7280', marginBottom:10, lineHeight:1.6 } }, 'Paste your deployed Google Apps Script Web App URL below (see setup guide at the bottom).'),
-      e2('div', { style:{ display:'flex', gap:8, marginBottom:8 } },
-        e2('input', { type:'text', value:url, onChange:function(ev){ setUrl(ev.target.value); },
-          placeholder:'https://script.google.com/macros/s/YOUR_ID/exec', style:iS }),
-        e2('button', { onClick:saveUrl, style:Object.assign({}, btn, { background:'#1A237E', color:'#fff' }) }, savedMsg || 'Save URL'),
-        e2('button', { onClick:testConn, style:Object.assign({}, btn, { background:'#fff', color:'#546E7A', border:'1.5px solid #C7D2FE' }) }, 'Test Connection')
-      ),
-      connMsg && e2('div', { style:{ fontSize:12, fontWeight:600, marginTop:4, color:connMsg.charAt(0)==='❌'?'#C62828':'#2E7D32' } }, connMsg)
-    ),
-    e2('div', { style:card },
-      e2('div', { style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:14 } },
-        e2('div', { style:{ fontSize:13, fontWeight:700, color:'#1A237E' } }, 'Modules'),
-        e2('button', { onClick:pushEverything, disabled:busyAll, style:Object.assign({}, btn, { background:'#2E7D32', color:'#fff', opacity:busyAll?0.6:1 }) },
-          busyAll ? 'Pushing everything...' : '⬆ Push Everything Now')
-      ),
-      e2('div', { style:{ display:'flex', flexDirection:'column', gap:0 } },
-        KBDC_BACKEND_MODULES.map(function(mod) {
-          var rs = rowStatus[mod.id] || {};
-          var count = 0;
-          try { count = mod.get().length; } catch(ex) {}
-          return e2('div', { key:mod.id, style:{ display:'flex', alignItems:'center', gap:10, padding:'10px 0', borderBottom:'1px solid #F3F4F6' } },
-            e2('div', { style:{ flex:1, minWidth:0 } },
-              e2('div', { style:{ fontSize:13, fontWeight:600, color:'#111827' } }, mod.label),
-              e2('div', { style:{ fontSize:11, color:'#9CA3AF' } }, count + ' local records' + (rs.msg ? ' · ' + rs.msg : ''))
-            ),
-            e2('button', { onClick:function(){ pushModule(mod); }, disabled:rs.busy, style:Object.assign({}, btn, { background:'#EEF2FF', color:'#1A237E', fontSize:11.5, padding:'6px 14px', opacity:rs.busy?0.6:1 }) }, '⬆ Push'),
-            e2('button', { onClick:function(){ pullModule(mod); }, disabled:rs.busy, style:Object.assign({}, btn, { background:'#F5F6FA', color:'#546E7A', fontSize:11.5, padding:'6px 14px', opacity:rs.busy?0.6:1 }) }, '⬇ Check Sheet')
-          );
-        })
-      )
-    ),
+
+    e2('div', { style:{ fontSize:13, fontWeight:800, color:'#111827', marginBottom:8, marginTop:4 } }, '1. Main Backend — everything except Inventory'),
+    e2(BackendGroup, { modules: KBDC_BACKEND_MODULES, getUrl: kbdcBackendUrl, setUrl: kbdcSetBackendUrl, reqFn: kbdcBackendReq, pushLabel: '⬆ Push Everything Now' }),
+
+    e2('div', { style:{ fontSize:13, fontWeight:800, color:'#111827', marginBottom:8, marginTop:8 } }, '2. Inventory Backend — its own separate Sheet'),
+    e2(BackendGroup, { modules: KBDC_INVENTORY_MODULES, getUrl: kbdcInvBackendUrl, setUrl: kbdcSetInvBackendUrl, reqFn: kbdcInvBackendReq, pushLabel: '⬆ Push Inventory Now' }),
+
     e2('div', { style:{ background:'#E8F5E9', borderRadius:12, border:'1px solid #A5D6A7', padding:'16px 18px' } },
-      e2('div', { style:{ fontSize:12, fontWeight:700, color:'#2E7D32', marginBottom:8 } }, 'Setup Guide (one-time)'),
+      e2('div', { style:{ fontSize:12, fontWeight:700, color:'#2E7D32', marginBottom:8 } }, 'Setup Guide (one-time, repeat for each Sheet above)'),
       e2('ol', { style:{ fontSize:11.5, color:'#37474F', lineHeight:2, paddingLeft:18, margin:0 } },
-        e2('li', null, 'Create a new Google Sheet (or open one you want to use for this app).'),
-        e2('li', null, 'Extensions → Apps Script.'),
-        e2('li', null, 'Delete anything in the editor and paste the KB Dental Backend script provided to you.'),
+        e2('li', null, 'Create a new Google Sheet — one for the Main Backend, and a separate one for Inventory.'),
+        e2('li', null, 'In each Sheet: Extensions → Apps Script.'),
+        e2('li', null, 'Delete anything in the editor and paste the same KB Dental Backend script provided to you.'),
         e2('li', null, 'Deploy → New deployment → type: Web app.'),
         e2('li', null, 'Execute as: Me · Who has access: Anyone.'),
         e2('li', null, 'Click Deploy, authorize access, then copy the Web app URL.'),
-        e2('li', null, 'Paste the URL above → Save URL → Test Connection.'),
-        e2('li', null, 'Click "Push Everything Now" — a tab will be created in your Sheet for each module.')
+        e2('li', null, 'Paste each Sheet’s URL into the matching section above → Save URL → Test Connection.'),
+        e2('li', null, 'Click "Push Everything Now" / "Push Inventory Now" — a tab is created in that Sheet for each of its modules.')
       )
     )
   );
