@@ -21349,11 +21349,19 @@ var KBDC_LEGACY_DEFAULT_ROLES = [
   {id:'tcr',group:'lab',name:'Technician cum Rider',staff:'Vishal Kanojia',pin:'3434',color:'#BF360C',ini:'TCR'},
   {id:'rd',group:'lab',name:'Rider',staff:'Aquib Arshad',pin:'4545',color:'#37474F',ini:'RD'}
 ];
-var KBDC_LEGACY_GENERIC_PLACEHOLDERS = ['Chief Dental Surgeon','Sterilization Technician','Biomedical Technician','Office Manager'];
-
 function kbdcMigrateLegacyDentalOpsData() {
   try {
-    if (localStorage.getItem('kbdc_legacy_migrated_v1')) return;
+    if (localStorage.getItem('kbdc_legacy_migrated_v2')) return;
+
+    // v1 of this migration incorrectly used the old app's built-in DEMO/placeholder
+    // names (e.g. "Viveyk Mittel", "Manika Mittel") as if they were real staff --
+    // those ship hardcoded in the old app's source and were never actually entered
+    // by anyone. Undo anything v1 added before redoing this correctly.
+    try {
+      var current = sharedStaffGet();
+      var withoutBadEntries = current.filter(function(s) { return String(s.id||'').indexOf('LEGACY_') !== 0; });
+      if (withoutBadEntries.length !== current.length) sharedStaffSet(withoutBadEntries);
+    } catch(e) {}
 
     var oldNames = {};
     try { oldNames = JSON.parse(localStorage.getItem('kbdental_staff_names') || '{}'); } catch(e) {}
@@ -21361,22 +21369,26 @@ function kbdcMigrateLegacyDentalOpsData() {
     try { customRoles = JSON.parse(localStorage.getItem('kbdental_custom_roles') || '[]'); } catch(e) {}
 
     if (!Object.keys(oldNames).length && !customRoles.length) {
-      localStorage.setItem('kbdc_legacy_migrated_v1', '1');
+      localStorage.setItem('kbdc_legacy_migrated_v2', '1');
       return;
     }
 
     var migrated = [];
+    // Only migrate a default role if the user actually typed a name in for it
+    // (recorded as an explicit override in kbdental_staff_names). The role table
+    // itself is just used to look up the role's title/PIN/colour -- never its
+    // built-in placeholder "staff" name.
     KBDC_LEGACY_DEFAULT_ROLES.forEach(function(r) {
-      var override = oldNames[r.id];
-      var name = (override || r.staff || '').trim();
-      if (!name) return;
-      if (!override && KBDC_LEGACY_GENERIC_PLACEHOLDERS.indexOf(name) >= 0) return; // never actually filled in
+      var override = (oldNames[r.id] || '').trim();
+      if (!override) return;
       migrated.push({
-        id: 'LEGACY_' + r.id, name: name, role: r.name, designation: r.name,
+        id: 'LEGACY_' + r.id, name: override, role: r.name, designation: r.name,
         pin: r.pin || '0000', c: r.color, i: r.ini, group: r.group,
         accessLevel: 'Staff', active: true
       });
     });
+    // Custom roles were created fresh through the old app's "Add Staff" form, so
+    // their name field is genuinely user-entered.
     customRoles.forEach(function(r) {
       var name = (r.staff || '').trim();
       if (!name) return;
@@ -21394,7 +21406,7 @@ function kbdcMigrateLegacyDentalOpsData() {
       var toAdd = migrated.filter(function(m) { return existingNames.indexOf(m.name.toLowerCase()) === -1; });
       if (toAdd.length) sharedStaffSet(existing.concat(toAdd));
     }
-    localStorage.setItem('kbdc_legacy_migrated_v1', '1');
+    localStorage.setItem('kbdc_legacy_migrated_v2', '1');
   } catch(e) { console.warn('Legacy data migration failed:', e); }
 }
 
