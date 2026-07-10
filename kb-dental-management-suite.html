@@ -820,7 +820,35 @@ body{background:#F5F6FA}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-
+<script>
+// One-time cleanup: an older version of this site registered a Service Worker
+// and cached pages in this browser. That can keep serving stale content even
+// after a hard refresh. Unregister it and clear its caches (this never touches
+// localStorage, so none of your actual data is affected), then reload once.
+(function(){
+  if (sessionStorage.getItem('kbdc_sw_cleanup_done')) return;
+  var didCleanup = false;
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function(regs){
+      if (regs.length) { didCleanup = true; regs.forEach(function(r){ r.unregister(); }); }
+      if (window.caches) {
+        caches.keys().then(function(names){
+          if (names.length) didCleanup = true;
+          Promise.all(names.map(function(n){ return caches.delete(n); })).then(function(){
+            sessionStorage.setItem('kbdc_sw_cleanup_done','1');
+            if (didCleanup) location.reload();
+          });
+        });
+      } else {
+        sessionStorage.setItem('kbdc_sw_cleanup_done','1');
+        if (didCleanup) location.reload();
+      }
+    }).catch(function(){ sessionStorage.setItem('kbdc_sw_cleanup_done','1'); });
+  } else {
+    sessionStorage.setItem('kbdc_sw_cleanup_done','1');
+  }
+})();
+</script>
 <div id="root"></div>
   <div id="modal-root"></div>
 <script>/**
