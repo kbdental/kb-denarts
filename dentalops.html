@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>K.B. Dental Clinic – Management Suite</title>
+<title>DentalOps – K.B. Dental Clinic</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
 <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -2189,7 +2189,7 @@ function LoginGate({onLogin}){
     React.createElement('div',{style:{background:'#fff',borderRadius:20,padding:'30px 28px',width:320,maxWidth:'92vw',boxShadow:'0 20px 60px rgba(0,0,0,.35)',textAlign:'center'}},
       React.createElement('div',{style:{fontSize:30,marginBottom:6}},'🦷'),
       React.createElement('div',{style:{fontSize:15,fontWeight:700,color:'#1A237E',marginBottom:2}},'K.B. Dental Clinic'),
-      React.createElement('div',{style:{fontSize:11,color:'#90A4AE',marginBottom:20}},'Management Suite — Login'),
+      React.createElement('div',{style:{fontSize:11,color:'#90A4AE',marginBottom:20}},'DentalOps — Login'),
       React.createElement('div',{style:{marginBottom:16,textAlign:'left'}},
         React.createElement('label',{style:{fontSize:10,fontWeight:700,color:'#78909C',textTransform:'uppercase',letterSpacing:'.05em',display:'block',marginBottom:5}},'Your Name'),
         React.createElement('select',{value:empName,onChange:function(e){setEmpName(e.target.value);setPin('');setError('');},style:{width:'100%',padding:'10px 12px',border:'2px solid #E8EAF6',borderRadius:10,fontSize:13,fontFamily:"'Poppins',sans-serif",outline:'none',background:'#fff'}},
@@ -2252,7 +2252,7 @@ function Sidebar({active, onNav, session, onLogout}) {
   const userInitials = userName.trim().split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2)||'KB';
   const userRole = session ? (isOwner ? 'Owner / Admin' : (session.roleCode||'Staff')) : '';
   return React.createElement("div",{className:"sb"},
-    React.createElement("div",{className:"sb-logo"},React.createElement(Logo,null),React.createElement("div",null,React.createElement("div",{className:"sb-clinic"},"K. B. DENTAL CLINIC"),React.createElement("div",{className:"sb-suite"},"Management Suite"))),
+    React.createElement("div",{className:"sb-logo"},React.createElement(Logo,null),React.createElement("div",null,React.createElement("div",{className:"sb-clinic"},"K. B. DENTAL CLINIC"),React.createElement("div",{className:"sb-suite"},"DentalOps"))),
     React.createElement("div",{className:"sb-grp"},"Main"),
     navMain.map(n=>React.createElement("div",{key:n.id,className:"nav"+(active===n.id?' on':''),onClick:()=>onNav(n.id)},React.createElement(Icon,{n:n.n,s:13}),n.l)),
     navApps.length>0&&React.createElement("div",{className:"sb-hr"}),
@@ -15567,7 +15567,7 @@ function HRAdminPage() {
 
           React.createElement('div', { style:secStyle }, '🔑 Login PIN'),
           React.createElement('div',{style:{marginBottom:16}},
-            React.createElement('div',{style:{fontSize:11,color:'#546E7A',marginBottom:10}},'Set a PIN so this employee can log into the Management Suite. Minimum 4 digits — only admin should set this.'),
+            React.createElement('div',{style:{fontSize:11,color:'#546E7A',marginBottom:10}},'Set a PIN so this employee can log into DentalOps. Minimum 4 digits — only admin should set this.'),
             React.createElement('div',{style:{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,maxWidth:420}},
               React.createElement('div',null,
                 React.createElement('label',{style:lStyle},'Login PIN (4–6 digits)'),
