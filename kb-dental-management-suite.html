@@ -1858,7 +1858,6 @@ const TEMPLATE_TILES = [
   { name:'Management',     cnt:0 },
   { name:'Lab',            cnt:0 }
 ];
-const HOLIDAYS_INIT = [];
 const FREQ_OPTIONS = ['Daily', 'Weekly', 'Monthly', 'Yearly', 'Periodically', 'Custom'];
 const USERS_LIST = [];
 
@@ -4192,7 +4191,6 @@ function ManagerDashboard({
   const [qrStaff, setQrStaff] = useState(null);
   const [copiedIdx, setCopiedIdx] = useState(null);
   const [staffNames, setStaffNames] = useState({});
-  const [holidays, setHolidays] = useState(HOLIDAYS_INIT);
   /* Initialize roles from ROLE_CARDS + HR Admin — persisted in localStorage */
   const [roles, setRoles] = useState(function() {
     /* Try saved roles first */
@@ -8445,82 +8443,6 @@ function CreateTemplateModal({
 }
 
 /* ── Holidaysys Tab ── */
-function HolidaysTab() {
-  const [holidays, setHolidays] = useState(HOLIDAYS_INIT);
-  const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newDate, setNewDate] = useState('');
-  const addHoliday = () => {
-    if (newName && newDate) {
-      const d = new Date(newDate);
-      const fmt = d.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric'
-      });
-      setHolidays(h => [...h, {
-        name: newName,
-        date: fmt
-      }]);
-      setNewName('');
-      setNewDate('');
-      setShowAdd(false);
-    }
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    className: "hol-page"
-  }, /*#__PURE__*/React.createElement("button", {
-    className: "hol-add-btn",
-    onClick: () => setShowAdd(true)
-  }, /*#__PURE__*/React.createElement(Icon, {
-    n: "plus",
-    s: 12
-  }), "+ Holiday"), /*#__PURE__*/React.createElement("table", {
-    className: "hol-tbl"
-  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("th", null, "Holiday"), /*#__PURE__*/React.createElement("th", null, "Date"), /*#__PURE__*/React.createElement("th", null, "Action"))), /*#__PURE__*/React.createElement("tbody", null, holidays.map((h, i) => /*#__PURE__*/React.createElement("tr", {
-    key: i
-  }, /*#__PURE__*/React.createElement("td", null, h.name), /*#__PURE__*/React.createElement("td", null, h.date), /*#__PURE__*/React.createElement("td", null, /*#__PURE__*/React.createElement("button", {
-    className: "hol-del-btn",
-    onClick: () => setHolidays(hs => hs.filter((_, j) => j !== i))
-  }, "Delete")))))), showAdd && /*#__PURE__*/React.createElement("div", {
-    className: "modal-overlay",
-    onClick: () => setShowAdd(false)
-  }, /*#__PURE__*/React.createElement("div", {
-    className: "add-hol-modal",
-    onClick: e => e.stopPropagation()
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    className: "ahm-title"
-  }, "Add New Holiday"), /*#__PURE__*/React.createElement("button", {
-    className: "modal-x",
-    onClick: () => setShowAdd(false)
-  }, "\u2715")), /*#__PURE__*/React.createElement("input", {
-    className: "ahm-inp",
-    placeholder: "Holiday Name",
-    value: newName,
-    onChange: e => setNewName(e.target.value)
-  }), /*#__PURE__*/React.createElement("div", {
-    className: "ahm-date"
-  }, /*#__PURE__*/React.createElement(Icon, {
-    n: "leave",
-    s: 13,
-    c: "#90A4AE"
-  }), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    placeholder: "Select Date",
-    value: newDate,
-    onChange: e => setNewDate(e.target.value)
-  })), /*#__PURE__*/React.createElement("button", {
-    className: "ahm-submit",
-    onClick: addHoliday
-  }, "Add Holiday"))));
-}
 
 /* ── Task Management Page ── */
 function TaskManagementPage() {
@@ -9832,7 +9754,14 @@ function GeneralTab(){
         ),
         expanded['reset']&&e2('div',{style:{padding:'12px 28px 16px',background:'#FFF5F5',borderTop:'1px solid #FEE2E2'}},
           e2('p',{style:{fontSize:12,color:'#B91C1C',marginBottom:10}},'\u26a0 This will permanently reset all task data. This action cannot be undone.'),
-          e2('button',{onClick:function(){window.confirm('Reset ALL tasks?')&&alert('Tasks reset.');},style:{padding:'8px 18px',border:'none',borderRadius:7,background:'#DC2626',color:'#fff',fontSize:12.5,fontWeight:600,cursor:'pointer',fontFamily:"'Poppins',sans-serif"}},'Confirm Reset')
+          e2('button',{onClick:function(){
+            if(!window.confirm('Reset ALL tasks? This clears every role\'s task list and completion history. This cannot be undone.')) return;
+            var allRoles=[].concat(ROLE_CARDS.clinical,ROLE_CARDS.admin,ROLE_CARDS.mgmt,ROLE_CARDS.lab);
+            allRoles.forEach(function(r){ setRoleTasks(r.code, []); });
+            try{ localStorage.removeItem('kbdc_task_log'); }catch(xx){}
+            try{ localStorage.removeItem('kbdc_imported_tasks'); }catch(xx){}
+            alert('All tasks and task completion history have been reset.');
+          },style:{padding:'8px 18px',border:'none',borderRadius:7,background:'#DC2626',color:'#fff',fontSize:12.5,fontWeight:600,cursor:'pointer',fontFamily:"'Poppins',sans-serif"}},'Confirm Reset')
         )
       )
     );
@@ -11035,13 +10964,6 @@ function IdeaBoardPage() {
     state.viewMode === 'kanban' ? KanbanView() : GridView()
   );
 }
-
-
-function fbUID() { return 'f' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
-function fbLoadForms() { try { return JSON.parse(localStorage.getItem(FB_FORMS_KEY) || '[]'); } catch(e) { return []; } }
-function fbSaveForms(list) { try { localStorage.setItem(FB_FORMS_KEY, JSON.stringify(list)); } catch(e) {} }
-function fbGetResps(id) { try { return JSON.parse(localStorage.getItem('kbdc_resp_' + id) || '[]'); } catch(e) { return []; } }
-function fbSaveResps(id, r) { try { localStorage.setItem('kbdc_resp_' + id, JSON.stringify(r)); } catch(e) {} }
 
 
 /* ═══════════════════════════════════════════════════
