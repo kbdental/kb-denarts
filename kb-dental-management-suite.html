@@ -21331,12 +21331,80 @@ function SelfAppraisalPortal() {
   ));
 }
 
+/* ── One-time migration from the older dentalops.in site (different localStorage schema) ── */
+var KBDC_LEGACY_DEFAULT_ROLES = [
+  {id:'ceo',group:'management',name:'CEO',staff:'Viveyk Mittel',pin:'0000',color:'#B71C1C',ini:'CEO'},
+  {id:'ch',group:'clinical',name:'Chief Dental Surgeon',staff:'Chief Dental Surgeon',pin:'1111',color:'#1B3A5C',ini:'CDS'},
+  {id:'clh',group:'clinical',name:'Clinic Head',staff:'Manika Mittel',pin:'1212',color:'#0D47A1',ini:'CLH'},
+  {id:'ad',group:'clinical',name:'Associate Dentist',staff:'Akanksha Gupta',pin:'2222',color:'#0277BD',ini:'AD'},
+  {id:'cdn',group:'clinical',name:'Lead Dental Nurse',staff:'Suman Rathore',pin:'3434',color:'#006B6B',ini:'LDN'},
+  {id:'da',group:'clinical',name:'Dental Assistant',staff:'Suman Singh',pin:'3333',color:'#00695C',ini:'DA'},
+  {id:'st',group:'clinical',name:'Steril. Technician',staff:'Sterilization Technician',pin:'5555',color:'#6A1B9A',ini:'ST'},
+  {id:'fo',group:'clinical',name:'Front Office',staff:'Saloni Shrivastava',pin:'6666',color:'#7B1FA2',ini:'FO'},
+  {id:'jn',group:'clinical',name:'Janitor',staff:'Madhuri',pin:'7777',color:'#E65100',ini:'JAN'},
+  {id:'mnt',group:'clinical',name:'Maintenance',staff:'Biomedical Technician',pin:'8686',color:'#37474F',ini:'MNT'},
+  {id:'mis',group:'management',name:'MIS Officer',staff:'Vishal Tiwari',pin:'8888',color:'#1565C0',ini:'MIS'},
+  {id:'om',group:'management',name:'Office Manager',staff:'Office Manager',pin:'9999',color:'#558B2F',ini:'OM'},
+  {id:'lt',group:'lab',name:'Lab Technician',staff:'Abhimanyu',pin:'2323',color:'#00838F',ini:'LT'},
+  {id:'tcr',group:'lab',name:'Technician cum Rider',staff:'Vishal Kanojia',pin:'3434',color:'#BF360C',ini:'TCR'},
+  {id:'rd',group:'lab',name:'Rider',staff:'Aquib Arshad',pin:'4545',color:'#37474F',ini:'RD'}
+];
+var KBDC_LEGACY_GENERIC_PLACEHOLDERS = ['Chief Dental Surgeon','Sterilization Technician','Biomedical Technician','Office Manager'];
+
+function kbdcMigrateLegacyDentalOpsData() {
+  try {
+    if (localStorage.getItem('kbdc_legacy_migrated_v1')) return;
+
+    var oldNames = {};
+    try { oldNames = JSON.parse(localStorage.getItem('kbdental_staff_names') || '{}'); } catch(e) {}
+    var customRoles = [];
+    try { customRoles = JSON.parse(localStorage.getItem('kbdental_custom_roles') || '[]'); } catch(e) {}
+
+    if (!Object.keys(oldNames).length && !customRoles.length) {
+      localStorage.setItem('kbdc_legacy_migrated_v1', '1');
+      return;
+    }
+
+    var migrated = [];
+    KBDC_LEGACY_DEFAULT_ROLES.forEach(function(r) {
+      var override = oldNames[r.id];
+      var name = (override || r.staff || '').trim();
+      if (!name) return;
+      if (!override && KBDC_LEGACY_GENERIC_PLACEHOLDERS.indexOf(name) >= 0) return; // never actually filled in
+      migrated.push({
+        id: 'LEGACY_' + r.id, name: name, role: r.name, designation: r.name,
+        pin: r.pin || '0000', c: r.color, i: r.ini, group: r.group,
+        accessLevel: 'Staff', active: true
+      });
+    });
+    customRoles.forEach(function(r) {
+      var name = (r.staff || '').trim();
+      if (!name) return;
+      migrated.push({
+        id: 'LEGACY_' + (r.id || ('custom_' + Math.random().toString(36).slice(2, 8))),
+        name: name, role: r.name || '', designation: r.name || '',
+        pin: r.pin || '0000', c: r.color, i: r.ini, group: r.group,
+        accessLevel: 'Staff', active: true
+      });
+    });
+
+    if (migrated.length) {
+      var existing = sharedStaffGet();
+      var existingNames = existing.map(function(e) { return (e.name || '').toLowerCase(); });
+      var toAdd = migrated.filter(function(m) { return existingNames.indexOf(m.name.toLowerCase()) === -1; });
+      if (toAdd.length) sharedStaffSet(existing.concat(toAdd));
+    }
+    localStorage.setItem('kbdc_legacy_migrated_v1', '1');
+  } catch(e) { console.warn('Legacy data migration failed:', e); }
+}
+
+
 function App() {
   if (typeof window !== 'undefined' && window.location.hash === '#self-appraisal') {
     return React.createElement(SelfAppraisalPortal, null);
   }
     /* Sync HR Admin → role cards on every open */
-  React.useEffect(function(){ kbdcSyncRoleEmployeesFromHR(); }, []);
+  React.useEffect(function(){ kbdcMigrateLegacyDentalOpsData(); kbdcSyncRoleEmployeesFromHR(); }, []);
   const [nav, setNav] = useState('home');
   const [session, setSession] = useState(()=>kbdcGetSession());
   const [appUser, setAppUser] = useState(null);
