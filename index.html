@@ -7629,7 +7629,7 @@ async function pullFromSheets(){
       if(!r.modelNo) return;
       const idx=mm[r.modelNo];
       if(idx===undefined){
-        mrg.push({id:genId(),modelNo:r.modelNo,challanNo:r.challanNo||'',
+        mrg.push({id:genId(),modelNo:r.modelNo,challanNo:r.challanNo||(r.status==='Delivered'?r.modelNo:''),
           date:r.date||'',receivedDate:r.receivedDate||'',dueDate:r.dueDate||'',
           dispatchDate:r.dispatchDate||'',doctorName:r.doctor||r.doctorName||'',
           clinicName:r.clinic||r.clinicName||'',patientName:r.patient||r.patientName||'',
@@ -7658,7 +7658,11 @@ async function pullFromSheets(){
         s.oU++;
       }
     });
+    mrg.forEach(o=>{if(o.status==='Delivered'&&!o.challanNo) o.challanNo=o.modelNo;});
     setOrders(mrg);renderOrders();
+    const _s=getSerial();
+    const _maxNum=Math.max(0,...mrg.map(o=>parseInt((o.modelNo||'').split('/').pop())||0));
+    if(_maxNum>=_s.next) setData('serial',{..._s,next:_maxNum+1});
   }
 
   if(Array.isArray(d.doctors)&&d.doctors.length){
