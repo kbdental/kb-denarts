@@ -181,6 +181,7 @@ select.form-control{background-image:url("data:image/svg+xml,%3Csvg xmlns='http:
     </div>
     <div class="topbar-right">
       <span id="last-updated-badge" style="font-size:11px;color:rgba(255,255,255,0.7)"></span>
+      <button class="logout-btn" onclick="changePin()" title="Change PIN">⚙ PIN</button>
       <button class="logout-btn" onclick="doLogout()">Logout</button>
     </div>
   </div>
@@ -253,9 +254,16 @@ const LS={
   set:(k,v)=>localStorage.setItem('kbdp_'+k,JSON.stringify(v))
 };
 
-// Hardcoded — no setup needed on any device
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxG6NQ78HFOddbBA-EEwnmRnwh0uozx32W70YTmi3X6PTf-GBTKUhe6KZiVPjX-VLKzqQ/exec';
-(function(){const cfg=LS.get('config');if(!cfg||!cfg.url) LS.set('config',{url:APPS_SCRIPT_URL});})();
+// Set this to your NEW v2 Apps Script deployment URL before sharing links with
+// doctors. (The old URL was removed — it was publicly visible in the repository,
+// and the v1 script it pointed to had no authentication.)
+const APPS_SCRIPT_URL='';
+(function(){
+  const cfg=LS.get('config')||{};
+  if(APPS_SCRIPT_URL&&cfg.url!==APPS_SCRIPT_URL){cfg.url=APPS_SCRIPT_URL;LS.set('config',cfg);}
+})();
+// HTML-escape anything from the sheet before it goes into innerHTML
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
 function getConfig(){return LS.get('config')||{};}
 function getDoctorList(){return LS.get('doctors')||[];}
@@ -362,7 +370,7 @@ function populateDoctorDropdown(){
   const prev=sel.value;
   sel.innerHTML='<option value="">-- Select Doctor --</option>';
   getDoctorList().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).forEach(d=>{
-    sel.innerHTML+=`<option value="${d.id||d.name}"${(d.id||d.name)===prev?' selected':''}>${d.name}${d.clinic?' — '+d.clinic:''}</option>`;
+    sel.innerHTML+=`<option value="${esc(d.id||d.name)}"${(d.id||d.name)===prev?' selected':''}>${esc(d.name)}${d.clinic?' — '+esc(d.clinic):''}</option>`;
   });
 }
 
@@ -388,29 +396,55 @@ function updatePinDots(){
 
 // ══════════════════════════════════════════ LOGIN
 let _pendingDocId = '';
+let _currentPin = '';    // kept in memory for authenticated posts/refresh
+let _portalData = null;  // server-filtered data from a v2 portal login
 
-function attemptLogin(){
+async function attemptLogin(){
   const params=new URLSearchParams(window.location.search);
   const docParam=decodeURIComponent(_pendingDocId||params.get('d')||params.get('did')||'').trim();
   const errEl=document.getElementById('login-error');
-  if(!docParam){
-    errEl.textContent='No valid link. Please use your private portal link.';
-    errEl.style.display='block';_pinEntry='';updatePinDots();return;
+  const fail=msg=>{errEl.textContent=msg;errEl.style.display='block';_pinEntry='';updatePinDots();};
+  if(!docParam){fail('No valid link. Please use your private portal link.');return;}
+  const cfg=getConfig();
+
+  // Preferred: server-side check (v2 script) — the PIN never has to reach the
+  // browser, and the server returns ONLY this doctor's cases.
+  if(cfg.url){
+    try{
+      const u=cfg.url+(cfg.url.includes('?')?'&':'?')+'action=portal&doctor='+encodeURIComponent(docParam)+'&pin='+encodeURIComponent(_pinEntry)+'&t='+Date.now();
+      const r=await fetch(u);
+      const d=await r.json();
+      if(d.portal&&d.status==='ok'){
+        _portalData=d;
+        _currentPin=_pinEntry;
+        finishLogin({name:d.doctor.name,clinic:d.doctor.clinic});
+        if(d.doctor.pinIsDefault) setTimeout(()=>toast('Your PIN is still the default 1234 — tap ⚙ PIN to change it',''),800);
+        return;
+      }
+      if(d.status==='error'){
+        if(/pin/i.test(d.message||'')){fail('Incorrect PIN. Please try again.');return;}
+        if(/not found/i.test(d.message||'')){fail('Doctor not found. Ask lab to check your link.');return;}
+      }
+      // Anything else (e.g. legacy v1 script returned the full dump) → fall through
+    }catch(e){/* offline / legacy — fall through to cached check */}
   }
+
+  // Legacy fallback (until the lab deploys the v2 script)
   const doctors=getDoctorList();
   const doc=doctors.find(d=>
     (d.name||'').toLowerCase()===docParam.toLowerCase() ||
     (d.id||'')===docParam
   );
-  if(!doc){
-    errEl.textContent='Doctor not found. Ask lab to check your link.';
-    errEl.style.display='block';_pinEntry='';updatePinDots();return;
-  }
+  if(!doc){fail('Doctor not found. Ask lab to check your link.');return;}
   const correctPin=String(doc.pin||'1234');
-  if(_pinEntry!==correctPin){
-    errEl.textContent='Incorrect PIN. Please try again.';
-    errEl.style.display='block';_pinEntry='';updatePinDots();return;
-  }
+  if(_pinEntry!==correctPin){fail('Incorrect PIN. Please try again.');return;}
+  _currentPin=_pinEntry;
+  _portalData=null;
+  finishLogin(doc);
+}
+
+function finishLogin(doc){
+  const errEl=document.getElementById('login-error');
   errEl.style.display='none';
   _currentDoctor=doc;_pinEntry='';updatePinDots();
   logLoginToSheet(doc);
@@ -421,8 +455,29 @@ function attemptLogin(){
   loadDoctorData(doc);
 }
 
+async function changePin(){
+  if(!_currentDoctor) return;
+  const cfg=getConfig();
+  if(!cfg.url){toast('Not connected','error');return;}
+  const oldPin=prompt('Enter your current PIN:');
+  if(oldPin===null) return;
+  const newPin=prompt('Enter a NEW 4-digit PIN:');
+  if(newPin===null) return;
+  if(!/^\d{4}$/.test(newPin)){toast('PIN must be exactly 4 digits','error');return;}
+  try{
+    const r=await fetch(cfg.url,{method:'POST',body:JSON.stringify({
+      type:'doctor_pin',doctorName:_currentDoctor.name||'',oldPin:String(oldPin),newPin:String(newPin)})});
+    const d=await r.json();
+    if(d.status==='ok'){_currentPin=newPin;toast('PIN changed ✓','');}
+    else toast(d.message==='wrong pin'?'Current PIN is incorrect':'Could not change PIN: '+(d.message||''),'error');
+  }catch(e){
+    toast('PIN change needs the updated lab script — ask the lab','error');
+  }
+}
+
 function doLogout(){
   _currentDoctor=null;
+  _currentPin='';_portalData=null;
   _pinEntry='';updatePinDots();
   document.getElementById('screen-app').style.display='none';
   document.getElementById('screen-login').style.display='flex';
@@ -460,6 +515,17 @@ function refreshPortalData(){
   loadDoctorData(_currentDoctor);
 }
 
+function renderPortalData(d){
+  const orders=(d.orders||[]);
+  setCases(orders);
+  renderCases(orders,d.prodlog||[]);
+  renderStats(orders);
+  const timeStr=new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  const badge=document.getElementById('last-updated-badge');
+  if(badge) badge.textContent='Updated: '+timeStr;
+  renderRemarks(d.remarks||[]);
+}
+
 function loadDoctorData(doc){
   const cfg=getConfig();
   document.getElementById('cases-tbody').innerHTML=
@@ -471,6 +537,28 @@ function loadDoctorData(doc){
     return;
   }
 
+  // v2 login already returned this doctor's data, server-filtered
+  if(_portalData){
+    const d=_portalData;
+    _portalData=null; // one-shot; refresh re-fetches
+    renderPortalData(d);
+    return;
+  }
+  if(_currentPin){
+    // v2 refresh path
+    const u=cfg.url+(cfg.url.includes('?')?'&':'?')+'action=portal&doctor='+encodeURIComponent(doc.name||'')+'&pin='+encodeURIComponent(_currentPin)+'&t='+Date.now();
+    fetch(u).then(r=>r.json()).then(d=>{
+      if(d.portal&&d.status==='ok'){renderPortalData(d);return;}
+      legacyLoadDoctorData(doc); // v1 script — full-dump fallback
+    }).catch(()=>legacyLoadDoctorData(doc));
+    return;
+  }
+  legacyLoadDoctorData(doc);
+}
+
+// Legacy path for the v1 script: fetches the full dump and filters client-side
+function legacyLoadDoctorData(doc){
+  const cfg=getConfig();
   fetch(cfg.url+'?t='+Date.now())
     .then(r=>r.json())
     .then(d=>{
@@ -559,16 +647,16 @@ function renderCases(orders,prodlog){
     if(latest&&latest.step){
       let ts=Number(latest.ts||0);
       const timeStr=latest.datetime||(ts>1000000000000?new Date(ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'');
-      stageCell='<div style="font-size:13px;font-weight:700;color:var(--purple);padding:6px 10px;background:var(--purple-lt);border-radius:8px;display:inline-block">\uD83D\uDD27 '+latest.step+'</div>'+
-        '<div style="font-size:11px;color:var(--muted);margin-top:3px">'+(latest.staffName?latest.staffName+' · ':'')+timeStr+'</div>';
+      stageCell='<div style="font-size:13px;font-weight:700;color:var(--purple);padding:6px 10px;background:var(--purple-lt);border-radius:8px;display:inline-block">\uD83D\uDD27 '+esc(latest.step)+'</div>'+
+        '<div style="font-size:11px;color:var(--muted);margin-top:3px">'+(latest.staffName?esc(latest.staffName)+' · ':'')+timeStr+'</div>';
     } else if(['Delivered','Complete'].includes(sheetStatus)){
-      stageCell='<div style="font-size:13px;font-weight:700;color:var(--green);padding:6px 10px;background:var(--green-lt);border-radius:8px;display:inline-block">\u2705 '+sheetStatus+'</div>';
+      stageCell='<div style="font-size:13px;font-weight:700;color:var(--green);padding:6px 10px;background:var(--green-lt);border-radius:8px;display:inline-block">\u2705 '+esc(sheetStatus)+'</div>';
     } else {
       stageCell='<div style="font-size:13px;color:var(--muted);padding:6px 10px;background:#f8fafc;border-radius:8px;display:inline-block">\u23F3 Awaiting update</div>';
     }
     return '<tr>'+
-      '<td style="font-weight:600">'+patient+'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+modelNo+'</div></td>'+
-      '<td style="font-size:12.5px">'+workType+'</td>'+
+      '<td style="font-weight:600">'+esc(patient)+'<div style="font-size:11px;color:var(--muted);margin-top:2px">'+esc(modelNo)+'</div></td>'+
+      '<td style="font-size:12.5px">'+esc(workType)+'</td>'+
       '<td style="text-align:center;font-weight:700">'+units+'</td>'+
       '<td>'+stageCell+'</td>'+
       '<td>'+statusBadge(sheetStatus)+'</td>'+
@@ -597,7 +685,7 @@ function statusBadge(status){
     'Repeat/Repair':'badge-hold'
   };
   const cls=map[status]||'badge-production';
-  return `<span class="badge ${cls}">${status||'In Production'}</span>`;
+  return `<span class="badge ${cls}">${esc(status||'In Production')}</span>`;
 }
 
 // ══════════════════════════════════════════ REMARKS
@@ -612,7 +700,7 @@ function renderRemarks(remarks){
     const isDoctor=r.from==='doctor';
     const time=r.ts?new Date(r.ts).toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'';
     return `<div style="margin-bottom:10px">
-      <div class="remark-msg ${isDoctor?'doctor':'lab'}">${r.message||''}</div>
+      <div class="remark-msg ${isDoctor?'doctor':'lab'}">${esc(r.message||'')}</div>
       <div class="remark-meta" style="text-align:${isDoctor?'right':'left'}">${isDoctor?'You':'Lab'} · ${time}</div>
     </div>`;
   }).join('');
@@ -636,22 +724,27 @@ function sendRemark(){
     ts:Date.now()
   };
 
-  fetch(cfg.url,{
-    method:'POST',mode:'no-cors',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(entry)
-  }).then(()=>{
+  entry.pin=_currentPin; // v2 script verifies the sender
+
+  const showSent=()=>{
     document.getElementById('remark-input').value='';
     toast('Message sent to lab','success');
-    // Add to local thread
     const thread=document.getElementById('remarks-thread');
     const time=new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
     thread.innerHTML+=`<div style="margin-bottom:10px">
-      <div class="remark-msg doctor">${msg}</div>
+      <div class="remark-msg doctor">${esc(msg)}</div>
       <div class="remark-meta" style="text-align:right">You · ${time}</div>
     </div>`;
     thread.scrollTop=thread.scrollHeight;
-  }).catch(()=>toast('Message saved — will sync when online','error'));
+  };
+  fetch(cfg.url,{method:'POST',body:JSON.stringify(entry)})
+    .then(r=>r.json())
+    .then(d=>{if(d.status==='ok')showSent();else toast('Could not send: '+(d.message||''),'error');})
+    .catch(()=>{
+      // legacy v1 script: response unreadable — fire and forget as before
+      fetch(cfg.url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)})
+        .then(showSent).catch(()=>toast('Message saved — will sync when online','error'));
+    });
 }
 
 // ══════════════════════════════════════════ NAV

@@ -124,6 +124,10 @@
       <textarea class="form-control" id="setup-url" placeholder="https://script.google.com/macros/s/.../exec" style="min-height:70px;font-size:13px" onblur="loadStaffFromUrl()"></textarea>
     </div>
     <div class="form-group">
+      <label class="form-label">Access Token <span class="req">*</span></label>
+      <input class="form-control" id="setup-token" placeholder="token set in the Apps Script" autocomplete="off" onblur="loadStaffFromUrl()">
+    </div>
+    <div class="form-group">
       <label class="form-label">Your Name (Staff) <span class="req">*</span></label>
       <select class="form-control" id="setup-name">
         <option value="">-- Select Your Name --</option>
@@ -212,11 +216,21 @@ const LS = {
   set: (k,v) => localStorage.setItem('kbprod_'+k, JSON.stringify(v)),
 };
 
-// Hardcoded — no setup needed on any device
-const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbxG6NQ78HFOddbBA-EEwnmRnwh0uozx32W70YTmi3X6PTf-GBTKUhe6KZiVPjX-VLKzqQ/exec';
-(function(){const cfg=LS.get('config');if(!cfg||!cfg.url) LS.set('config',{url:APPS_SCRIPT_URL});})();
+// Set this to your NEW v2 Apps Script deployment URL (the old URL was removed —
+// it was publicly visible in the repository). Staff still enter the access token
+// once in Setup.
+const APPS_SCRIPT_URL='';
+(function(){
+  const cfg=LS.get('config')||{};
+  if(APPS_SCRIPT_URL&&cfg.url!==APPS_SCRIPT_URL){cfg.url=APPS_SCRIPT_URL;LS.set('config',cfg);}
+})();
 
 function getConfig(){ return LS.get('config')||{}; }
+// Append the access token to a GET url (v2 script requires it for reads)
+function withToken(url){
+  const t=getConfig().token||'';
+  return t?url+(url.includes('?')?'&':'?')+'token='+encodeURIComponent(t):url;
+}
 function getLogs(){ return LS.get('logs')||[]; }
 function setLogs(l){ LS.set('logs',l); }
 function getOrders(){ return LS.get('orders')||[]; }
@@ -279,12 +293,13 @@ function setDefaultDateTime(){
 // ══════════════════════════════════ SETUP
 function saveSetup(){
   const url = document.getElementById('setup-url').value.trim();
+  const token = (document.getElementById('setup-token')?.value||'').trim();
   const nameEl = document.getElementById('setup-name');
   const name = nameEl.value.trim();
   const st = document.getElementById('setup-status');
   if(!url){ toast('Enter the Apps Script URL','error'); return; }
   if(!name){ toast('Select your name','error'); return; }
-  LS.set('config',{url,name});
+  LS.set('config',{url,name,token});
   st.textContent = '✓ Saved!';
   populateSteps();
   setDefaultDateTime();
@@ -294,10 +309,11 @@ function saveSetup(){
 function loadStaffFromUrl(){
   const url = document.getElementById('setup-url').value.trim();
   if(!url){ toast('Enter the URL first','error'); return; }
+  const tok=(document.getElementById('setup-token')?.value||'').trim();
   const st = document.getElementById('staff-load-status');
   st.style.display = 'block';
   st.textContent = 'Loading staff list...';
-  fetch(url+'?t='+Date.now())
+  fetch(url+'?t='+Date.now()+(tok?'&token='+encodeURIComponent(tok):''))
     .then(function(r){ return r.json(); })
     .then(function(d){
       populateStaffDropdown(d.staff||[]);
@@ -353,7 +369,7 @@ function showStaffTextInput(){
 function pullOrdersFromSheet(){
   const cfg = getConfig();
   if(!cfg.url) return;
-  fetch(cfg.url+'?t='+Date.now())
+  fetch(withToken(cfg.url+'?t='+Date.now()))
     .then(function(r){ return r.json(); })
     .then(function(d){
       // ── Pull In Production orders ──
@@ -556,6 +572,7 @@ function pushStatusToSheet(order, status, url){
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       type: 'order_status',
+      token: getConfig().token||'',
       modelNo: order.modelNo||order.id,
       status: status
     })
@@ -569,6 +586,7 @@ function pushEntryToSheet(entry, url){
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify({
       type: 'prod_log',
+      token: getConfig().token||'',
       modelNo: entry.modelNo,
       patientName: entry.patientName,
       step: entry.step,
@@ -663,6 +681,7 @@ function showScreen(name){
   if(name==='setup'){
     const cfg = getConfig();
     if(cfg.url) document.getElementById('setup-url').value = cfg.url;
+    if(cfg.token&&document.getElementById('setup-token')) document.getElementById('setup-token').value = cfg.token;
     // Populate staff from cache
     const cached = LS.get('staff_list')||[];
     if(cached.length) populateStaffDropdown(cached.map(function(n){return {name:n};}));
