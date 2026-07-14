@@ -257,7 +257,7 @@ const LS={
 // Set this to your NEW v2 Apps Script deployment URL before sharing links with
 // doctors. (The old URL was removed — it was publicly visible in the repository,
 // and the v1 script it pointed to had no authentication.)
-const APPS_SCRIPT_URL='';
+const APPS_SCRIPT_URL='https://script.google.com/macros/s/AKfycbw5oqSv-apuV8CKouxYfcpbE4vPPwftagjBv4tKRcLV5YBSbmscYV1hRpBdJ4-pruBDqw/exec';
 (function(){
   const cfg=LS.get('config')||{};
   if(APPS_SCRIPT_URL&&cfg.url!==APPS_SCRIPT_URL){cfg.url=APPS_SCRIPT_URL;LS.set('config',cfg);}
@@ -306,22 +306,19 @@ function resolveAndShowDoctor(){
       return;
     }
 
+    // The v2 server verifies both the doctor and the PIN at login time, so we
+    // don't need the (token-protected) doctor list here — trust the link's name
+    // and unlock the pad. Use the cached doctor only to prettify the display.
     const doctors=getDoctorList();
     const doc=doctors.find(d=>
       (d.name||'').toLowerCase()===docParam.toLowerCase()||
       (d.id||'')===docParam
     );
 
-    if(!doc){
-      // Doctors not loaded yet — store and wait for setupLoadDoctors to retry
-      LS.set('pending_docid',docParam);
-      return;
-    }
-
     LS.set('pending_docid',null);
     _pendingDocId=docParam;
-    if(nameEl) nameEl.textContent='Dr. '+doc.name;
-    if(clinicEl) clinicEl.textContent=doc.clinic||'';
+    if(nameEl) nameEl.textContent='Dr. '+((doc&&doc.name)||docParam);
+    if(clinicEl) clinicEl.textContent=(doc&&doc.clinic)||'';
     if(displayEl) displayEl.style.display='block';
     if(noLink) noLink.style.display='none';
     if(pinPad){pinPad.style.opacity='1';pinPad.style.pointerEvents='auto';}
