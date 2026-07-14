@@ -407,26 +407,28 @@ function deleteDoctor(ss,d){
 }
 
 function writeList(ss,name,values,header){
+  // Guard: never wipe an existing list with an empty push (accidental data loss)
+  if(!values||!values.length) return;
   var sh=getOrCreateSheet(ss,name,[header]);
   if(sh.getLastRow()>1) sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).clearContent();
-  if(values&&values.length){
-    sh.getRange(2,1,values.length,1).setValues(values.map(function(v){return[String(v)];}));
-  }
+  sh.getRange(2,1,values.length,1).setValues(values.map(function(v){return[String(v)];}));
 }
 
 function mastersSync(ss,d){
   (d.doctors||[]).forEach(function(doc){upsertDoctor(ss,doc);});
-  if(Array.isArray(d.staff)){
+  // Only overwrite a master tab when the push actually carries data — an empty
+  // array is ignored so a device with no staff/products can't wipe the sheet.
+  if(Array.isArray(d.staff)&&d.staff.length){
     var sh=getOrCreateSheet(ss,STAFF_SHEET,['Name','Type','Department','Cell','Email']);
     if(sh.getLastRow()>1) sh.getRange(2,1,sh.getLastRow()-1,5).clearContent();
-    if(d.staff.length) sh.getRange(2,1,d.staff.length,5).setValues(
+    sh.getRange(2,1,d.staff.length,5).setValues(
       d.staff.map(function(s){return[s.name||'',s.type||'',s.dept||'',s.cell||'',s.email||''];}));
   }
   if(Array.isArray(d.departments)) writeList(ss,DEPTS_SHEET,d.departments,'Department');
-  if(Array.isArray(d.products)){
+  if(Array.isArray(d.products)&&d.products.length){
     var ps=getOrCreateSheet(ss,PRODUCTS_SHEET,['Product','Price']);
     if(ps.getLastRow()>1) ps.getRange(2,1,ps.getLastRow()-1,2).clearContent();
-    if(d.products.length) ps.getRange(2,1,d.products.length,2).setValues(
+    ps.getRange(2,1,d.products.length,2).setValues(
       d.products.map(function(p){return[p.value||String(p),p.price||''];}));
   }
   for(var key in LIST_SHEETS){

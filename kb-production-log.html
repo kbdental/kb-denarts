@@ -319,8 +319,15 @@ function loadStaffFromUrl(){
   fetch(url+'?t='+Date.now()+(tok?'&token='+encodeURIComponent(tok):''))
     .then(function(r){ return r.json(); })
     .then(function(d){
-      populateStaffDropdown(d.staff||[]);
-      st.textContent = d.staff&&d.staff.length ? '✓ '+d.staff.length+' staff loaded' : 'No staff found — type your name below';
+      if(d.staff&&d.staff.length){
+        populateStaffDropdown(d.staff);
+        st.textContent = '✓ '+d.staff.length+' staff loaded';
+      }else{
+        // No staff in the sheet — let the person type their name instead of
+        // being stuck with an empty dropdown
+        st.textContent = 'No staff list in sheet — type your name below';
+        showStaffTextInput();
+      }
     })
     .catch(function(){
       st.textContent = 'Could not load — type your name below';
@@ -359,6 +366,7 @@ function populateStaffDropdown(staffList){
 
 function showStaffTextInput(){
   const sel = document.getElementById('setup-name');
+  if(!sel || sel.tagName==='INPUT') return; // already a text box
   const inp = document.createElement('input');
   inp.className = 'form-control';
   inp.id = 'setup-name';
