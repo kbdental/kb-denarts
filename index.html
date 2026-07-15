@@ -7715,10 +7715,19 @@ async function pullFromSheets(){
     {field:'shades',   key:'shades',   def:DEFAULT_SHADES}
   ];
   listMasterMap.forEach(function(m){
-    if(!Array.isArray(d[m.field])||!d[m.field].length) return;
-    // Full overwrite with sheet data so both are always in sync
-    const synced=d[m.field].map(function(v,i){return {id:m.key+'_'+i,value:String(v)};});
-    setData(m.key,synced);
+    if(!Array.isArray(d[m.field])) return;
+    // MERGE, never overwrite: keep every value we already have and only ADD
+    // new ones from the sheet. A pull can never delete a custom step/master —
+    // this stops a device carrying the built-in defaults from shrinking the
+    // shared list (root cause of "steps reduced from 14 to 10").
+    const local=getMasters(m.key,m.def).map(function(x){return x.value||x;});
+    const seen={};local.forEach(function(v){seen[String(v).toLowerCase()]=true;});
+    const merged=local.slice();
+    d[m.field].forEach(function(v){
+      const s=String(v);if(!s) return;
+      if(!seen[s.toLowerCase()]){seen[s.toLowerCase()]=true;merged.push(s);}
+    });
+    setData(m.key,merged.map(function(v,i){return {id:m.key+'_'+i,value:String(v)};}));
   });
 
   if(Array.isArray(d.inventory)&&d.inventory.length){

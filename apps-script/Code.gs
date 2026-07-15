@@ -410,8 +410,15 @@ function writeList(ss,name,values,header){
   // Guard: never wipe an existing list with an empty push (accidental data loss)
   if(!values||!values.length) return;
   var sh=getOrCreateSheet(ss,name,[header]);
+  // MERGE, never overwrite: union the incoming values with what's already in
+  // the sheet, so a device carrying only the built-in defaults can't delete
+  // custom entries (root cause of the "steps shrank from 14 to 10" issue).
+  var existing=readColumn(ss,name);
+  var seen={};existing.forEach(function(v){seen[String(v).toLowerCase()]=true;});
+  var merged=existing.slice();
+  values.forEach(function(v){var s=String(v);if(s&&!seen[s.toLowerCase()]){seen[s.toLowerCase()]=true;merged.push(s);}});
   if(sh.getLastRow()>1) sh.getRange(2,1,sh.getLastRow()-1,sh.getLastColumn()).clearContent();
-  sh.getRange(2,1,values.length,1).setValues(values.map(function(v){return[String(v)];}));
+  sh.getRange(2,1,merged.length,1).setValues(merged.map(function(v){return[String(v)];}));
 }
 
 function mastersSync(ss,d){
