@@ -3824,7 +3824,7 @@ function renderOrders(){
     <td class="text-center">${o.totalUnits||0}</td>
     <td>${o.dueDate?fmt(o.dueDate):'—'}</td>
     <td><span class="status-badge ${STATUS_CLASSES[o.status]||'s-production'}">${esc(o.status||'In Production')}</span></td>
-    <td style="font-size:11.5px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(prodGetLatestStep(o.id))}</td>
+    <td style="font-size:11.5px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${prodGetLatestStep(o.id)}</td>
     <td>${o.totalAmount?'₹'+o.totalAmount.toFixed(2):'—'}</td>
     <td style="white-space:nowrap">
       <button class="btn btn-outline btn-xs" onclick="viewOrder('${o.id}')">View</button>
