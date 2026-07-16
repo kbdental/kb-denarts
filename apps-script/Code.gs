@@ -144,6 +144,11 @@ function doGet(e){
       return jsonOut(portalLogin(ss,p.doctor||'',p.pin||''));
     }
 
+    if(p.action==='dedupe'){
+      if(!authed(p.token)) return jsonOut({status:'error',message:'unauthorized'});
+      return jsonOut(dedupeAllOrders(ss));
+    }
+
     // Full data dump — admin only
     if(!authed(p.token)) return jsonOut({status:'error',message:'unauthorized — set the Access Token in the app settings'});
 
@@ -330,46 +335,78 @@ function upsertOrder(ss,d){
   rowVals['Invoice No']=d.invoiceNo||''; rowVals['Updated At']=d.updatedAt||Date.now();
   var arr=head.map(function(h){return rowVals.hasOwnProperty(h)?rowVals[h]:'';});
 
-  var lastRow=sh.getLastRow();
-  if(lastRow>1){
-    var modelCol=sh.getRange(2,1,lastRow-1,1).getValues();
-    for(var i=0;i<modelCol.length;i++){
-      if(String(modelCol[i][0])===String(d.modelNo)){
-        // Don't overwrite a newer row with a stale one
-        var uaCol=colIndex(head,'Updated At');
-        if(uaCol>=0){
-          var existingUA=Number(sh.getRange(i+2,uaCol+1).getValue())||0;
-          var incomingUA=Number(d.updatedAt)||0;
-          if(existingUA&&incomingUA&&incomingUA<existingUA) return;
-        }
-        sh.getRange(i+2,1,1,arr.length).setValues([arr]);
-        return;
-      }
+  // Find every row for this model number by the "Model No" HEADER (not a
+  // hard-coded column 1 — the old code appended a duplicate whenever the sheet
+  // had Model No in a different column). Update the first, delete any extras.
+  var rows=findOrderRows(sh,head,d.modelNo);
+  if(rows.length){
+    var uaCol=colIndex(head,'Updated At');
+    var stale=false;
+    if(uaCol>=0){
+      var existingUA=Number(sh.getRange(rows[0],uaCol+1).getValue())||0;
+      var incomingUA=Number(d.updatedAt)||0;
+      if(existingUA&&incomingUA&&incomingUA<existingUA) stale=true;
     }
+    if(!stale) sh.getRange(rows[0],1,1,arr.length).setValues([arr]);
+    // Self-healing: remove duplicate rows for this model number
+    for(var j=rows.length-1;j>=1;j--) sh.deleteRow(rows[j]);
+    return;
   }
   sh.appendRow(arr);
+}
+
+// Row numbers (1-based, incl. header offset) of every row whose Model No matches
+function findOrderRows(sh,head,modelNo){
+  var lastRow=sh.getLastRow();
+  if(lastRow<2) return [];
+  var mc=colIndex(head,'Model No'); if(mc<0) mc=0;
+  var col=sh.getRange(2,mc+1,lastRow-1,1).getValues();
+  var rows=[];
+  var target=String(modelNo).trim();
+  for(var i=0;i<col.length;i++){ if(String(col[i][0]).trim()===target) rows.push(i+2); }
+  return rows;
 }
 
 function updateOrderStatus(ss,d){
   if(!d.modelNo) return;
   var sh=getOrCreateSheet(ss,ORDERS_SHEET,ORDER_HEADERS);
   var head=ensureHeaders(sh,ORDER_HEADERS);
+  var rows=findOrderRows(sh,head,d.modelNo);
+  if(!rows.length) return;
+  var row=rows[0];
+  var set=function(h,v){var c=colIndex(head,h);if(c>=0&&v!==undefined&&v!=='')sh.getRange(row,c+1).setValue(v);};
+  set('Status',d.status);
+  set('Dispatch Date',d.dispatchDate);
+  set('Challan No',d.challanNo);
+  set('Invoice No',d.invoiceNo);
+  set('Billing Status',d.billingStatus);
+  set('Updated At',d.updatedAt||Date.now());
+  // remove any duplicate rows for this model number
+  for(var j=rows.length-1;j>=1;j--) sh.deleteRow(rows[j]);
+}
+
+// One-time cleanup: collapse duplicate order rows, keeping the freshest
+// (highest Updated At) per model number. Trigger via ?action=dedupe&token=...
+function dedupeAllOrders(ss){
+  var sh=ss.getSheetByName(ORDERS_SHEET);
+  if(!sh||sh.getLastRow()<3) return {status:'ok',removed:0,kept:sh?sh.getLastRow()-1:0};
+  var head=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0].map(String);
+  var mc=colIndex(head,'Model No'); if(mc<0) mc=0;
+  var uaCol=colIndex(head,'Updated At');
   var lastRow=sh.getLastRow();
-  if(lastRow<2) return;
-  var modelCol=sh.getRange(2,1,lastRow-1,1).getValues();
-  for(var i=0;i<modelCol.length;i++){
-    if(String(modelCol[i][0])===String(d.modelNo)){
-      var row=i+2;
-      var set=function(h,v){var c=colIndex(head,h);if(c>=0&&v!==undefined&&v!=='')sh.getRange(row,c+1).setValue(v);};
-      set('Status',d.status);
-      set('Dispatch Date',d.dispatchDate);
-      set('Challan No',d.challanNo);
-      set('Invoice No',d.invoiceNo);
-      set('Billing Status',d.billingStatus);
-      set('Updated At',d.updatedAt||Date.now());
-      return;
-    }
+  var data=sh.getRange(2,1,lastRow-1,head.length).getValues();
+  var best={}, firstIdx={};
+  for(var i=0;i<data.length;i++){
+    var mn=String(data[i][mc]).trim(); if(!mn) continue;
+    var ua=uaCol>=0?Number(data[i][uaCol])||0:0;
+    if(firstIdx[mn]===undefined) firstIdx[mn]=i;
+    if(!best[mn]||ua>=best[mn].ua) best[mn]={row:data[i],ua:ua};
   }
+  var mns=Object.keys(best).sort(function(a,b){return firstIdx[a]-firstIdx[b];});
+  var out=mns.map(function(m){return best[m].row;});
+  sh.getRange(2,1,lastRow-1,head.length).clearContent();
+  if(out.length) sh.getRange(2,1,out.length,head.length).setValues(out);
+  return {status:'ok',removed:data.length-out.length,kept:out.length};
 }
 
 function upsertDoctor(ss,d){
