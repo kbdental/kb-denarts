@@ -983,7 +983,7 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input type="text" id="order-search" placeholder="Search patient / doctor / model #..." oninput="renderOrders()">
             </div>
-            <select class="form-control" id="order-filter-doctor" onchange="renderOrders()" style="width:180px">
+            <select class="form-control" id="order-filter-doctor" onchange="onDoctorFilterChange()" style="width:180px">
               <option value="">All Doctors</option>
             </select>
             <input type="date" class="form-control" id="order-from" onchange="renderOrders()" style="width:140px">
@@ -3863,6 +3863,9 @@ function renderStatusFilters(orders){
 }
 
 function setStatusFilter(key){currentStatusFilter=key;renderOrders();}
+// Picking a doctor shows ALL of that doctor's cases (any status); the status
+// pills still work to narrow further afterward.
+function onDoctorFilterChange(){currentStatusFilter='all';renderOrders();}
 function clearOrderFilters(){
   document.getElementById('order-search').value='';
   document.getElementById('order-filter-doctor').value='';
