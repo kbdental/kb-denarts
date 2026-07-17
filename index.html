@@ -7787,8 +7787,8 @@ async function pullFromSheets(){
         if(o.deleted||o.status==='Delivered') return;
         const ol=existing.filter(l=>l.orderId===o.id||l.modelNo===o.modelNo);
         if(!ol.length) return;
-        ol.sort((a,b)=>b.ts-a.ts);
-        if(/packing/i.test(ol[0].step||'')){
+        const _latest=prodNewest(ol);
+        if(/packing/i.test((_latest&&_latest.step)||'')){
           o.status='Delivered';
           o.updatedAt=Date.now();
           normalizeDelivered(o); // Delivered ⇒ challanNo + dispatchDate, always
@@ -8412,17 +8412,24 @@ function initInventory(){
 function getProdLog(){return getData('prodlog')||[];}
 function setProdLog(l){setData('prodlog',l);}
 
+// Newest log wins by timestamp; when timestamps tie or are missing (older
+// entries were saved with ts:0), fall back to array/append order — the last
+// entry logged is the most recent. Prevents the "stage stuck on first step" bug.
+function prodTs(l){return Number(l&&l.ts)||0;}
+function prodNewest(logs){var b=null;for(var i=0;i<logs.length;i++){if(b===null||prodTs(logs[i])>=prodTs(b))b=logs[i];}return b;}
+function prodByNewest(logs){return logs.map(function(l,i){return{l:l,i:i};}).sort(function(a,b){return (prodTs(b.l)-prodTs(a.l))||(b.i-a.i);}).map(function(x){return x.l;});}
+
 function prodGetLatestStep(orderId){
   const logs=getProdLog().filter(function(l){return l.orderId===orderId;});
   if(!logs.length) return '<span style="color:var(--muted);font-size:11px">—</span>';
-  logs.sort(function(a,b){return b.ts-a.ts;});
-  return '<span style="color:var(--purple);font-weight:600;font-size:11px">'+esc(logs[0].step)+'</span>';
+  const latest=prodNewest(logs);
+  return '<span style="color:var(--purple);font-weight:600;font-size:11px">'+esc(latest.step)+'</span>';
 }
 
 function prodGetOrderLog(orderId){
-  const logs=getProdLog().filter(function(l){return l.orderId===orderId;});
+  let logs=getProdLog().filter(function(l){return l.orderId===orderId;});
   if(!logs.length) return '<div style="padding:10px;color:var(--muted);font-size:12.5px;text-align:center;background:#f8fafc;border-radius:7px">No production entries yet.</div>';
-  logs.sort(function(a,b){return b.ts-a.ts;});
+  logs=prodByNewest(logs);
   return '<div style="border:1px solid var(--border);border-radius:7px;overflow:hidden">'+
     logs.map(function(l,i){return(
       '<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 12px;'+(i<logs.length-1?'border-bottom:1px solid #f1f5f9':'')+'">' +
@@ -8514,7 +8521,7 @@ function prodSelectOrder(id){
   const info=document.getElementById('pl-order-info');
   if(info){
     const logs=getProdLog().filter(function(l){return l.orderId===id;});
-    const latestStep=logs.sort(function(a,b){return b.ts-a.ts;})[0]?.step||'Not started';
+    const latestStep=prodNewest(logs)?.step||'Not started';
     info.style.display='block';
     info.innerHTML='<b>'+o.modelNo+'</b> · '+o.patientName+' · '+o.doctorName+' · <span style="color:var(--purple)">'+(o.allTypes||'—')+'</span><br><span style="font-size:11px">Current stage: <b>'+latestStep+'</b></span>';
   }
@@ -8579,7 +8586,7 @@ function prodRenderBoard(){
   const filterStep=document.getElementById('pl-filter-step')?.value||'';
   const allLogs=getProdLog();
   const orderMap={};
-  allLogs.forEach(function(l){if(!orderMap[l.orderId]||l.ts>orderMap[l.orderId].ts) orderMap[l.orderId]=l;});
+  allLogs.forEach(function(l){var c=orderMap[l.orderId];if(!c||prodTs(l)>=prodTs(c)) orderMap[l.orderId]=l;});
   let orders=getOrders().filter(function(o){return o.status==='In Production'||orderMap[o.id];});
   if(q) orders=orders.filter(function(o){
     return(o.modelNo||'').toLowerCase().includes(q)||(o.patientName||'').toLowerCase().includes(q)||
@@ -8626,7 +8633,7 @@ function prodQuickLog(orderId,modelNo){
   const info=document.getElementById('pl-order-info');
   if(info&&o){
     const logs=getProdLog().filter(function(l){return l.orderId===orderId;});
-    const latestStep=logs.sort(function(a,b){return b.ts-a.ts;})[0]?.step||'Not started';
+    const latestStep=prodNewest(logs)?.step||'Not started';
     info.style.display='block';
     info.innerHTML='<b>'+esc(o.modelNo)+'</b> · '+esc(o.patientName||'')+'<br><span style="font-size:11px">Current stage: <b>'+esc(latestStep)+'</b></span>';
   }
@@ -8637,7 +8644,7 @@ function prodQuickLog(orderId,modelNo){
 function prodShowHistory(orderId){
   const o=getOrders().find(function(x){return x.id===orderId;});
   if(!o) return;
-  const logs=getProdLog().filter(function(l){return l.orderId===orderId;}).sort(function(a,b){return b.ts-a.ts;});
+  const logs=prodByNewest(getProdLog().filter(function(l){return l.orderId===orderId;}));
   const body=document.getElementById('mm-body');
   const title=document.getElementById('mm-title');
   if(!body||!title) return;

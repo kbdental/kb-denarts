@@ -482,9 +482,14 @@ function mastersSync(ss,d){
 
 function appendProdLog(ss,d){
   if(!d.modelNo||!d.step) return;
-  var sh=getOrCreateSheet(ss,PRODLOG_SHEET,['Model No','Patient','Step','Staff','Note','TS','Datetime']);
-  sh.appendRow([d.modelNo||'',d.patientName||'',d.step||'',d.staffName||'',d.note||'',
-    d.ts||Date.now(),d.datetime||'']);
+  var HEADERS=['Model No','Patient','Step','Staff','Note','TS','Datetime'];
+  var sh=getOrCreateSheet(ss,PRODLOG_SHEET,HEADERS);
+  var head=ensureHeaders(sh,HEADERS); // guarantees TS + Datetime columns exist
+  var vals={'Model No':d.modelNo,'Patient':d.patientName||'','Step':d.step,
+    'Staff':d.staffName||'','Note':d.note||'','TS':d.ts||Date.now(),'Datetime':d.datetime||''};
+  // Write BY HEADER NAME so the timestamp always lands in the column the reader
+  // looks for (positional append broke when the tab had a custom column layout).
+  sh.appendRow(head.map(function(h){return vals.hasOwnProperty(h)?vals[h]:'';}));
 }
 
 function upsertCorrection(ss,d){
