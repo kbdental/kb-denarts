@@ -3782,6 +3782,15 @@ function genId(){return '_'+Date.now().toString(36)+Math.random().toString(36).s
 
 
 // ═══════════════════════════════════════════════ ALL ORDERS
+// Does an order belong to the doctor picked in a filter dropdown? Matches by id
+// OR name, because sheet-pulled orders only carry the doctor name (no id).
+function orderDoctorMatch(o,doctorId,doctorName){
+  if(!doctorId) return true;
+  if(o.doctorId&&o.doctorId===doctorId) return true;
+  const dn=(doctorName||((getDoctors().find(d=>d.id===doctorId)||{}).name)||'').toLowerCase();
+  return !!dn&&(o.doctorName||'').toLowerCase()===dn;
+}
+
 function renderOrders(){
   let orders=getOrders();
   const search=(document.getElementById('order-search')?.value||'').toLowerCase();
@@ -3798,7 +3807,10 @@ function renderOrders(){
     (o.modelNo||'').toLowerCase().includes(search)||
     (o.allTypes||'').toLowerCase().includes(search)
   );
-  if(doctorFilter) orders=orders.filter(o=>o.doctorId===doctorFilter);
+  if(doctorFilter){
+    const dName=(getDoctors().find(d=>d.id===doctorFilter)||{}).name||'';
+    orders=orders.filter(o=>orderDoctorMatch(o,doctorFilter,dName));
+  }
   if(fromDate) orders=orders.filter(o=>o.date>=fromDate);
   if(toDate) orders=orders.filter(o=>o.date<=toDate);
   orders.sort((a,b)=>{
@@ -4653,7 +4665,7 @@ function renderChallan(){
   const fromDate=document.getElementById('challan-from')?.value||'';
   const toDate=document.getElementById('challan-to')?.value||'';
   let orders=getOrders().filter(o=>o.challanNo&&o.status==='Delivered');
-  if(doctorFilter) orders=orders.filter(o=>o.doctorId===doctorFilter);
+  if(doctorFilter) orders=orders.filter(o=>orderDoctorMatch(o,doctorFilter));
   if(fromDate) orders=orders.filter(o=>o.dispatchDate>=fromDate);
   if(toDate) orders=orders.filter(o=>o.dispatchDate<=toDate);
   orders.sort((a,b)=>{
@@ -5605,7 +5617,7 @@ function renderBillingTab(){
   // ── GENERATE INVOICE ──────────────────────────────────
   if(tab==='invoice'){
     let orders=getOrders();
-    if(doctorId) orders=orders.filter(o=>o.doctorId===doctorId);
+    if(doctorId) orders=orders.filter(o=>orderDoctorMatch(o,doctorId));
     if(dateFilter) orders=orders.filter(o=>o.date&&o.date.startsWith(dateFilter));
     if(search) orders=orders.filter(o=>(o.patientName||'').toLowerCase().includes(search)||(o.modelNo||'').toLowerCase().includes(search)||(o.doctorName||'').toLowerCase().includes(search));
     if(statusFilter==='not-invoiced') orders=orders.filter(o=>!o.invoiced);
@@ -5668,7 +5680,7 @@ function renderBillingTab(){
               <label class="form-label">Against Order</label>
               <select class="form-control" id="rp-order">
                 <option value="">-- General Payment --</option>
-                ${getOrders().filter(o=>!doctorId||o.doctorId===doctorId).sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0))
+                ${getOrders().filter(o=>orderDoctorMatch(o,doctorId)).sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0))
                   .map(o=>`<option value="${o.id}">${esc(o.modelNo)} — ${esc(o.patientName)}</option>`).join('')}
               </select>
             </div>
@@ -5709,7 +5721,7 @@ function renderBillingTab(){
       const sel=document.getElementById('rp-order');
       if(!sel) return;
       const did=this.value;
-      const opts=getOrders().filter(o=>!did||o.doctorId===did).sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0));
+      const opts=getOrders().filter(o=>orderDoctorMatch(o,did)).sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0));
       sel.innerHTML='<option value="">-- General Payment --</option>'+opts.map(o=>`<option value="${o.id}">${esc(o.modelNo)} — ${esc(o.patientName)}</option>`).join('');
     });
   }
@@ -5751,7 +5763,7 @@ function renderBillingTab(){
     const orders=getOrders();
     const receipts=getReceipts();
     const rows=doctors.map(d=>{
-      const dOrders=orders.filter(o=>o.doctorId===d.id);
+      const dOrders=orders.filter(o=>orderDoctorMatch(o,d.id,d.name));
       const billed=dOrders.reduce((s,o)=>s+(o.totalAmount||0),0);
       const received=receipts.filter(r=>r.doctorId===d.id).reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
       const outstanding=billed-received;
