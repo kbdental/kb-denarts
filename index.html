@@ -8451,8 +8451,9 @@ document.addEventListener('click',function(e){
   if(e.target.classList.contains('phist-del-btn')){
     prodDeleteLog(e.target.dataset.id);closeModal();prodRenderBoard();
   }
-  if(e.target.classList.contains('psugg-item')){
-    prodSelectOrder(e.target.dataset.id);
+  var _sugg=e.target.closest&&e.target.closest('.psugg-item');
+  if(_sugg){
+    prodSelectOrder(_sugg.dataset.id);
   }
 });
 
@@ -8490,7 +8491,9 @@ function prodSearchOrder(){
   if(!sug||!info) return;
   if(q.length<2){sug.style.display='none';info.style.display='none';_prodSelectedOrderId=null;return;}
   const orders=getOrders().filter(function(o){
-    return(o.status==='In Production'||!o.status)&&
+    // Loggable = anything still in the workflow (not yet Delivered or Cancelled),
+    // so a Complete case can still receive its Packing & Dispatch step.
+    return !['Delivered','Cancelled'].includes(o.status)&&
       ((o.modelNo||'').toLowerCase().includes(q)||(o.patientName||'').toLowerCase().includes(q));
   }).sort(function(a,b){
     const na=parseInt((a.modelNo||'').split('/').pop())||0;
@@ -8587,7 +8590,10 @@ function prodRenderBoard(){
   const allLogs=getProdLog();
   const orderMap={};
   allLogs.forEach(function(l){var c=orderMap[l.orderId];if(!c||prodTs(l)>=prodTs(c)) orderMap[l.orderId]=l;});
-  let orders=getOrders().filter(function(o){return o.status==='In Production'||orderMap[o.id];});
+  // Show every case still in the workflow (not Delivered/Cancelled) plus any
+  // case that has a production entry, so Complete cases stay visible for their
+  // final Packing & Dispatch step.
+  let orders=getOrders().filter(function(o){return !['Delivered','Cancelled'].includes(o.status)||orderMap[o.id];});
   if(q) orders=orders.filter(function(o){
     return(o.modelNo||'').toLowerCase().includes(q)||(o.patientName||'').toLowerCase().includes(q)||
            (o.doctorName||'').toLowerCase().includes(q)||(orderMap[o.id]?.step||'').toLowerCase().includes(q);
