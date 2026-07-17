@@ -232,6 +232,17 @@ select.form-control{background-image:url("data:image/svg+xml,%3Csvg xmlns='http:
       </div>
     </div>
 
+    <!-- CORRECTION CASES -->
+    <div class="card" id="corrections-card" style="padding:0;overflow:hidden;display:none">
+      <div style="padding:16px 16px 0"><div class="card-title" style="margin-bottom:12px">🔧 Correction Cases</div></div>
+      <div style="overflow-x:auto">
+        <table class="cases-table">
+          <thead><tr><th>PATIENT</th><th>MODEL #</th><th>CORRECTION</th><th>STAGE</th></tr></thead>
+          <tbody id="corrections-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- REMARKS THREAD -->
     <div class="card">
       <div class="card-title">💬 Remarks & Messages</div>
@@ -524,6 +535,29 @@ function renderPortalData(d){
   const badge=document.getElementById('last-updated-badge');
   if(badge) badge.textContent='Updated: '+timeStr;
   renderRemarks(d.remarks||[]);
+  renderCorrections(d.corrections||[]);
+}
+
+const CORR_STAGE_BADGE={
+  'Received':'badge-production','Under Correction':'badge-hold','Ready':'badge-tryin',
+  'Sent Back':'badge-delivered','Closed':'badge-cancelled'
+};
+function renderCorrections(list){
+  const card=document.getElementById('corrections-card');
+  const tb=document.getElementById('corrections-tbody');
+  if(!card||!tb) return;
+  if(!list||!list.length){card.style.display='none';return;}
+  card.style.display='';
+  tb.innerHTML=list.map(function(c){
+    const st=c.status||'Received';
+    const cls=CORR_STAGE_BADGE[st]||'badge-production';
+    return '<tr>'+
+      '<td style="font-weight:600">'+esc(c.patientName||'—')+'</td>'+
+      '<td style="font-size:12px;color:var(--blue);font-weight:700">'+esc(c.modelNo||'—')+'</td>'+
+      '<td style="font-size:12px">'+esc(c.correctionType||'—')+'</td>'+
+      '<td><span class="badge '+cls+'">'+esc(st)+'</span></td>'+
+    '</tr>';
+  }).join('');
 }
 
 function loadDoctorData(doc){
@@ -586,6 +620,11 @@ function legacyLoadDoctorData(doc){
         (r.doctorName||'').toLowerCase()===doctorName
       );
       renderRemarks(myRemarks);
+
+      // Correction cases for this doctor
+      renderCorrections((d.corrections||[]).filter(c=>
+        (c.doctorName||'').toLowerCase()===doctorName
+      ));
     })
     .catch(()=>{
       // Use cached cases

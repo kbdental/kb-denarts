@@ -249,7 +249,15 @@ function portalLogin(ss,doctorKey,pin){
     doctorName:cellStr(r['Doctor']),message:cellStr(r['Message']),
     from:cellStr(r['From']),datetime:cellStr(r['Datetime']),ts:Number(r['TS'])||0};
   }).filter(function(x){return x.doctorName.toLowerCase()===nameLc;});
-  return {status:'ok',version:2,portal:true,
+  var corrections=readRows(ss,CORR_SHEET).filter(function(r){
+    return cellStr(r['Doctor']).trim().toLowerCase()===nameLc;
+  }).map(function(r){return{
+    patientName:cellStr(r['Patient']),modelNo:cellStr(r['Model No']),
+    correctionType:cellStr(r['Correction Type']),status:cellStr(r['Status'])||'Received',
+    pickupDate:dateStr(r['Pickup Date']),sendBackDate:dateStr(r['Send Back Date']),
+    updatedAt:Number(r['TS'])||0};
+  });
+  return {status:'ok',version:2,portal:true,corrections:corrections,
           doctor:{name:name,clinic:cellStr(doc['Clinic']),pinIsDefault:correct==='1234'},
           orders:orders,prodlog:prodlog,remarks:remarks};
 }
