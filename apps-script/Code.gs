@@ -197,23 +197,20 @@ function reserveSerial(ss,prefix,year,min){
   var lock=LockService.getScriptLock();
   lock.waitLock(10000);
   try{
-    var key='serial_'+prefix+'_'+year;
-    var props=PropertiesService.getScriptProperties();
-    var next=parseInt(props.getProperty(key))||0;
-    if(!next){
-      var pre=prefix+'-'+year+'/';
-      var maxN=0;
-      readRows(ss,ORDERS_SHEET).forEach(function(r){
-        var m=cellStr(r['Model No']);
-        if(m.indexOf(pre)===0){
-          var n=parseInt(m.substring(pre.length));
-          if(n&&n>maxN) maxN=n;
-        }
-      });
-      next=maxN+1;
-    }
-    if(min&&min>next) next=min;
-    props.setProperty(key,String(next+1));
+    // Always derive the next number from the ACTUAL highest order in the sheet
+    // (ignoring Deleted rows). No stored counter -> no drift, no skipped numbers.
+    var pre=prefix+'-'+year+'/';
+    var maxN=0;
+    readRows(ss,ORDERS_SHEET).forEach(function(r){
+      if(cellStr(r['Status'])==='Deleted') return;
+      var m=cellStr(r['Model No']);
+      if(m.indexOf(pre)===0){
+        var n=parseInt(m.substring(pre.length));
+        if(n&&n>maxN) maxN=n;
+      }
+    });
+    var next=maxN+1;
+    if(min&&min>next) next=min; // local floor (offline safety); never lets it go backwards
     return {status:'ok',serial:next};
   }finally{
     lock.releaseLock();

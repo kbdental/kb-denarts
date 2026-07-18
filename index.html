@@ -7453,10 +7453,13 @@ async function quickSetupConnect(){
 function recalibrateSerial(){
   const s=getSerial();
   const pre=s.prefix+'-'+s.year+'/';
-  const nums=getOrdersRaw().filter(o=>(o.modelNo||'').startsWith(pre)).map(o=>parseInt(o.modelNo.slice(pre.length))||0);
+  // Ignore deleted orders so a deleted case's number doesn't inflate the counter
+  const nums=getOrdersRaw().filter(o=>!o.deleted&&(o.modelNo||'').startsWith(pre)).map(o=>parseInt(o.modelNo.slice(pre.length))||0);
+  // Only recalibrate when real orders exist (so a manually-set start with no
+  // orders yet is respected). Set to exactly maxNum+1 — up OR down — so a
+  // wasted/deleted number never leaves a permanent gap.
   if(nums.length){
-    const maxNum=Math.max(...nums);
-    if(maxNum>=s.next) setData('serial',{...s,next:maxNum+1});
+    setData('serial',{...s,next:Math.max(...nums)+1});
   }
 }
 function warnDuplicateModelNos(){
