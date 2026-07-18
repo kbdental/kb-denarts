@@ -2424,7 +2424,8 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
       <!-- Hold / Reason -->
       <div class="form-group">
         <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Hold / Reason</label>
-        <input class="form-control" id="status-hold-text" placeholder="Reason if HOLD or Send Back...">
+        <input class="form-control" id="status-hold-text" list="hold-reasons-list" placeholder="Reason if HOLD or Send Back...">
+        <datalist id="hold-reasons-list"></datalist>
       </div>
     </div>
     <div class="modal-footer">
@@ -3837,7 +3838,7 @@ function renderOrders(){
     <td style="max-width:140px;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(o.allTeeth||'')}">${esc((o.allTeeth||'—').substring(0,20))}${(o.allTeeth||'').length>20?'...':''}</td>
     <td class="text-center">${o.totalUnits||0}</td>
     <td>${o.dueDate?fmt(o.dueDate):'—'}</td>
-    <td><span class="status-badge ${STATUS_CLASSES[o.status]||'s-production'}">${esc(o.status||'In Production')}</span></td>
+    <td><span class="status-badge ${STATUS_CLASSES[o.status]||'s-production'}">${esc(o.status||'In Production')}</span>${((o.status==='On Hold'||o.status==='Repeat/Repair')&&o.statusHoldReason)?`<div style="font-size:10px;color:#b45309;margin-top:3px;max-width:120px;white-space:normal;line-height:1.3">${esc(o.statusHoldReason)}</div>`:''}</td>
     <td style="font-size:11.5px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${prodGetLatestStep(o.id)}</td>
     <td>${o.totalAmount?'₹'+o.totalAmount.toFixed(2):'—'}</td>
     <td style="white-space:nowrap">
@@ -3948,7 +3949,7 @@ function viewOrder(id){
       ${cell('Expected Delivery', o.dueDate||'—')}
       ${cell('Dispatch Date', o.dispatchDate||'—')}
       <div style="grid-column:1/-1;height:1px;background:var(--border)"></div>
-      ${cell('Status', `<span class="status-badge ${statusColor}">${esc(o.status||'—')}</span>`)}
+      ${cell('Status', `<span class="status-badge ${statusColor}">${esc(o.status||'—')}</span>`+(((o.status==='On Hold'||o.status==='Repeat/Repair')&&o.statusHoldReason)?`<div style="font-size:11px;color:#b45309;margin-top:4px">${esc(o.statusHoldReason)}</div>`:''))}
       ${cell('Case Repeat', o.workType==='Repeat'||o.workType==='Repair'?'YES':'NO')}
       ${cell('Warranty', o.warranty||'0Y')}
       <div style="grid-column:1/-1;height:1px;background:var(--border)"></div>
@@ -4600,6 +4601,9 @@ function openStatusModal(id){
   document.getElementById('status-dispatch-date').value=o?.dispatchDate||'';
   document.getElementById('status-trial-date').value=o?.trialReceivedDate||'';
   document.getElementById('status-hold-text').value=o?.statusHoldReason||o?.statusNote||'';
+  // Offer the maintained Hold Reasons list as suggestions (free text still allowed)
+  const dl=document.getElementById('hold-reasons-list');
+  if(dl) dl.innerHTML=getHoldReasons().map(r=>`<option value="${esc(r.value||r)}">`).join('');
   showModal('status');
 }
 
@@ -4634,7 +4638,7 @@ function confirmStatusUpdate(){
 function pushOrderStatusToSheet(o){
   gsPost({type:'order_status',modelNo:o.modelNo,status:o.deleted?'Deleted':(o.status||''),
     dispatchDate:o.dispatchDate||'',challanNo:o.challanNo||'',invoiceNo:o.invoiceNo||'',
-    billingStatus:o.billingStatus||'',updatedAt:o.updatedAt||Date.now()});
+    billingStatus:o.billingStatus||'',holdReason:o.statusHoldReason||'',updatedAt:o.updatedAt||Date.now()});
 }
 
 function confirmDeleteOrder(id){
@@ -7498,7 +7502,8 @@ function orderRow(o){
     doctorName:o.doctorName||'',clinicName:o.clinicName||'',patientName:o.patientName||'',
     workType:o.allTypes||o.workType||'',teeth:o.allTeeth||'',units:o.totalUnits||0,
     status:o.deleted?'Deleted':(o.status||''),amount:o.totalAmount||0,billingStatus:o.billingStatus||'',
-    implantSystem:o.implantSystem||'',notes:o.notes||'',invoiceNo:o.invoiceNo||'',updatedAt:o.updatedAt||0
+    implantSystem:o.implantSystem||'',notes:o.notes||'',invoiceNo:o.invoiceNo||'',
+    holdReason:o.statusHoldReason||'',updatedAt:o.updatedAt||0
   };
 }
 
@@ -7651,7 +7656,7 @@ async function pullFromSheets(){
           allTypes:r.workType||'',allTeeth:r.teeth||'',totalUnits:parseInt(r.units)||0,
           status:r.status||'In Production',totalAmount:parseFloat(r.amount)||0,
           billingStatus:r.billingStatus||'Not Invoiced',implantSystem:r.implantSystem||'',
-          invoiceNo:r.invoiceNo||'',updatedAt:Number(r.updatedAt)||0,
+          invoiceNo:r.invoiceNo||'',statusHoldReason:r.holdReason||'',updatedAt:Number(r.updatedAt)||0,
           notes:r.notes||'',workItems:[{productName:r.workType||'',teethDisplay:r.teeth||'',
           units:parseInt(r.units)||0,unitRate:0,total:0}],workType:'New',_fromSheet:true});
         s.oN++;
@@ -7678,6 +7683,7 @@ async function pullFromSheets(){
         if(r.units) mrg[idx].totalUnits=parseInt(r.units)||mrg[idx].totalUnits;
         if(r.notes) mrg[idx].notes=r.notes;
         if(r.implantSystem) mrg[idx].implantSystem=r.implantSystem;
+        if(r.holdReason!==undefined) mrg[idx].statusHoldReason=r.holdReason;
         if(rU>lU) mrg[idx].updatedAt=rU;
         s.oU++;
       }

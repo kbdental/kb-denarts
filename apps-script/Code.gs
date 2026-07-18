@@ -41,7 +41,7 @@ var LIST_SHEETS = {steps:'Steps',enclosures:'Enclosures',pickup:'Pickup',hold:'H
 
 var ORDER_HEADERS = ['Model No','Challan No','Date','Received Date','Due Date','Dispatch Date',
   'Doctor','Clinic','Patient','Work Type','Teeth','Units','Status',
-  'Amount (₹)','Billing Status','Implant System','Notes','Invoice No','Updated At'];
+  'Amount (₹)','Billing Status','Implant System','Notes','Invoice No','Hold Reason','Updated At'];
 var DOCTOR_HEADERS = ['Doctor Name','Clinic','Address','Phone','Email','Contact Person','CP Phone','Category','Pin'];
 
 // ── plumbing ─────────────────────────────────────────────────────
@@ -114,6 +114,7 @@ function orderRowToObj(r){
     status:cellStr(r['Status']), amount:r['Amount (₹)']||0,
     billingStatus:cellStr(r['Billing Status']), implantSystem:cellStr(r['Implant System']),
     notes:cellStr(r['Notes']), invoiceNo:cellStr(r['Invoice No']),
+    holdReason:cellStr(r['Hold Reason']),
     updatedAt:Number(r['Updated At'])||0
   };
 }
@@ -340,7 +341,7 @@ function upsertOrder(ss,d){
   rowVals['Teeth']=d.teeth||''; rowVals['Units']=d.units||0; rowVals['Status']=d.status||'';
   rowVals['Amount (₹)']=d.amount||0; rowVals['Billing Status']=d.billingStatus||'';
   rowVals['Implant System']=d.implantSystem||''; rowVals['Notes']=d.notes||'';
-  rowVals['Invoice No']=d.invoiceNo||''; rowVals['Updated At']=d.updatedAt||Date.now();
+  rowVals['Invoice No']=d.invoiceNo||''; rowVals['Hold Reason']=d.holdReason||''; rowVals['Updated At']=d.updatedAt||Date.now();
   var arr=head.map(function(h){return rowVals.hasOwnProperty(h)?rowVals[h]:'';});
 
   // Find every row for this model number by the "Model No" HEADER (not a
@@ -387,6 +388,7 @@ function updateOrderStatus(ss,d){
   set('Dispatch Date',d.dispatchDate);
   set('Challan No',d.challanNo);
   set('Invoice No',d.invoiceNo);
+  set('Hold Reason',d.holdReason);
   set('Billing Status',d.billingStatus);
   set('Updated At',d.updatedAt||Date.now());
   // remove any duplicate rows for this model number
