@@ -2424,8 +2424,10 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
       <!-- Hold / Reason -->
       <div class="form-group">
         <label style="display:block;font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Hold / Reason</label>
-        <input class="form-control" id="status-hold-text" list="hold-reasons-list" placeholder="Reason if HOLD or Send Back...">
-        <datalist id="hold-reasons-list"></datalist>
+        <select class="form-control" id="status-hold-select" onchange="onHoldReasonSelect()">
+          <option value="">-- Select reason --</option>
+        </select>
+        <input class="form-control" id="status-hold-text" placeholder="Type custom reason..." style="margin-top:6px;display:none">
       </div>
     </div>
     <div class="modal-footer">
@@ -4600,11 +4602,30 @@ function openStatusModal(id){
   document.getElementById('status-select').value=o?.status||'In Production';
   document.getElementById('status-dispatch-date').value=o?.dispatchDate||'';
   document.getElementById('status-trial-date').value=o?.trialReceivedDate||'';
-  document.getElementById('status-hold-text').value=o?.statusHoldReason||o?.statusNote||'';
-  // Offer the maintained Hold Reasons list as suggestions (free text still allowed)
-  const dl=document.getElementById('hold-reasons-list');
-  if(dl) dl.innerHTML=getHoldReasons().map(r=>`<option value="${esc(r.value||r)}">`).join('');
+  // Build the hold-reason dropdown from the maintained Hold Reasons list
+  const reason=o?.statusHoldReason||o?.statusNote||'';
+  const sel=document.getElementById('status-hold-select');
+  const txt=document.getElementById('status-hold-text');
+  if(sel){
+    const reasons=getHoldReasons().map(r=>r.value||r);
+    sel.innerHTML='<option value="">-- Select reason --</option>'+
+      reasons.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('')+
+      '<option value="__other__">✏️ Other (type below)</option>';
+    if(reason&&reasons.indexOf(reason)===-1){
+      sel.value='__other__';if(txt){txt.value=reason;txt.style.display='';}
+    }else{
+      // keep the hidden text in sync so confirmStatusUpdate saves it
+      sel.value=reason||'';if(txt){txt.value=reason||'';txt.style.display='none';}
+    }
+  }
   showModal('status');
+}
+function onHoldReasonSelect(){
+  const sel=document.getElementById('status-hold-select');
+  const txt=document.getElementById('status-hold-text');
+  if(!sel||!txt) return;
+  if(sel.value==='__other__'){txt.style.display='';txt.value='';txt.focus();}
+  else{txt.style.display='none';txt.value=sel.value;}
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
@@ -7495,6 +7516,25 @@ async function flushPushQueue(){
   }
   toast('✓ '+q.length+' pending sheet update'+(q.length>1?'s':'')+' synced','success');
 }
+// The sheet's own columns only hold summary fields; this packs the rest of the
+// order (shade, enclosures, per-tooth rates, warranty, priority, try-ins, ...)
+// into one JSON string so full detail survives a round-trip to another device.
+// Images are excluded — too large for a sheet cell.
+function orderDetailPayload(o){
+  return {
+    workItems:(o.workItems||[]).map(function(w){return {productName:w.productName,teeth:w.teeth,
+      teethManual:w.teethManual,teethDisplay:w.teethDisplay,shadeGuide:w.shadeGuide,shade:w.shade,
+      unitRate:w.unitRate,discount:w.discount,units:w.units,total:w.total};}),
+    enclosures:o.enclosures||[],implantSystems:o.implantSystems||[],
+    warranty:o.warranty||'',priority:o.priority||'',sourcing:o.sourcing||'',workType:o.workType||'',
+    tryIn:o.tryIn||[],ioScan:!!o.ioScan,receivedTime:o.receivedTime||'',dueTime:o.dueTime||'',
+    pickupDate:o.pickupDate||'',pickupTime:o.pickupTime||'',pickupAgency:o.pickupAgency||'',remarks:o.remarks||''
+  };
+}
+function applyOrderDetail(target,detailsStr){
+  if(!detailsStr) return;
+  try{var d=JSON.parse(detailsStr);if(d&&typeof d==='object')Object.assign(target,d);}catch(e){}
+}
 function orderRow(o){
   return {
     modelNo:o.modelNo,challanNo:o.challanNo||'',date:o.date||'',
@@ -7503,7 +7543,7 @@ function orderRow(o){
     workType:o.allTypes||o.workType||'',teeth:o.allTeeth||'',units:o.totalUnits||0,
     status:o.deleted?'Deleted':(o.status||''),amount:o.totalAmount||0,billingStatus:o.billingStatus||'',
     implantSystem:o.implantSystem||'',notes:o.notes||'',invoiceNo:o.invoiceNo||'',
-    holdReason:o.statusHoldReason||'',updatedAt:o.updatedAt||0
+    holdReason:o.statusHoldReason||'',details:JSON.stringify(orderDetailPayload(o)),updatedAt:o.updatedAt||0
   };
 }
 
@@ -7649,7 +7689,7 @@ async function pullFromSheets(){
       const idx=mm[r.modelNo];
       if(idx===undefined){
         if(r.status==='Deleted') return; // don't resurrect deleted orders
-        mrg.push({id:genId(),modelNo:r.modelNo,challanNo:r.challanNo||(r.status==='Delivered'?r.modelNo:''),
+        const built={id:genId(),modelNo:r.modelNo,challanNo:r.challanNo||(r.status==='Delivered'?r.modelNo:''),
           date:r.date||'',receivedDate:r.receivedDate||'',dueDate:r.dueDate||'',
           dispatchDate:r.dispatchDate||'',doctorName:r.doctor||r.doctorName||'',
           clinicName:r.clinic||r.clinicName||'',patientName:r.patient||r.patientName||'',
@@ -7658,7 +7698,9 @@ async function pullFromSheets(){
           billingStatus:r.billingStatus||'Not Invoiced',implantSystem:r.implantSystem||'',
           invoiceNo:r.invoiceNo||'',statusHoldReason:r.holdReason||'',updatedAt:Number(r.updatedAt)||0,
           notes:r.notes||'',workItems:[{productName:r.workType||'',teethDisplay:r.teeth||'',
-          units:parseInt(r.units)||0,unitRate:0,total:0}],workType:'New',_fromSheet:true});
+          units:parseInt(r.units)||0,unitRate:0,total:0}],workType:'New',_fromSheet:true};
+        applyOrderDetail(built,r.details); // restore shade/enclosures/rates/etc. from the JSON column
+        mrg.push(built);
         s.oN++;
       } else {
         // Sheet is the shared copy, but never let a STALE sheet row overwrite a
@@ -7684,6 +7726,9 @@ async function pullFromSheets(){
         if(r.notes) mrg[idx].notes=r.notes;
         if(r.implantSystem) mrg[idx].implantSystem=r.implantSystem;
         if(r.holdReason!==undefined) mrg[idx].statusHoldReason=r.holdReason;
+        // Sheet row is fresher (stale local already returned above) — restore its
+        // full detail (shade/enclosures/rates/etc.) so nothing is lost cross-device.
+        applyOrderDetail(mrg[idx],r.details);
         if(rU>lU) mrg[idx].updatedAt=rU;
         s.oU++;
       }
