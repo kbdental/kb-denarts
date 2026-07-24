@@ -4044,8 +4044,8 @@ function renderJobCardPreview(id){
   ];
 
   // Cell style helpers — sized for A5 landscape (tighter padding)
-  const lbl='border:1px solid #000;padding:2px 4px;font-weight:700;white-space:nowrap;font-size:9.5px;vertical-align:middle';
-  const val='border:1px solid #000;padding:2px 4px;font-size:9.5px;vertical-align:middle';
+  const lbl='border:1px solid #000;padding:4px 5px;font-weight:700;white-space:nowrap;font-size:9.5px;vertical-align:middle';
+  const val='border:1px solid #000;padding:4px 5px;font-size:9.5px;vertical-align:middle';
   const hdr='border:1px solid #000;padding:2px 3px;font-weight:700;font-size:9px;background:#f0f0f0;text-align:center;vertical-align:middle';
   const sub='border:1px solid #000;padding:2px 3px;font-weight:700;font-size:8.5px;background:#f0f0f0;text-align:center;vertical-align:middle';
   const cell='border:1px solid #000;padding:0;height:18px;vertical-align:middle';
@@ -4063,9 +4063,9 @@ function renderJobCardPreview(id){
   // Pair packaging items into 2 columns to save vertical space on A5 landscape
   const pkgPairs=[];
   for(let i=0;i<pkgRows.length;i+=2) pkgPairs.push([pkgRows[i],pkgRows[i+1]||'']);
-  // Enough fixed-height empty rows to fill an A5 page without stretching any
-  // single row. ~15 rows of ~8mm fills A5 portrait under the header section.
-  const bodyRowCount=Math.max(pkgPairs.length,15);
+  // Writing rows. In print these stretch evenly to fill the page, so ~12 gives
+  // comfortable line height on A5 without risking overflow to a second page.
+  const bodyRowCount=Math.max(pkgPairs.length,12);
 
   const _p=(o.priority||'').trim();
   const _isExp=_p==='Expedite Service', _isVU=_p==='Very Urgent';
@@ -4132,11 +4132,9 @@ function renderJobCardPreview(id){
   </tr>
 </table>`;
 
-  // Second table = Lab Work Flow + Packaging. Fixed-height rows (no stretching)
-  // so the section header stays thin and the empty writing rows fill the page.
-  const rowCell='border:1px solid #000;padding:0;vertical-align:top';
-  const flowTable=`
-<table class="jc-flow" style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border:2px solid #000;table-layout:fixed">
+  // Section + column headers as their own thin table (fixed height).
+  const headerTable=`
+<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border-left:2px solid #000;border-right:2px solid #000;table-layout:fixed">
   ${colgroup}
   <tr>
     <td colspan="4" style="${hdr}">Lab Work Flow</td>
@@ -4150,6 +4148,15 @@ function renderJobCardPreview(id){
     <td colspan="2" style="${sub}">Item</td>
     <td colspan="2" style="${sub}">Item</td>
   </tr>
+</table>`;
+
+  // Body rows in their own table. In print it stretches to fill the remaining
+  // page height; since every row here is a uniform writing row, the extra space
+  // spreads evenly across them (no ballooning header).
+  const rowCell='border:1px solid #000;padding:0;vertical-align:top';
+  const bodyTable=`
+<table class="jc-body" style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border-left:2px solid #000;border-right:2px solid #000;border-bottom:2px solid #000;table-layout:fixed">
+  ${colgroup}
   ${Array.from({length:bodyRowCount}).map((_,i)=>{const a=(pkgPairs[i]||[])[0]||'';const b=(pkgPairs[i]||[])[1]||'';return `<tr class="jc-body-row">
     <td style="${rowCell}"></td>
     <td style="${rowCell}"></td>
@@ -4165,7 +4172,8 @@ function renderJobCardPreview(id){
   document.getElementById('jobcard-preview').innerHTML=`
 <div class="jc-sheet" style="font-family:Arial,sans-serif;width:100%">
   ${infoTable('A')}
-  ${flowTable}
+  ${headerTable}
+  <div class="jc-body-wrap">${bodyTable}</div>
 </div>`;
 }
 
@@ -4196,18 +4204,26 @@ body{padding:10px;background:#f5f5f5}
 .btn-close{background:#fff;color:#333;border:1px solid #ccc}
 .sheet-wrap{background:#fff;padding:8px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.1);width:100%}
 .jc-sheet{width:100%!important}
-/* Comfortable fixed height for the empty writing rows — fills the page without
-   ballooning any single row. */
-.jc-body-row{height:8mm}
+.jc-body-row{height:9mm}          /* screen preview baseline */
+.jc-body-wrap{min-height:108mm}   /* screen preview baseline */
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{width:100%;padding:0;margin:0;background:#fff}
   .no-print{display:none!important}
-  .sheet-wrap{box-shadow:none;padding:0;width:100%}
-  .jc-sheet{width:100%!important}
+  .sheet-wrap{box-shadow:none;padding:0;width:100%;height:100%}
+  /* Fill the page: only the empty writing rows stretch (they're isolated in
+     their own table), so the header stays thin and the bottom gap disappears. */
+  .jc-sheet{display:flex!important;flex-direction:column;height:100%;min-height:100%}
+  .jc-body-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+  table.jc-body{height:100%!important}
+  /* Equal specified height on every writing row -> the table's extra height is
+     shared EQUALLY (not by content), so rows stay uniform while filling. */
   .jc-body-row{height:8mm}
+  table.jc-body td{vertical-align:top}
   table{width:100%!important;table-layout:fixed!important;font-size:9.5px!important}
-  td,th{padding:1px 3px!important}
+  td,th{padding:3px 5px!important}
+  /* empty writing cells: keep content at top, no extra padding needed */
+  table.jc-body td{padding:2px 4px!important}
   @page{margin:${jcps.margin};size:${jcps.size}}
 }
 </style></head><body>
