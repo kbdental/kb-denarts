@@ -549,25 +549,25 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
       </div>
 
       <div class="stat-grid">
-        <div class="stat-card">
+        <div class="stat-card" onclick="navigate('all-orders','all')" style="cursor:pointer">
           <div class="stat-label">Total Orders</div>
           <div class="stat-value" id="d-total" style="color:var(--blue)">0</div>
           <div class="stat-sub">All time</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="navigate('all-orders','In Production')" style="cursor:pointer">
           <div class="stat-label">In Production</div>
           <div class="stat-value" id="d-prod" style="color:var(--amber)">0</div>
           <div class="stat-sub">Active</div>
         </div>
-        <div class="stat-card">
+        <div class="stat-card" onclick="navigate('all-orders','Complete')" style="cursor:pointer">
           <div class="stat-label">Completed (This Month)</div>
           <div class="stat-value" id="d-complete" style="color:var(--green)">0</div>
           <div class="stat-sub">This month</div>
         </div>
-        <div class="stat-card">
-          <div class="stat-label">Overdue</div>
-          <div class="stat-value" id="d-overdue" style="color:var(--red)">0</div>
-          <div class="stat-sub">Need attention</div>
+        <div class="stat-card" onclick="navigate('all-orders','today-due')" style="cursor:pointer">
+          <div class="stat-label">Today's Delivery</div>
+          <div class="stat-value" id="d-today" style="color:var(--purple)">0</div>
+          <div class="stat-sub">Due today</div>
         </div>
       </div>
 
@@ -584,7 +584,7 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
           <div class="sp-dot" style="background:var(--purple)"></div>
           <div><div class="sp-label">Out for Try-in</div><div class="sp-count" id="sp-tryin">0</div></div>
         </div>
-        <div class="status-pill" onclick="navigate('all-orders','OverDue')">
+        <div class="status-pill" onclick="navigate('all-orders','overdue-due')">
           <div class="sp-dot" style="background:var(--red)"></div>
           <div><div class="sp-label">OverDue</div><div class="sp-count" id="sp-overdue">0</div></div>
         </div>
@@ -2859,11 +2859,13 @@ function renderDashboard(){
   const now=new Date();
   const thisMonth=now.getFullYear()+'-'+(now.getMonth()+1).toString().padStart(2,'0');
   const monthOrders=orders.filter(o=>o.date&&o.date.startsWith(thisMonth));
-  const overdue=orders.filter(o=>o.dueDate&&o.dueDate<today()&&!['Complete','Delivered','Cancelled'].includes(o.status));
+  const _td=today();
+  const overdue=orders.filter(o=>o.dueDate&&o.dueDate<_td&&!['Complete','Delivered','Cancelled'].includes(o.status));
+  const todayDue=orders.filter(o=>o.dueDate===_td&&!['Delivered','Cancelled'].includes(o.status));
   document.getElementById('d-total').textContent=orders.length;
   document.getElementById('d-prod').textContent=orders.filter(o=>o.status==='In Production').length;
   document.getElementById('d-complete').textContent=monthOrders.filter(o=>o.status==='Complete').length;
-  document.getElementById('d-overdue').textContent=overdue.length;
+  const dToday=document.getElementById('d-today');if(dToday) dToday.textContent=todayDue.length;
   // Status pills
   ALL_STATUSES.forEach(s=>{
     const id='sp-'+s.toLowerCase().replace(/[\s\/]/g,'-').replace(/[^a-z0-9-]/g,'');
@@ -3800,8 +3802,14 @@ function renderOrders(){
   const doctorFilter=document.getElementById('order-filter-doctor')?.value||'';
   const fromDate=document.getElementById('order-from')?.value||'';
   const toDate=document.getElementById('order-to')?.value||'';
-  // Filter by status
-  if(currentStatusFilter&&currentStatusFilter!=='all'){
+  // Filter by status (with two special date-based filters from the dashboard)
+  if(currentStatusFilter==='today-due'){
+    const _t=today();
+    orders=orders.filter(o=>o.dueDate===_t&&!['Delivered','Cancelled'].includes(o.status));
+  }else if(currentStatusFilter==='overdue-due'){
+    const _t=today();
+    orders=orders.filter(o=>o.dueDate&&o.dueDate<_t&&!['Complete','Delivered','Cancelled'].includes(o.status));
+  }else if(currentStatusFilter&&currentStatusFilter!=='all'){
     orders=orders.filter(o=>o.status===currentStatusFilter);
   }
   if(search) orders=orders.filter(o=>
@@ -3862,12 +3870,15 @@ function renderStatusFilters(orders){
     {label:'Out for Try-in',key:'Out for Try-in',color:'#7c3aed'},
     {label:'Complete',      key:'Complete',      color:'#059669'},
     {label:'Delivered',     key:'Delivered',     color:'#0891b2'},
-    {label:'OverDue',       key:'OverDue',       color:'#dc2626'},
+    {label:'OverDue',       key:'overdue-due',   color:'#dc2626'},
     {label:'Repeat/Repair', key:'Repeat/Repair', color:'#ea580c'},
     {label:'Cancelled',     key:'Cancelled',     color:'#6b7280'},
   ];
+  const _t=today();
   el.innerHTML=statuses.map(s=>{
-    const count = s.key==='all' ? orders.length : orders.filter(o=>o.status===s.key).length;
+    const count = s.key==='all' ? orders.length
+      : s.key==='overdue-due' ? orders.filter(o=>o.dueDate&&o.dueDate<_t&&!['Complete','Delivered','Cancelled'].includes(o.status)).length
+      : orders.filter(o=>o.status===s.key).length;
     const isActive = currentStatusFilter===s.key;
     return `<div class="status-pill-tab${isActive?' active':''}" onclick="setStatusFilter('${s.key}')">
       <span class="sp-dot" style="background:${s.color}"></span>
