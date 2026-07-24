@@ -4052,13 +4052,16 @@ function renderJobCardPreview(id){
   // Pair packaging items into 2 columns to save vertical space on A5 landscape
   const pkgPairs=[];
   for(let i=0;i<pkgRows.length;i+=2) pkgPairs.push([pkgRows[i],pkgRows[i+1]||'']);
+  // Add extra empty Lab Work Flow rows so the sheet has room to fill the page
+  // (also more space for staff to hand-write production steps).
+  const bodyRowCount=Math.max(pkgPairs.length,12);
 
   const _p=(o.priority||'').trim();
   const _isExp=_p==='Expedite Service', _isVU=_p==='Very Urgent';
   const _priColor=_isExp?'#dc2626':_isVU?'#ea580c':'inherit';
 
-  const sheet=(tag)=>`
-<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border:2px solid #000;table-layout:fixed">
+  const infoTable=(tag)=>`
+<table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border:2px solid #000;border-bottom:none;table-layout:fixed">
   ${colgroup}
   <!-- TITLE -->
   <tr><td colspan="8" style="text-align:center;font-weight:700;font-size:12px;padding:4px 0;border-bottom:2px solid #000;letter-spacing:1px">JOB SHEET</td></tr>
@@ -4116,12 +4119,17 @@ function renderJobCardPreview(id){
     <td style="${lbl}">Special Instruction:</td>
     <td colspan="5" id="jc-special-${tag}" style="${val}">${o.notes||''}</td>
   </tr>
-  <!-- SECTION HEADERS -->
+</table>`;
+
+  // Second table = Lab Work Flow + Packaging. It grows to fill the page so the
+  // sheet uses the full A5 height instead of leaving the bottom blank.
+  const flowTable=`
+<table class="jc-flow" style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border:2px solid #000;table-layout:fixed;height:100%">
+  ${colgroup}
   <tr>
     <td colspan="4" style="${hdr}">Lab Work Flow</td>
     <td colspan="4" style="${hdr}">Packaging Details</td>
   </tr>
-  <!-- COLUMN HEADERS -->
   <tr>
     <td style="${sub}">Process Step</td>
     <td style="${sub}">In Time</td>
@@ -4130,8 +4138,7 @@ function renderJobCardPreview(id){
     <td colspan="2" style="${sub}">Item</td>
     <td colspan="2" style="${sub}">Item</td>
   </tr>
-  <!-- WORKFLOW + PACKAGING ROWS (paired 2 per row) -->
-  ${pkgPairs.map(([a,b])=>`<tr class="pkg-row" style="height:18px">
+  ${Array.from({length:bodyRowCount}).map((_,i)=>{const a=(pkgPairs[i]||[])[0]||'';const b=(pkgPairs[i]||[])[1]||'';return `<tr class="pkg-row">
     <td style="${cell}"></td>
     <td style="${cell}"></td>
     <td style="${cell}"></td>
@@ -4140,12 +4147,13 @@ function renderJobCardPreview(id){
     <td style="${yn}"></td>
     <td style="${pkgcell}">${b}</td>
     <td style="${yn}"></td>
-  </tr>`).join('')}
+  </tr>`;}).join('')}
 </table>`;
 
   document.getElementById('jobcard-preview').innerHTML=`
-<div style="font-family:Arial,sans-serif;width:100%;display:block">
-  ${sheet('A')}
+<div class="jc-sheet" style="font-family:Arial,sans-serif;width:100%;display:flex;flex-direction:column">
+  ${infoTable('A')}
+  <div class="jc-flow-wrap" style="flex:1 1 auto;display:flex;flex-direction:column">${flowTable}</div>
 </div>`;
 }
 
@@ -4175,17 +4183,19 @@ body{padding:10px;background:#f5f5f5}
 .btn-print{background:#1d4ed8;color:#fff}
 .btn-close{background:#fff;color:#333;border:1px solid #ccc}
 .sheet-wrap{background:#fff;padding:8px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.1);width:100%}
-.sheet-wrap div{width:100%!important;max-width:100%!important;margin:0!important}
-.sheet-wrap table{width:100%!important;table-layout:fixed!important}
+.jc-sheet{width:100%!important}
+.jc-flow-wrap{min-height:120mm}
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{width:100%;height:100%;padding:0;margin:0;background:#fff}
   .no-print{display:none!important}
-  .sheet-wrap{box-shadow:none;padding:0;width:100%}
-  .sheet-wrap>div{width:100%!important;max-width:100%!important;margin:0!important}
-  .sheet-wrap table{width:100%!important;table-layout:fixed!important;font-size:9.5px!important}
-  .sheet-wrap tbody{height:100%}
-  .sheet-wrap tr.pkg-row{height:auto}
+  .sheet-wrap{box-shadow:none;padding:0;width:100%;height:100%}
+  /* Make the whole sheet occupy the full printable height of the page so the
+     Lab Work Flow rows stretch to fill instead of leaving the bottom blank. */
+  .jc-sheet{display:flex!important;flex-direction:column;height:100%;min-height:100%}
+  .jc-flow-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
+  table.jc-flow{height:100%!important}
+  table{width:100%!important;table-layout:fixed!important;font-size:9.5px!important}
   td,th{padding:2px 3px!important}
   @page{margin:${jcps.margin};size:${jcps.size}}
 }
@@ -6350,7 +6360,7 @@ function genInvoiceSerial(){
 function getPageSetup(doc){
   const ps=getData('page-setup')||{};
   const defaults={
-    jobcard:{size:'A5 landscape',margin:'5mm'},
+    jobcard:{size:'A5 portrait',margin:'8mm'},
     challan:{size:'A4 portrait',margin:'8mm'},
     invoice:{size:'A4 portrait',margin:'8mm'},
     statement:{size:'A4 portrait',margin:'8mm'}
