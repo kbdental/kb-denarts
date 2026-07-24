@@ -4052,9 +4052,9 @@ function renderJobCardPreview(id){
   // Pair packaging items into 2 columns to save vertical space on A5 landscape
   const pkgPairs=[];
   for(let i=0;i<pkgRows.length;i+=2) pkgPairs.push([pkgRows[i],pkgRows[i+1]||'']);
-  // Add extra empty Lab Work Flow rows so the sheet has room to fill the page
-  // (also more space for staff to hand-write production steps).
-  const bodyRowCount=Math.max(pkgPairs.length,12);
+  // Enough fixed-height empty rows to fill an A5 page without stretching any
+  // single row. ~15 rows of ~8mm fills A5 portrait under the header section.
+  const bodyRowCount=Math.max(pkgPairs.length,15);
 
   const _p=(o.priority||'').trim();
   const _isExp=_p==='Expedite Service', _isVU=_p==='Very Urgent';
@@ -4121,10 +4121,11 @@ function renderJobCardPreview(id){
   </tr>
 </table>`;
 
-  // Second table = Lab Work Flow + Packaging. It grows to fill the page so the
-  // sheet uses the full A5 height instead of leaving the bottom blank.
+  // Second table = Lab Work Flow + Packaging. Fixed-height rows (no stretching)
+  // so the section header stays thin and the empty writing rows fill the page.
+  const rowCell='border:1px solid #000;padding:0;vertical-align:top';
   const flowTable=`
-<table class="jc-flow" style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border:2px solid #000;table-layout:fixed;height:100%">
+<table class="jc-flow" style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:9.5px;border:2px solid #000;table-layout:fixed">
   ${colgroup}
   <tr>
     <td colspan="4" style="${hdr}">Lab Work Flow</td>
@@ -4138,22 +4139,22 @@ function renderJobCardPreview(id){
     <td colspan="2" style="${sub}">Item</td>
     <td colspan="2" style="${sub}">Item</td>
   </tr>
-  ${Array.from({length:bodyRowCount}).map((_,i)=>{const a=(pkgPairs[i]||[])[0]||'';const b=(pkgPairs[i]||[])[1]||'';return `<tr class="pkg-row">
-    <td style="${cell}"></td>
-    <td style="${cell}"></td>
-    <td style="${cell}"></td>
-    <td style="${cell}"></td>
-    <td style="${pkgcell}">${a}</td>
+  ${Array.from({length:bodyRowCount}).map((_,i)=>{const a=(pkgPairs[i]||[])[0]||'';const b=(pkgPairs[i]||[])[1]||'';return `<tr class="jc-body-row">
+    <td style="${rowCell}"></td>
+    <td style="${rowCell}"></td>
+    <td style="${rowCell}"></td>
+    <td style="${rowCell}"></td>
+    <td style="${pkgcell};vertical-align:top">${a}</td>
     <td style="${yn}"></td>
-    <td style="${pkgcell}">${b}</td>
+    <td style="${pkgcell};vertical-align:top">${b}</td>
     <td style="${yn}"></td>
   </tr>`;}).join('')}
 </table>`;
 
   document.getElementById('jobcard-preview').innerHTML=`
-<div class="jc-sheet" style="font-family:Arial,sans-serif;width:100%;display:flex;flex-direction:column">
+<div class="jc-sheet" style="font-family:Arial,sans-serif;width:100%">
   ${infoTable('A')}
-  <div class="jc-flow-wrap" style="flex:1 1 auto;display:flex;flex-direction:column">${flowTable}</div>
+  ${flowTable}
 </div>`;
 }
 
@@ -4184,19 +4185,18 @@ body{padding:10px;background:#f5f5f5}
 .btn-close{background:#fff;color:#333;border:1px solid #ccc}
 .sheet-wrap{background:#fff;padding:8px;border-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.1);width:100%}
 .jc-sheet{width:100%!important}
-.jc-flow-wrap{min-height:120mm}
+/* Comfortable fixed height for the empty writing rows — fills the page without
+   ballooning any single row. */
+.jc-body-row{height:8mm}
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  html,body{width:100%;height:100%;padding:0;margin:0;background:#fff}
+  html,body{width:100%;padding:0;margin:0;background:#fff}
   .no-print{display:none!important}
-  .sheet-wrap{box-shadow:none;padding:0;width:100%;height:100%}
-  /* Make the whole sheet occupy the full printable height of the page so the
-     Lab Work Flow rows stretch to fill instead of leaving the bottom blank. */
-  .jc-sheet{display:flex!important;flex-direction:column;height:100%;min-height:100%}
-  .jc-flow-wrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}
-  table.jc-flow{height:100%!important}
+  .sheet-wrap{box-shadow:none;padding:0;width:100%}
+  .jc-sheet{width:100%!important}
+  .jc-body-row{height:8mm}
   table{width:100%!important;table-layout:fixed!important;font-size:9.5px!important}
-  td,th{padding:2px 3px!important}
+  td,th{padding:1px 3px!important}
   @page{margin:${jcps.margin};size:${jcps.size}}
 }
 </style></head><body>
