@@ -559,8 +559,8 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
           <div class="stat-value" id="d-prod" style="color:var(--amber)">0</div>
           <div class="stat-sub">Active</div>
         </div>
-        <div class="stat-card" onclick="navigate('all-orders','Complete')" style="cursor:pointer">
-          <div class="stat-label">Completed (This Month)</div>
+        <div class="stat-card" onclick="navigate('all-orders','Delivered')" style="cursor:pointer">
+          <div class="stat-label">Delivered This Month</div>
           <div class="stat-value" id="d-complete" style="color:var(--green)">0</div>
           <div class="stat-sub">This month</div>
         </div>
@@ -572,10 +572,6 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
       </div>
 
       <div class="status-row">
-        <div class="status-pill" onclick="navigate('all-orders','In Production')">
-          <div class="sp-dot" style="background:var(--blue)"></div>
-          <div><div class="sp-label">In Production</div><div class="sp-count" id="sp-prod">0</div></div>
-        </div>
         <div class="status-pill" onclick="navigate('all-orders','On Hold')">
           <div class="sp-dot" style="background:var(--amber)"></div>
           <div><div class="sp-label">On Hold</div><div class="sp-count" id="sp-hold">0</div></div>
@@ -2864,14 +2860,14 @@ function renderDashboard(){
   const todayDue=orders.filter(o=>o.dueDate===_td&&!['Delivered','Cancelled'].includes(o.status));
   document.getElementById('d-total').textContent=orders.length;
   document.getElementById('d-prod').textContent=orders.filter(o=>o.status==='In Production').length;
-  document.getElementById('d-complete').textContent=monthOrders.filter(o=>o.status==='Complete').length;
+  // "Delivered This Month" — delivered orders whose delivery/order date is this month
+  document.getElementById('d-complete').textContent=orders.filter(o=>o.status==='Delivered'&&(o.dispatchDate||o.date||'').startsWith(thisMonth)).length;
   const dToday=document.getElementById('d-today');if(dToday) dToday.textContent=todayDue.length;
   // Status pills
   ALL_STATUSES.forEach(s=>{
     const id='sp-'+s.toLowerCase().replace(/[\s\/]/g,'-').replace(/[^a-z0-9-]/g,'');
     // map to known IDs
   });
-  document.getElementById('sp-prod').textContent=orders.filter(o=>o.status==='In Production').length;
   document.getElementById('sp-hold').textContent=orders.filter(o=>o.status==='On Hold').length;
   document.getElementById('sp-tryin').textContent=orders.filter(o=>o.status==='Out for Try-in').length;
   document.getElementById('sp-overdue').textContent=overdue.length;
@@ -4063,9 +4059,10 @@ function renderJobCardPreview(id){
   // Pair packaging items into 2 columns to save vertical space on A5 landscape
   const pkgPairs=[];
   for(let i=0;i<pkgRows.length;i+=2) pkgPairs.push([pkgRows[i],pkgRows[i+1]||'']);
-  // Writing rows. In print these stretch evenly to fill the page, so ~12 gives
-  // comfortable line height on A5 without risking overflow to a second page.
-  const bodyRowCount=Math.max(pkgPairs.length,12);
+  // Writing rows stretch evenly to fill the page. Landscape A5 is shorter, so
+  // fewer rows keep a comfortable line height; portrait gets more.
+  const _isLandscape=/landscape/i.test(getPageSetup('jobcard').size||'');
+  const bodyRowCount=Math.max(pkgPairs.length,_isLandscape?8:12);
 
   const _p=(o.priority||'').trim();
   const _isExp=_p==='Expedite Service', _isVU=_p==='Very Urgent';
@@ -6387,7 +6384,7 @@ function genInvoiceSerial(){
 function getPageSetup(doc){
   const ps=getData('page-setup')||{};
   const defaults={
-    jobcard:{size:'A5 portrait',margin:'8mm'},
+    jobcard:{size:'A5 landscape',margin:'8mm'},
     challan:{size:'A4 portrait',margin:'8mm'},
     invoice:{size:'A4 portrait',margin:'8mm'},
     statement:{size:'A4 portrait',margin:'8mm'}
