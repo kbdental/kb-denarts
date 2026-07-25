@@ -9,6 +9,10 @@
 //   • Server-side doctor portal login (?action=portal) — PINs are
 //     checked HERE and never sent to the browser
 //   • updatedAt / invoiceNo columns on Orders
+//   • Stock Out sync — index.html and the standalone stock-out.html page
+//     both push issued-stock entries here as {type:'stock_out', ...} and
+//     read them back via the `stockout` array in the GET dump, the same
+//     push/pull pattern already used for Production Log entries.
 //
 // SETUP
 //   1. Set TOKEN below to a long random secret (e.g. 40 random chars).
@@ -36,6 +40,7 @@ var CORR_SHEET     = 'Corrections';
 var REMARKS_SHEET  = 'Remarks';
 var LOGIN_SHEET    = 'Login Log';
 var INV_SHEET      = 'Inventory';
+var STOCKOUT_SHEET = 'Stock Out';
 var LIST_SHEETS = {steps:'Steps',enclosures:'Enclosures',pickup:'Pickup',hold:'Hold Reasons',
                    repeat:'Repeat Reasons',implants:'Implant Types',shades:'Shades'};
 
@@ -43,6 +48,7 @@ var ORDER_HEADERS = ['Model No','Challan No','Date','Received Date','Due Date','
   'Doctor','Clinic','Patient','Work Type','Teeth','Units','Status',
   'Amount (₹)','Billing Status','Implant System','Notes','Invoice No','Hold Reason','Details','Updated At'];
 var DOCTOR_HEADERS = ['Doctor Name','Clinic','Address','Phone','Email','Contact Person','CP Phone','Category','Pin'];
+var STOCKOUT_HEADERS = ['ID','Date','Item','Category','Brand','UOM','Batch','Expiry','Qty','Issue Type','Issued By','Issued To','Note'];
 
 // ── plumbing ─────────────────────────────────────────────────────
 function jsonOut(obj){
@@ -181,6 +187,11 @@ function doGet(e){
       company:cellStr(r['Company']),hsnCode:cellStr(r['HSN']),uom:cellStr(r['UOM']),
       packing:cellStr(r['Packing']),openingStock:r['Opening Stock']||0,
       reorderLevel:r['Reorder Level']||0};}).filter(function(x){return x.name;});
+    out.stockout=readRows(ss,STOCKOUT_SHEET).map(function(r){return{
+      id:cellStr(r['ID']),date:cellStr(r['Date']),item:cellStr(r['Item']),category:cellStr(r['Category']),
+      brand:cellStr(r['Brand']),uom:cellStr(r['UOM']),batch:cellStr(r['Batch']),expiry:cellStr(r['Expiry']),
+      qty:r['Qty']||0,issueType:cellStr(r['Issue Type']),issuedBy:cellStr(r['Issued By']),
+      issuedTo:cellStr(r['Issued To']),note:cellStr(r['Note'])};}).filter(function(x){return x.id;});
     out.loginLog=readRows(ss,LOGIN_SHEET).map(function(r){return{
       doctorName:cellStr(r['Doctor']),clinic:cellStr(r['Clinic']),
       datetime:cellStr(r['Datetime']),ts:Number(r['TS'])||0};});
@@ -281,6 +292,7 @@ function doPost(e){
     else if(t==='masters_sync')  mastersSync(ss,data);
     else if(t==='prod_log') appendProdLog(ss,data);
     else if(t==='correction_case') upsertCorrection(ss,data);
+    else if(t==='stock_out') appendStockOut(ss,data);
     else if(t==='lab_reply') appendRemark(ss,{doctorName:data.doctorName,clinic:data.clinic,
       message:data.message,from:'lab',datetime:data.datetime,ts:data.ts});
 
@@ -517,6 +529,25 @@ function upsertCorrection(ss,d){
     }
   }
   sh.appendRow(arr);
+}
+
+// Appends one Stock Out entry, deduped by ID — a resubmit (e.g. after a
+// flaky no-cors push whose response the client can't read) must not create
+// a second row for the same entry.
+function appendStockOut(ss,d){
+  if(!d.id||!d.item) return;
+  var sh=getOrCreateSheet(ss,STOCKOUT_SHEET,STOCKOUT_HEADERS);
+  var head=ensureHeaders(sh,STOCKOUT_HEADERS);
+  var lastRow=sh.getLastRow();
+  if(lastRow>1){
+    var idCol=colIndex(head,'ID');
+    var ids=sh.getRange(2,idCol+1,lastRow-1,1).getValues();
+    for(var i=0;i<ids.length;i++){ if(String(ids[i][0])===String(d.id)) return; }
+  }
+  var vals={'ID':d.id,'Date':d.date||'','Item':d.item,'Category':d.category||'','Brand':d.brand||'',
+    'UOM':d.uom||'','Batch':d.batch||'','Expiry':d.expiry||'','Qty':d.qty||0,'Issue Type':d.issueType||'',
+    'Issued By':d.issuedBy||'','Issued To':d.issuedTo||'','Note':d.note||''};
+  sh.appendRow(head.map(function(h){return vals.hasOwnProperty(h)?vals[h]:'';}));
 }
 
 function appendRemark(ss,r){
