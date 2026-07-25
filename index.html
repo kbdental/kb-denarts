@@ -7848,6 +7848,32 @@ async function pullFromSheets(){
     invSetData('items',mrg);
   }
 
+  // ── Inventory Stock Out (shared "Stock Out" sheet tab, written by both
+  // this app and the standalone stock-out.html page) ──────────────────
+  s.soN=0;
+  if(Array.isArray(d.stockout)&&d.stockout.length){
+    const cats=invGetCategories();const cm={};cats.forEach(c=>{cm[c.name.toLowerCase()]=c.id;});
+    const items=invGetItems();const im={};items.forEach(i=>{im[i.name.toLowerCase()]=i;});
+    const txs=invGetTransactions();
+    const existingIds=new Set(txs.map(t=>t.id));
+    d.stockout.forEach(r=>{
+      if(!r.item||!r.id||existingIds.has(r.id)) return;
+      const item=im[r.item.toLowerCase()];
+      txs.push({
+        id:r.id,type:'OUT',itemId:item?.id||'',itemName:r.item,
+        categoryId:item?.categoryId||cm[(r.category||'General').toLowerCase()]||'',
+        categoryName:r.category||'',
+        batch:r.batch||'',expiry:r.expiry||'',
+        qty:parseInt(r.qty)||0,price:0,total:0,
+        outType:r.issueType||'',person:r.issuedBy||'',issuedTo:r.issuedTo||'',
+        date:r.date||new Date().toISOString(),_fromSheet:true
+      });
+      existingIds.add(r.id);
+      s.soN++;
+    });
+    if(s.soN>0) invSetData('txs',txs);
+  }
+
   // ── Production Log ──────────────────────────────────────────────
   s.plN=0;
   if(Array.isArray(d.prodlog)&&d.prodlog.length){
@@ -7921,7 +7947,7 @@ async function pullFromSheets(){
     if(cAdded>0) setCorrections(existing);
   }
 
-  setStatus(`✓ <b>Pull complete</b> — Orders: +${s.oN} new, ${s.oU} updated | Doctors: +${s.doN} | Staff: +${s.stN} | Depts: +${s.depN} | Products: +${s.prN} | Inventory: +${s.iN} new, ${s.iU} updated${s.plN?' | Prod Log: +'+s.plN+' entries':''}`);
+  setStatus(`✓ <b>Pull complete</b> — Orders: +${s.oN} new, ${s.oU} updated | Doctors: +${s.doN} | Staff: +${s.stN} | Depts: +${s.depN} | Products: +${s.prN} | Inventory: +${s.iN} new, ${s.iU} updated${s.plN?' | Prod Log: +'+s.plN+' entries':''}${s.soN?' | Stock Out: +'+s.soN+' entries':''}`);
   setData('last_pull_ts',Date.now());
   updateLastSyncBadge();
   toast('Pull complete!','success');
@@ -8293,8 +8319,22 @@ function invIssueStock(){
     date:new Date().toISOString()
   };
   invSaveTx(tx);
+  pushStockOutToSheet(tx,item);
   toast(`Stock OUT: ${qty} x ${item?.name} issued ✓`,'success');
   invClearStockOut();
+}
+
+// Fire-and-forget push so a Stock Out entry (from this app or from the
+// standalone stock-out.html page) lands in the shared "Stock Out" sheet
+// tab instead of staying device-local. Mirrors pushOrderStatusToSheet's
+// use of gsPost (which already attaches gs-config's token, if any).
+function pushStockOutToSheet(tx,item){
+  gsPost({
+    type:'stock_out',
+    id:tx.id,date:tx.date,item:tx.itemName,category:tx.categoryName,
+    brand:item?.brand||'',uom:item?.uom||'',batch:tx.batch||'',expiry:tx.expiry||'',
+    qty:tx.qty,issueType:tx.outType||'',issuedBy:tx.person||'',issuedTo:tx.issuedTo||''
+  });
 }
 function invClearStockOut(){
   ['so-batch','so-brand','so-company','so-uom','so-packing','so-expiry','so-by'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});

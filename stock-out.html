@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1d4ed8">
+<title>KB DENARTS — Stock Out</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  :root{
+    --blue:#1d4ed8;--blue-lt:#eff6ff;--blue-dk:#1e3a8a;
+    --green:#16a34a;--green-lt:#f0fdf4;
+    --red:#dc2626;--red-lt:#fef2f2;
+    --amber:#b45309;--amber-lt:#fffbeb;
+    --border:#e2e8f0;--muted:#94a3b8;--text:#1e293b;
+    --bg:#f8fafc;--card:#fff;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+  .topbar{background:var(--blue);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .topbar-logo{width:36px;height:36px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--blue);font-size:13px;flex-shrink:0}
+  .topbar-title{font-size:16px;font-weight:700;line-height:1.2}
+  .topbar-sub{font-size:11px;opacity:.75}
+
+  .wrap{padding:16px;max-width:480px;margin:0 auto}
+  .card{background:var(--card);border-radius:14px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+  .card-title{font-size:13px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;gap:6px}
+
+  .form-group{margin-bottom:14px}
+  .form-label{display:block;font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px}
+  .form-control{width:100%;padding:13px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;color:var(--text);background:#fff;outline:none;transition:border-color .15s;-webkit-appearance:none;font-family:inherit}
+  .form-control:focus{border-color:var(--blue)}
+  select.form-control{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:36px}
+  textarea.form-control{min-height:70px;resize:vertical;line-height:1.5}
+  .req{color:var(--red)}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:5px}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 20px;border-radius:10px;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:all .15s;width:100%}
+  .btn-primary{background:var(--blue);color:#fff}
+  .btn-primary:active{background:var(--blue-dk)}
+  .btn-primary:disabled{background:#94a3b8;cursor:not-allowed}
+  .linkbtn{width:auto;padding:0;background:none;border:none;color:var(--muted);font-size:11.5px;font-weight:600;text-decoration:underline;cursor:pointer}
+
+  .whoami{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--blue-lt);border-radius:8px;font-size:13px;margin-bottom:16px}
+  .whoami b{color:var(--blue-dk)}
+
+  .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11.5px;font-weight:700}
+  .tag-ok{background:var(--green-lt);color:#065f46}
+  .tag-low{background:var(--amber-lt);color:var(--amber)}
+  .tag-out{background:var(--red-lt);color:#991b1b}
+
+  #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(100px);background:#1e293b;color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;transition:transform .3s;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3)}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast.success{background:var(--green)}
+  #toast.error{background:var(--red)}
+
+  .loading{text-align:center;color:var(--muted);font-size:13px;padding:30px 0}
+
+  .recent{margin-top:4px}
+  .log-entry{padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;gap:8px;font-size:12.5px}
+  .log-entry:last-child{border-bottom:none}
+  .log-entry b{color:var(--text)}
+  .log-meta{color:var(--muted);text-align:right;font-size:11.5px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-logo">KB</div>
+  <div>
+    <div class="topbar-title">Stock Out Entry</div>
+    <div class="topbar-sub">K.B. DENARTS Lab — Inventory</div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="card" id="loading-card">
+    <div class="loading" id="loading">Loading staff & item list…</div>
+  </div>
+
+  <div class="card" id="login-card" style="display:none">
+    <div class="card-title">Who's issuing this?</div>
+    <div class="form-group">
+      <label class="form-label">Your Name <span class="req">*</span></label>
+      <select class="form-control" id="loginName"><option value="">-- Select your name --</option></select>
+    </div>
+    <button class="btn btn-primary" id="loginBtn">Continue</button>
+  </div>
+
+  <div id="form-wrap" style="display:none">
+    <div class="whoami">
+      <span>Issuing as <b id="whoName"></b></span>
+      <button class="linkbtn" id="switchUser" type="button">Not you?</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span style="color:var(--blue)">●</span> Item</div>
+
+      <div class="form-group">
+        <label class="form-label">Category <span class="req">*</span></label>
+        <select class="form-control" id="so-category"><option value="">-- Select category --</option></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Item <span class="req">*</span></label>
+        <select class="form-control" id="so-item"><option value="">-- Select category first --</option></select>
+        <div class="hint" id="itemHint"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Batch</label>
+        <select class="form-control" id="so-batch"><option value="">-- Select item first --</option></select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Quantity <span class="req">*</span></label>
+        <input class="form-control" id="so-qty" type="number" min="1" step="1" inputmode="numeric" placeholder="e.g. 5">
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span style="color:var(--blue)">●</span> Issue Details</div>
+
+      <div class="form-group">
+        <label class="form-label">Type of Issue <span class="req">*</span></label>
+        <select class="form-control" id="so-type">
+          <option>Consumption</option><option>Dispensed to Patient</option><option>Transfer</option><option>Expired</option><option>Damaged</option><option>Other</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Issued To <span class="req">*</span></label>
+        <select class="form-control" id="so-to">
+          <option>Clinics</option><option>Lab</option><option>Patient</option><option>Other Dept</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes <span style="text-transform:none;font-weight:400;color:var(--muted)">(optional)</span></label>
+        <textarea class="form-control" id="so-note" placeholder="Any extra detail"></textarea>
+      </div>
+
+      <button class="btn btn-primary" id="submitBtn">Submit Stock Out</button>
+      <div id="save-status" style="font-size:13px;text-align:center;color:var(--muted);margin-top:8px;display:none"></div>
+    </div>
+
+    <div class="card recent" id="recentCard" style="display:none">
+      <div class="card-title">Your Recent Entries</div>
+      <div id="recentList"></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─── Config ────────────────────────────────────────────────────────────
+// Same live Apps Script backend the main K.B. DENARTS app talks to (this
+// is the current, rotated deployment URL — see kb-production-log.html's
+// APPS_SCRIPT_URL and its comment about the old one being retired because
+// it was publicly visible in this repo). Hardcoded so this page works
+// standalone with no setup step.
+//
+// No access token is sent — apps-script/Code.gs currently has TOKEN=''
+// (auth disabled), so none is required for this to work. If TOKEN is ever
+// set to a real value, this page needs a token field added the same way
+// index.html's Settings → Google Sheets Connection has one.
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5oqSv-apuV8CKouxYfcpbE4vPPwftagjBv4tKRcLV5YBSbmscYV1hRpBdJ4-pruBDqw/exec';
+
+function byId(id){ return document.getElementById(id); }
+function esc(v){ return String(v==null?'':v); }
+function genId(){ return '_'+Math.random().toString(36).substr(2,9); }
+
+function toast(msg, type){
+  var el = byId('toast');
+  el.textContent = msg;
+  el.className = 'show ' + (type||'');
+  setTimeout(function(){ el.className=''; }, 3000);
+}
+
+// ─── Local recent-entries log (this device only — for user feedback,
+// mirrors kb-production-log.html's "My Recent Entries" pattern) ──────────
+var LS_KEY = 'kbdenarts_stockout_recent';
+function getRecent(){ try{ return JSON.parse(localStorage.getItem(LS_KEY))||[]; }catch(e){ return []; } }
+function setRecent(l){ try{ localStorage.setItem(LS_KEY, JSON.stringify(l)); }catch(e){} }
+
+var STAFF = [], ITEMS = [], CATS = [], CURRENT_NAME = '';
+
+function fillLoginNames(){
+  var sel = byId('loginName');
+  sel.innerHTML = '<option value="">-- Select your name --</option>';
+  STAFF.forEach(function(s){
+    var o = document.createElement('option'); o.value = s.name; o.textContent = s.name + (s.type?' ('+s.type+')':''); sel.appendChild(o);
+  });
+}
+
+function doLogin(){
+  var name = byId('loginName').value;
+  if(!name){ toast('Select your name', 'error'); return; }
+  CURRENT_NAME = name;
+  byId('whoName').textContent = name;
+  byId('login-card').style.display = 'none';
+  byId('form-wrap').style.display = 'block';
+  renderRecent();
+}
+
+function switchUser(){
+  CURRENT_NAME = '';
+  byId('form-wrap').style.display = 'none';
+  byId('login-card').style.display = 'block';
+}
+
+function fillCategories(){
+  var sel = byId('so-category');
+  sel.innerHTML = '<option value="">-- Select category --</option>';
+  CATS.forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+}
+
+function onCategoryChange(){
+  var cat = byId('so-category').value;
+  var sel = byId('so-item');
+  sel.innerHTML = '<option value="">-- Select item --</option>';
+  ITEMS.filter(function(i){ return i.category===cat; }).forEach(function(i){
+    var o = document.createElement('option'); o.value = i.name; o.textContent = i.name + (i.brand?' — '+i.brand:''); sel.appendChild(o);
+  });
+  byId('so-batch').innerHTML = '<option value="">-- Select item first --</option>';
+  byId('itemHint').textContent = '';
+}
+
+function onItemChange(){
+  var name = byId('so-item').value;
+  var item = ITEMS.find(function(i){ return i.name===name; });
+  var hint = byId('itemHint');
+  var bsel = byId('so-batch');
+  bsel.innerHTML = '<option value="">-- General stock --</option>';
+  if(!item){ hint.textContent=''; return; }
+  var bits = [];
+  if(item.brand) bits.push(item.brand);
+  if(item.company) bits.push(item.company);
+  if(item.uom) bits.push('UoM: '+item.uom);
+  if(item.openingStock!=null) bits.push('Last known stock: '+item.openingStock);
+  hint.textContent = bits.join(' · ');
+}
+
+function currentItem(){
+  var name = byId('so-item').value;
+  return ITEMS.find(function(i){ return i.name===name; }) || null;
+}
+
+function renderRecent(){
+  var mine = getRecent().filter(function(r){ return r.issuedBy===CURRENT_NAME; }).slice(0,5);
+  var card = byId('recentCard'), list = byId('recentList');
+  if(!mine.length){ card.style.display='none'; return; }
+  card.style.display = 'block';
+  list.innerHTML = mine.map(function(r){
+    var d=''; try{ d=new Date(r.date).toLocaleDateString('en-IN'); }catch(e){}
+    return '<div class="log-entry"><span><b>'+esc(r.item)+'</b> × '+esc(r.qty)+'</span><span class="log-meta">'+esc(r.issuedTo)+'<br>'+d+'</span></div>';
+  }).join('');
+}
+
+function submit(){
+  var item = currentItem();
+  var qty = parseInt(byId('so-qty').value, 10);
+  var issueType = byId('so-type').value;
+  var issuedTo = byId('so-to').value;
+  var batch = byId('so-batch').value;
+  var note = byId('so-note').value.trim();
+
+  if(!CURRENT_NAME){ toast('Session expired — please select your name again', 'error'); switchUser(); return; }
+  if(!item){ toast('Select an item', 'error'); return; }
+  if(!qty || qty<1){ toast('Enter a valid quantity', 'error'); return; }
+  if(!issueType){ toast('Select the type of issue', 'error'); return; }
+  if(!issuedTo){ toast('Select who this was issued to', 'error'); return; }
+
+  var btn = byId('submitBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  var st = byId('save-status'); st.style.display='block'; st.textContent='Sending to Google Sheets...';
+
+  var entry = {
+    id: genId(),
+    date: new Date().toISOString(),
+    item: item.name,
+    category: item.category,
+    brand: item.brand||'',
+    uom: item.uom||'',
+    batch: batch,
+    expiry: '',
+    qty: qty,
+    issueType: issueType,
+    issuedBy: CURRENT_NAME,
+    issuedTo: issuedTo,
+    note: note
+  };
+
+  // Save locally first (matches kb-production-log.html's resilience
+  // pattern) — the push below is fire-and-forget, no-cors means we can't
+  // read success/failure from the response.
+  var rec = getRecent(); rec.unshift(entry); setRecent(rec);
+
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'stock_out',
+      id: entry.id, date: entry.date, item: entry.item, category: entry.category,
+      brand: entry.brand, uom: entry.uom, batch: entry.batch, expiry: entry.expiry,
+      qty: entry.qty, issueType: entry.issueType, issuedBy: entry.issuedBy,
+      issuedTo: entry.issuedTo, note: entry.note
+    })
+  }).then(function(){
+    toast('✅ Recorded: '+qty+' × '+item.name+'. Thank you, '+CURRENT_NAME+'!', 'success');
+  }).catch(function(){
+    toast('⚠ Saved locally — could not reach the server. It will show as pending.', 'error');
+  }).then(function(){
+    btn.disabled = false; btn.textContent = 'Submit Stock Out';
+    st.style.display = 'none';
+    byId('so-qty').value = ''; byId('so-note').value = '';
+    byId('so-category').value = ''; onCategoryChange();
+    renderRecent();
+  });
+}
+
+// ─── Load staff + item master from the shared backend ───────────────────
+function api(){
+  var url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?')?'&':'?') + 't=' + Date.now();
+  return fetch(url, { method:'GET' }).then(function(r){ return r.text(); }).then(function(txt){ return JSON.parse(txt); });
+}
+
+api().then(function(d){
+  if(d.status!=='ok') throw new Error(d.message||'Backend error');
+  STAFF = (d.staff||[]).map(function(s){ return { name:String(s.name||s||''), type:s.type||'' }; }).filter(function(s){ return s.name; });
+  ITEMS = (d.inventory||[]).map(function(r){
+    return { name:String(r.name||''), category:String(r.category||'General'), brand:r.brand||'', company:r.company||'', uom:r.uom||'pcs', openingStock: r.openingStock!=null?parseInt(r.openingStock):(r.qty!=null?parseInt(r.qty):null) };
+  }).filter(function(i){ return i.name; });
+  CATS = Array.from(new Set(ITEMS.map(function(i){ return i.category; }))).sort();
+
+  fillLoginNames();
+  fillCategories();
+
+  byId('loading-card').style.display = 'none';
+  byId('login-card').style.display = 'block';
+  byId('loginBtn').addEventListener('click', doLogin);
+  byId('switchUser').addEventListener('click', switchUser);
+  byId('so-category').addEventListener('change', onCategoryChange);
+  byId('so-item').addEventListener('change', onItemChange);
+  byId('submitBtn').addEventListener('click', submit);
+}).catch(function(e){
+  byId('loading').textContent = 'Could not load. Please refresh. (' + e.message + ')';
+});
+</script>
+</body>
+</html>
