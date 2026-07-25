@@ -82,6 +82,17 @@
     <div class="loading" id="loading">Loading staff & item list…</div>
   </div>
 
+  <div class="card" id="token-card" style="display:none">
+    <div class="card-title">Access Token Required</div>
+    <div class="form-group">
+      <label class="form-label">Access Token</label>
+      <input class="form-control" id="accessTokenInput" placeholder="token set in the Apps Script" autocomplete="off">
+      <div class="hint">The backend now requires a token — ask your admin for the one set in Settings → Google Sheets Connection (main app) or the Apps Script's TOKEN value.</div>
+    </div>
+    <button class="btn btn-primary" id="tokenRetryBtn">Connect</button>
+    <div id="tokenMsg" class="hint" style="color:var(--red)"></div>
+  </div>
+
   <div class="card" id="login-card" style="display:none">
     <div class="card-title">Who's issuing this?</div>
     <div class="form-group">
@@ -165,15 +176,23 @@
 // it was publicly visible in this repo). Hardcoded so this page works
 // standalone with no setup step.
 //
-// No access token is sent — apps-script/Code.gs currently has TOKEN=''
-// (auth disabled), so none is required for this to work. If TOKEN is ever
-// set to a real value, this page needs a token field added the same way
-// index.html's Settings → Google Sheets Connection has one.
+// If the Apps Script's TOKEN is set to a real value, every request needs a
+// matching `token` — stored locally per device (never hardcoded here) and
+// only asked for if the backend actually rejects an unauthenticated
+// request. Mirrors kb-production-log.html's setup-token field.
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw5oqSv-apuV8CKouxYfcpbE4vPPwftagjBv4tKRcLV5YBSbmscYV1hRpBdJ4-pruBDqw/exec';
 
 function byId(id){ return document.getElementById(id); }
 function esc(v){ return String(v==null?'':v); }
 function genId(){ return '_'+Math.random().toString(36).substr(2,9); }
+
+var TOKEN_KEY = 'kbdenarts_stockout_token';
+function getToken(){ try{ return localStorage.getItem(TOKEN_KEY)||''; }catch(e){ return ''; } }
+function setToken(t){ try{ localStorage.setItem(TOKEN_KEY, t||''); }catch(e){} }
+function withToken(url){
+  var t = getToken();
+  return t ? url + (url.includes('?')?'&':'?') + 'token=' + encodeURIComponent(t) : url;
+}
 
 function toast(msg, type){
   var el = byId('toast');
@@ -301,17 +320,18 @@ function submit(){
   // read success/failure from the response.
   var rec = getRecent(); rec.unshift(entry); setRecent(rec);
 
+  var token = getToken();
   fetch(APPS_SCRIPT_URL, {
     method: 'POST',
     mode: 'no-cors',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
+    body: JSON.stringify(Object.assign({
       type: 'stock_out',
       id: entry.id, date: entry.date, item: entry.item, category: entry.category,
       brand: entry.brand, uom: entry.uom, batch: entry.batch, expiry: entry.expiry,
       qty: entry.qty, issueType: entry.issueType, issuedBy: entry.issuedBy,
       issuedTo: entry.issuedTo, note: entry.note
-    })
+    }, token?{token:token}:{}))
   }).then(function(){
     toast('✅ Recorded: '+qty+' × '+item.name+'. Thank you, '+CURRENT_NAME+'!', 'success');
   }).catch(function(){
@@ -327,31 +347,50 @@ function submit(){
 
 // ─── Load staff + item master from the shared backend ───────────────────
 function api(){
-  var url = APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?')?'&':'?') + 't=' + Date.now();
+  var url = withToken(APPS_SCRIPT_URL + (APPS_SCRIPT_URL.includes('?')?'&':'?') + 't=' + Date.now());
   return fetch(url, { method:'GET' }).then(function(r){ return r.text(); }).then(function(txt){ return JSON.parse(txt); });
 }
 
-api().then(function(d){
-  if(d.status!=='ok') throw new Error(d.message||'Backend error');
-  STAFF = (d.staff||[]).map(function(s){ return { name:String(s.name||s||''), type:s.type||'' }; }).filter(function(s){ return s.name; });
-  ITEMS = (d.inventory||[]).map(function(r){
-    return { name:String(r.name||''), category:String(r.category||'General'), brand:r.brand||'', company:r.company||'', uom:r.uom||'pcs', openingStock: r.openingStock!=null?parseInt(r.openingStock):(r.qty!=null?parseInt(r.qty):null) };
-  }).filter(function(i){ return i.name; });
-  CATS = Array.from(new Set(ITEMS.map(function(i){ return i.category; }))).sort();
+function loadData(){
+  byId('loading-card').style.display = 'block';
+  byId('token-card').style.display = 'none';
+  byId('loading').textContent = 'Loading staff & item list…';
+  api().then(function(d){
+    if(d.status!=='ok') throw Object.assign(new Error(d.message||'Backend error'), {unauthorized:/unauthorized/i.test(d.message||'')});
+    STAFF = (d.staff||[]).map(function(s){ return { name:String(s.name||s||''), type:s.type||'' }; }).filter(function(s){ return s.name; });
+    ITEMS = (d.inventory||[]).map(function(r){
+      return { name:String(r.name||''), category:String(r.category||'General'), brand:r.brand||'', company:r.company||'', uom:r.uom||'pcs', openingStock: r.openingStock!=null?parseInt(r.openingStock):(r.qty!=null?parseInt(r.qty):null) };
+    }).filter(function(i){ return i.name; });
+    CATS = Array.from(new Set(ITEMS.map(function(i){ return i.category; }))).sort();
 
-  fillLoginNames();
-  fillCategories();
+    fillLoginNames();
+    fillCategories();
 
-  byId('loading-card').style.display = 'none';
-  byId('login-card').style.display = 'block';
-  byId('loginBtn').addEventListener('click', doLogin);
-  byId('switchUser').addEventListener('click', switchUser);
-  byId('so-category').addEventListener('change', onCategoryChange);
-  byId('so-item').addEventListener('change', onItemChange);
-  byId('submitBtn').addEventListener('click', submit);
-}).catch(function(e){
-  byId('loading').textContent = 'Could not load. Please refresh. (' + e.message + ')';
+    byId('loading-card').style.display = 'none';
+    byId('login-card').style.display = 'block';
+  }).catch(function(e){
+    if(e.unauthorized){
+      byId('loading-card').style.display = 'none';
+      byId('token-card').style.display = 'block';
+      byId('accessTokenInput').value = getToken();
+      byId('tokenMsg').textContent = getToken() ? 'That token was rejected — check it matches the Apps Script exactly.' : '';
+      return;
+    }
+    byId('loading').textContent = 'Could not load. Please refresh. (' + e.message + ')';
+  });
+}
+
+byId('loginBtn').addEventListener('click', doLogin);
+byId('switchUser').addEventListener('click', switchUser);
+byId('so-category').addEventListener('change', onCategoryChange);
+byId('so-item').addEventListener('change', onItemChange);
+byId('submitBtn').addEventListener('click', submit);
+byId('tokenRetryBtn').addEventListener('click', function(){
+  setToken(byId('accessTokenInput').value.trim());
+  loadData();
 });
+
+loadData();
 </script>
 </body>
 </html>
