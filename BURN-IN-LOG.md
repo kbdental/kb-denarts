@@ -1,7 +1,7 @@
 # KuBi Management Suite — Burn-in Log
 
 **Period:** 2026-07-28 → ~2026-08-18 (2–3 weeks)
-**Baseline:** git tag `BurnIn-Start` — `git show BurnIn-Start` or `git diff BurnIn-Start` at any time to compare against this exact starting point
+**Baseline:** commit `e5a15ef` — `git diff e5a15ef` at any time to compare against this exact starting point (a git *tag* was attempted but this environment's push permissions blocked pushing tags to the remote, even though branch commits push normally; the commit hash is the reliable equivalent here — you can still create the `BurnIn-Start` tag yourself locally or on GitHub's web UI at commit `e5a15ef` if you'd like the named reference too)
 **Status:** 🟡 In progress
 
 ## Scope — what gets worked on during this period
