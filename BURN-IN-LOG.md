@@ -1,7 +1,7 @@
 # KuBi Management Suite — Burn-in Log
 
 **Period:** 2026-07-28 → ~2026-08-18 (2–3 weeks)
-**Baseline:** git tag `BurnIn-Start` (frozen at commit `c4aaaa8`)
+**Baseline:** git tag `BurnIn-Start` — `git show BurnIn-Start` or `git diff BurnIn-Start` at any time to compare against this exact starting point
 **Status:** 🟡 In progress
 
 ## Scope — what gets worked on during this period
