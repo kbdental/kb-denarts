@@ -181,21 +181,52 @@ function readAllRows(sheetName) {
  * Run this once from the Apps Script editor (function dropdown → testTokenGate
  * → Run) after setting the API_TOKEN Script Property, to confirm the gate
  * above is actually enforcing. Reads the same Script Property doPost reads
- * and reports what it would do for a correct, wrong, and missing token —
- * without making any real HTTP call and without changing any data.
+ * and reports PASS/FAIL for four scenarios, without making any real HTTP
+ * call, without changing any data, and without ever logging the token's
+ * actual value — only whether a candidate value matches it.
  */
 function testTokenGate() {
   var API_TOKEN = PropertiesService.getScriptProperties().getProperty('API_TOKEN');
-  if (!API_TOKEN || !String(API_TOKEN).length) {
-    Logger.log('❌ API_TOKEN Script Property is NOT set. The gate is currently INACTIVE — set it first, then re-run this.');
-    return;
+  var configured = !!(API_TOKEN && String(API_TOKEN).length);
+
+  // Mirrors the exact rule in doPost(): if API_TOKEN is set, a request is
+  // rejected unless body.token matches it exactly; if unset, the gate is
+  // inactive and everything passes through. Only returns a true/false match
+  // result — never the value itself.
+  function tokenWouldBeRejected(candidateToken) {
+    if (!configured) return false; // gate inactive — nothing gets rejected
+    return String(candidateToken || '') !== String(API_TOKEN);
   }
-  function wouldAccept(candidateToken) {
-    return String(candidateToken || '') === String(API_TOKEN);
-  }
-  Logger.log('API_TOKEN is set. Simulating the same comparison doPost() runs:');
-  Logger.log((wouldAccept(API_TOKEN) ? '✅' : '❌ UNEXPECTED') + ' correct token → ' + (wouldAccept(API_TOKEN) ? 'ACCEPTED (expected)' : 'rejected (should have been accepted!)'));
-  Logger.log((!wouldAccept('wrong-token-123') ? '✅' : '❌ UNEXPECTED') + ' wrong token → ' + (!wouldAccept('wrong-token-123') ? 'REJECTED (expected)' : 'accepted (should have been rejected!)'));
-  Logger.log((!wouldAccept('') ? '✅' : '❌ UNEXPECTED') + ' missing/blank token → ' + (!wouldAccept('') ? 'REJECTED (expected)' : 'accepted (should have been rejected!)'));
-  Logger.log('If all three lines above show ✅, the gate is working correctly.');
+
+  Logger.log('=== Inventory backend — token gate diagnostic ===');
+
+  // Test 1 — Missing token → should be REJECTED
+  var missingRejected = tokenWouldBeRejected('');
+  Logger.log((!configured ? 'SKIP' : (missingRejected ? 'PASS' : 'FAIL')) +
+    ' — Test 1: missing token should be REJECTED — ' +
+    (!configured ? 'skipped (API_TOKEN not configured, see Test 4)' :
+      (missingRejected ? 'was rejected, as expected' : 'was NOT rejected — gate is broken')));
+
+  // Test 2 — Incorrect token → should be REJECTED
+  var wrongRejected = tokenWouldBeRejected('this-is-not-the-configured-token');
+  Logger.log((!configured ? 'SKIP' : (wrongRejected ? 'PASS' : 'FAIL')) +
+    ' — Test 2: incorrect token should be REJECTED — ' +
+    (!configured ? 'skipped (API_TOKEN not configured, see Test 4)' :
+      (wrongRejected ? 'was rejected, as expected' : 'was NOT rejected — gate is broken')));
+
+  // Test 3 — Correct token → should be ACCEPTED
+  var correctRejected = tokenWouldBeRejected(API_TOKEN);
+  Logger.log((!configured ? 'SKIP' : (!correctRejected ? 'PASS' : 'FAIL')) +
+    ' — Test 3: correct token should be ACCEPTED — ' +
+    (!configured ? 'skipped (API_TOKEN not configured, see Test 4)' :
+      (!correctRejected ? 'was accepted, as expected' : 'was rejected — gate is broken')));
+
+  // Test 4 — API_TOKEN Script Property must actually be configured
+  Logger.log((configured ? 'PASS' : 'FAIL') +
+    ' — Test 4: API_TOKEN Script Property is configured — ' +
+    (configured ? 'a value is set' :
+      'NOT SET — configuration error. The gate is currently INACTIVE and every request is being accepted regardless of token. Set API_TOKEN under Project Settings → Script Properties, then re-run this test.'));
+
+  var allPass = configured && missingRejected && wrongRejected && !correctRejected;
+  Logger.log('=== ' + (allPass ? 'ALL PASS — the gate is working correctly.' : 'NOT all tests passed — resolve the FAIL/SKIP lines above before deploying.') + ' ===');
 }
