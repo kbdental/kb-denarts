@@ -21,6 +21,16 @@ Nothing else. Specifically **not** in scope until burn-in is closed out:
 - ❌ Performance optimizations, unless fixing a real observed issue
 - ❌ Refactoring for cleanliness alone
 
+## Acknowledged exceptions
+
+Out-of-scope work the clinic owner explicitly chose to greenlight during
+burn-in, against the "nothing else" rule above. Logged here so it's visible,
+not silently absorbed into the burn-in record.
+
+| Date | Item | Why an exception | Approved by |
+|---|---|---|---|
+| 2026-07-28 | Extract NABH module into a standalone app (new file, existing NABH in Management Suite left untouched) | New module/architecture work, normally deferred to BACKLOG.md until burn-in closes; owner explicitly requested it now rather than waiting | Clinic owner |
+
 ## Exit criteria — agreed before burn-in start
 
 Burn-in is considered successful, and 2A-1b can begin, when **all** of the following hold:
