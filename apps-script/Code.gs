@@ -154,7 +154,7 @@ function doGet(e){
     if(!authed(p.token)) return jsonOut({status:'error',message:'unauthorized — set the Access Token in the app settings'});
 
     var out={status:'ok',version:2};
-    out.orders=readRows(ss,ORDERS_SHEET).map(orderRowToObj).filter(function(o){return o.modelNo;});
+    out.orders=readRows(ss,ORDERS_SHEET).map(orderRowToObj).filter(function(o){return o.modelNo&&o.status!=='__reserved__';});
     // PINs deliberately NOT included — they never leave the server
     out.doctors=readRows(ss,DOCTORS_SHEET).map(function(r){return doctorRowToObj(r,false);}).filter(function(d){return d.name;});
     out.staff=readRows(ss,STAFF_SHEET).map(function(r){return{
@@ -211,6 +211,14 @@ function reserveSerial(ss,prefix,year,min){
     });
     var next=maxN+1;
     if(min&&min>next) next=min; // local floor (offline safety); never lets it go backwards
+    // Claim the number NOW with a reserved stub row (inside the lock) so a
+    // concurrent reservation — same device double-save or another laptop at the
+    // same moment — can't hand out the same number. The real order overwrites
+    // this row (matched by Model No) the instant it is pushed.
+    var sh=getOrCreateSheet(ss,ORDERS_SHEET,ORDER_HEADERS);
+    var head=ensureHeaders(sh,ORDER_HEADERS);
+    var stub={}; stub['Model No']=prefix+'-'+year+'/'+next; stub['Status']='__reserved__'; stub['Updated At']=0;
+    sh.appendRow(head.map(function(h){return stub.hasOwnProperty(h)?stub[h]:'';}));
     return {status:'ok',serial:next};
   }finally{
     lock.releaseLock();
@@ -235,7 +243,7 @@ function portalLogin(ss,doctorKey,pin){
   var name=cellStr(doc['Doctor Name']);
   var nameLc=name.toLowerCase();
   var orders=readRows(ss,ORDERS_SHEET).map(orderRowToObj).filter(function(o){
-    return o.modelNo&&o.status!=='Deleted'&&o.doctor.toLowerCase()===nameLc;
+    return o.modelNo&&o.status!=='Deleted'&&o.status!=='__reserved__'&&o.doctor.toLowerCase()===nameLc;
   });
   var models={};
   orders.forEach(function(o){models[o.modelNo]=true;});

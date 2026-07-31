@@ -2736,7 +2736,7 @@ function waPhone(p){
 function getMasters(key,defaults){const d=getData(key);return d!==null?d:[...defaults.map((x,i)=>typeof x==='string'?{id:'m'+key+i,value:x}:x)]}
 // getOrders() hides soft-deleted orders; getOrdersRaw() is for sync/merge/serial logic
 function getOrdersRaw(){return getData('orders')||[]}
-function getOrders(){return getOrdersRaw().filter(o=>!o.deleted)}
+function getOrders(){return getOrdersRaw().filter(o=>!o.deleted&&o.status!=='__reserved__')}
 function setOrders(o){return setData('orders',o)}
 // Invariant: a Delivered order always has a challan number and dispatch date
 function normalizeDelivered(o){
@@ -2745,6 +2745,29 @@ function normalizeDelivered(o){
     if(!o.dispatchDate) o.dispatchDate=today();
   }
   return o;
+}
+// When two local orders share a model number, keep the better copy
+function pickBetterOrder(a,b){
+  if(!!a.deleted!==!!b.deleted) return a.deleted?b:a;           // prefer non-deleted
+  const ua=Number(a.updatedAt)||0,ub=Number(b.updatedAt)||0;
+  if(ua!==ub) return ua>ub?a:b;                                 // prefer fresher
+  return ((b.workItems||[]).length>(a.workItems||[]).length)?b:a; // prefer more detail
+}
+// Remove accidental local duplicate orders. Only collapses copies of the SAME
+// case (same model number AND same patient) so a genuine collision — same number
+// but different patients — is left intact (and flagged by the duplicate warning).
+function dedupeOrdersLocal(list){
+  const groups={},order=[];
+  list.forEach(o=>{const k=o.modelNo||('__u'+order.length);if(!groups[k]){groups[k]=[o];order.push(k);}else groups[k].push(o);});
+  const out=[];
+  order.forEach(k=>{
+    const g=groups[k];
+    if(g.length===1){out.push(g[0]);return;}
+    const byPatient={};
+    g.forEach(o=>{const p=(o.patientName||'').trim().toLowerCase();(byPatient[p]=byPatient[p]||[]).push(o);});
+    Object.keys(byPatient).forEach(p=>out.push(byPatient[p].reduce(pickBetterOrder)));
+  });
+  return out;
 }
 function getReceipts(){return getData('receipts')||[]}
 function setReceipts(r){setData('receipts',r)}
@@ -7725,7 +7748,7 @@ async function pullFromSheets(){
       if(!r.modelNo) return;
       const idx=mm[r.modelNo];
       if(idx===undefined){
-        if(r.status==='Deleted') return; // don't resurrect deleted orders
+        if(r.status==='Deleted'||r.status==='__reserved__') return; // skip deleted + unfilled reservation stubs
         const built={id:genId(),modelNo:r.modelNo,challanNo:r.challanNo||(r.status==='Delivered'?r.modelNo:''),
           date:r.date||'',receivedDate:r.receivedDate||'',dueDate:r.dueDate||'',
           dispatchDate:r.dispatchDate||'',doctorName:r.doctor||r.doctorName||'',
@@ -7744,6 +7767,9 @@ async function pullFromSheets(){
         // fresher local edit (the old code regressed statuses this way).
         const lU=Number(mrg[idx].updatedAt)||0;
         const rU=Number(r.updatedAt)||0;
+        // Sheet is authoritative for existence: if it still has this order active
+        // but the local copy is hidden as deleted, bring it back.
+        if(r.status!=='Deleted'&&mrg[idx].deleted) mrg[idx].deleted=false;
         const localFresher=lU&&(rU?lU>rU:(Date.now()-lU)<10*60*1000);
         if(localFresher){staleLocal.push(mrg[idx]);return;}
         if(r.status==='Deleted'){mrg[idx].deleted=true;return;}
@@ -7771,7 +7797,7 @@ async function pullFromSheets(){
       }
     });
     mrg.forEach(normalizeDelivered);
-    setOrders(mrg);renderOrders();
+    setOrders(dedupeOrdersLocal(mrg));renderOrders();
     recalibrateSerial();
     staleLocal.forEach(o=>syncOrderToSheets(o));
   }
@@ -9070,6 +9096,7 @@ function sendLabReply(){
 }
 
 function init(){
+  setOrders(dedupeOrdersLocal(getOrdersRaw())); // clean up any local duplicate orders
   recalibrateSerial();
   warnDuplicateModelNos();
   setTimeout(flushPushQueue,2500);
