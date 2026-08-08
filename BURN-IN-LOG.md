@@ -64,7 +64,7 @@ Every logged issue gets exactly one Type, to make patterns visible later:
 
 | ID | Date | Module | Severity | Type | Root Cause | Fixed In | Verified | Status |
 |---|---|---|---|---|---|---|---|---|
-| _(none yet)_ | | | | | | | | |
+| BI-001 | 2026-08-08 | Leave & Attendance | P1 | Functional Bug | Check-in/check-out only relied on the 30s periodic sync tick to reach the backend, with no immediate push — a backgrounded/locked phone shortly after checking in could miss that tick, leaving the admin dashboard showing "Absent" for hours despite a real check-in | CR-002 | Automated test only — live device confirmation pending | Fixed, pending live verification |
 
 ## End-of-burn-in metrics (fill in when closing out)
 

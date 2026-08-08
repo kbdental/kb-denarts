@@ -81,3 +81,60 @@ Live, in-app regression testing performed by the clinic owner after deploying Ve
 **Completed.**
 
 ---
+
+## CR-002 — Attendance Check-in/Check-out: Immediate Sync
+
+**Date:** 2026-08-08
+**Phase:** Burn-in (Acknowledged P1 — see BURN-IN-LOG.md, BI-001)
+
+### Purpose
+An employee's check-in was sitting on their own device for up to 30 seconds
+— longer if their browser tab was backgrounded/screen-locked shortly after,
+which mobile browsers commonly throttle — before it reached the backend.
+Reported case: an employee checked in at 09:58, and over three hours later
+the owner's admin dashboard still showed them as "Absent."
+
+### Files
+- `kb-dental-management-suite.html` — `clockIn()`, `clockOut()` (employee
+  self-service), `clockInAdm()`, `clockOutAdm()` (owner/admin marking
+  attendance on an employee's behalf)
+
+### Change
+All four functions already saved the check-in/check-out correctly to local
+state and `localStorage` — the gap was that nothing then pushed it to the
+backend immediately; it relied entirely on the next periodic 30-second sync
+tick. Added `try{ kbdcAutoSyncMain(); }catch(e){}` immediately after each
+save, mirroring an already-proven identical pattern used elsewhere in this
+codebase (task-completion toggling). No other logic changed.
+
+### Risk
+**Low.** Purely additive — fires an already-existing, already-tested sync
+function slightly earlier than it would have run anyway. Wrapped in
+try/catch so a sync failure can never block the check-in/check-out itself
+from completing.
+
+### Rollback
+Revert to `KBDC_APP_VERSION '2026-07-24-1'` (previous commit) if needed —
+no backend or deployment changes involved, purely a frontend file.
+
+### Deployment
+`KBDC_APP_VERSION` bumped to `2026-08-08-1` so open devices refresh.
+
+### Verification
+- Syntax-checked, zero unrelated diff (confirmed via full `git diff`)
+- New regression test (`test-checkin-immediate-sync.js`): 6/6 pass —
+  selecting an employee and checking in triggers a backend sync call in
+  ~40ms (measured), not after a 30s wait; check-in itself still records
+  correctly; no JS errors
+- **Test-the-test:** temporarily reverted just this fix and re-ran the same
+  test — it correctly failed (no sync call arrived), confirming the test
+  actually catches the regression it's meant to catch, then the fix was
+  restored and re-verified passing
+- **Live device confirmation:** pending — this fixes the mechanism that
+  caused the reported symptom, but has not yet been confirmed against the
+  original real-world case (Vishal Tiwari / live clinic devices)
+
+### Status
+**Fixed, automated-test-verified — pending live confirmation.**
+
+---
