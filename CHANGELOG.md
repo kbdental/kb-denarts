@@ -362,3 +362,81 @@ backend/Apps Script redeploy needed for this one.
 **Fixed, tested, deployed to production.**
 
 ---
+
+## CR-005 — Inventory: Cross-Device Data Loss + Instant Sync
+
+**Date:** 2026-08-13
+**Phase:** Burn-in (P1 — see BURN-IN-LOG.md, BI-006)
+
+### Purpose
+Reported: new stock entries not showing up on everyone's device, with a
+request to make this instant going forward.
+
+### Root causes and fixes
+
+**1. Inventory's own backend never received CR-003's fix.**
+Inventory uses a completely separate Apps Script deployment/Google Sheet
+from the main app (`KBDC_DEFAULT_INV_BACKEND_URL` vs
+`KBDC_DEFAULT_BACKEND_URL` — different projects entirely). CR-003 only
+fixed and redeployed the main backend; this one — the "K.B. Dental
+Inventory (Suite)" project, tracked as
+`backend/inventory-backend/Code.gs.NEW-2A-1a.gs` since CR-001 — still had
+the original blind `clearContents()`+rewrite. Applied the identical
+`kbdcMergeRows_`/`withWriteLock_` fix from CR-003, adapted to this file's
+slightly different action set (no Drive doc endpoints; `id`-keyed merge
+with an inventory-item-catalog name+category fallback).
+
+**2. No instant-sync trigger existed for Inventory at all.**
+Unlike attendance/tasks (CR-002 onward), stock in/out entries never had
+an immediate-sync trigger — the Inventory mini-app (an embedded iframe)
+only wrote to `localStorage`; the parent page's 30s periodic
+`kbdcAutoSyncCycle` was the *only* thing that would eventually notice and
+push. Added `kbdcInvNotifyParent()`, called from the mini-app's one
+local-write choke point (`saveItems`/`appendTx`/`saveTxAll` inside its
+`gCall` bridge), which calls the parent's `kbdcAutoSyncInventory()`
+directly — the iframe is sandboxed with `allow-same-origin`, so this
+works without a `postMessage` bridge.
+
+### Files
+- `backend/inventory-backend/Code.gs.NEW-2A-1a.gs` — same treatment as
+  CR-003's `backend/Code.gs`
+- `kb-dental-management-suite.html` — new `kbdcInvNotifyParent()`, called
+  from the embedded Inventory mini-app's `gCall` local-write branches
+
+### Risk
+**Backend: moderate, mitigated by testing** — same profile as CR-003's
+main-backend change, same accepted trade-off (deletions may not
+propagate; documented in code).
+**Frontend: low** — three call sites added at a single existing choke
+point, guarded with existence + same-window checks so it's a safe no-op
+if this file is ever opened outside the parent frame.
+
+### Deployment
+`KBDC_APP_VERSION` bumped to `2026-08-13-3`.
+
+**The backend fix requires a separate manual Apps Script redeploy** — a
+*different* Apps Script project from the one redeployed for CR-003/BI-002,
+so that earlier redeploy does **not** cover this. Until the Inventory
+project specifically is redeployed, the cross-device data-loss part of
+this fix is not live, even though the instant-sync frontend part already
+is.
+
+### Verification
+- Backend: syntax checked; merge logic sanity-checked against a
+  two-device stock-item race scenario
+- Frontend: 6 new tests exercising the mini-app's actual `gCall`
+  function — confirm a backend push arrives in ~5ms instead of requiring
+  a 30s wait, confirm the pushed payload includes the new transaction,
+  confirm it lands in `kbdc_inv_tx`. **Test-the-test:** reverted the
+  bridge, confirmed 3 of 6 assertions correctly fail, restored and
+  re-verified all passing
+- Full syntax check; full 30-test regression suite re-run, all passing
+- Applied identically to `kb-management-suite` (production, frontend
+  only — it doesn't track this backend file) and this repo
+
+### Status
+**Frontend fixed and deployed to production. Backend fixed in repo, not
+yet live — pending clinic redeploy of the Inventory Apps Script
+specifically.**
+
+---
