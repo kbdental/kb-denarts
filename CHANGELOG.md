@@ -134,7 +134,26 @@ no backend or deployment changes involved, purely a frontend file.
   caused the reported symptom, but has not yet been confirmed against the
   original real-world case (Vishal Tiwari / live clinic devices)
 
+### Reconciliation note (2026-08-08)
+`kbdental/kb-management-suite` (`main`, GitHub Pages) is the clinic's actual
+production deployment — it is **not** a mirror of this repo. It carries its
+own independent history, including real work never ported here: an
+Inventory Manager/User role split with an over-permissioning fix, and a
+Drive-delete-on-remove fix for document management. Confirmed with the
+clinic owner which repo is authoritative, then reconciled this fix in —
+diffed both repos down to their true common ancestor (`389e7b5` here /
+`95335af` there — byte-identical content confirmed), verified this fix was
+the *only* change worth porting in either direction, and applied it
+directly to `kb-management-suite/index.html` without disturbing its
+unique fixes. Pushed to `kb-management-suite` `main` @ `2632974`
+(`3b85e48..2632974`).
+
+This repo (`kb-denarts`) is now missing those `kb-management-suite`-only
+fixes (Inventory role split, Drive-delete). Not ported back here since it
+wasn't asked for — flagged for a future reconciliation pass if this repo
+continues to be used for development.
+
 ### Status
-**Fixed, automated-test-verified — pending live confirmation.**
+**Fixed, automated-test-verified, deployed to production — pending live confirmation.**
 
 ---
