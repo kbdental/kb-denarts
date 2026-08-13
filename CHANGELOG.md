@@ -157,3 +157,130 @@ continues to be used for development.
 **Fixed, automated-test-verified, deployed to production — pending live confirmation.**
 
 ---
+
+## CR-003 — Cross-Device Data Loss, Task Role-Assignment Save, Scroll Bug
+
+**Date:** 2026-08-13
+**Phase:** Burn-in (P1s — see BURN-IN-LOG.md, BI-002/BI-003/BI-004)
+
+### Purpose
+Reported after several days of live multi-device use: Stock In entries and
+attendance marks made on one device intermittently never appeared on
+others, even after repeated refreshing ("bar bar refresh krne pe 1-2 ka
+show ho gaya hai... but still some employees attendance has not been
+updated"). Separately, in Task Management: adding an employee's name
+against a role didn't save, task data wasn't reaching Google Sheets, and
+marked tasks appeared to go off screen on scroll.
+
+### Root causes and fixes
+
+**1. Backend: blind full-replace on every push (BI-002).**
+`backend/Code.gs`'s `saveAllRows()` did `sheet.clearContents()` + a full
+rewrite on every `saveBatch`/`saveAll` call. Any device pushing from a
+pull that was even slightly stale would silently erase records another
+device had just added — and the more often devices sync (CR-002's
+immediate-sync change made this more frequent, not less), the more likely
+the race. Fixed with `kbdcMergeRows_()`: merge-on-write keyed by each
+row's `id` (composite-key fallback for the handful of id-less sheets —
+Tasks, TaskCompletions, InventoryItems), plus `withWriteLock_()`
+(`LockService`) so two near-simultaneous pushes can't both read stale
+state before either writes. Deliberate trade-off, documented in code: this
+favors never silently losing data over honoring deletions across devices
+— a stale row lingering beats real attendance/stock data vanishing.
+Deletion propagation would need an explicit tombstone mechanism; treated
+as a separate follow-up, not blocking here.
+
+**2. Task Management: role-employee assignment never synced (BI-003).**
+`kbdc_role_emp_*` (the "+ Add Another Employee" feature against a role)
+was pure per-device `localStorage` — never in `KBDC_BACKEND_MODULES` or
+`KBDC_BLOB_KEYS` — and `kbdcSyncRoleEmployeesFromHR()` destructively
+overwrote it on every page load, replacing it with only what's derivable
+from HR Admin records. A manually-added name would look like it saved,
+then vanish on the next reload. Fixed by wiring `kbdc_role_emp_*` into the
+existing sync pipeline (new `RoleEmployees` sheet, scan-prefixed
+push/pull mirroring how Tasks already works) and making the HR-derived
+rebuild additive instead of destructive.
+
+While building and testing this fix, found the *same* race twice more:
+the immediate sync triggered right after adding an employee (or marking a
+task complete) does its own pull *first*, and that pull can fetch a
+snapshot from just before the very change it was triggered by. Both the
+role-employee pull-merge and the pre-existing `TaskCompletions` pull-merge
+were doing a blind "adopt whatever the pull returned," which could erase
+the just-made change within its own sync cycle. Both now union-merge by id
+(`kbdcUnionMergeById`, already used elsewhere in this file) instead. The
+`TaskCompletions` half of this is very likely what "task data not saving
+to Google Sheets" actually was.
+
+**3. Task Management: scroll bug (BI-004) — partial.**
+Added `min-height:0` to the task list's flex scroll container chain (a
+flex child needs this to actually shrink and scroll internally instead of
+growing past its box) — legitimate CSS correctness fix, low risk. Could
+**not** conclusively reproduce the reported "marked tasks go off screen on
+scroll" symptom in testing (40 seeded tasks, desktop and mobile viewport
+sizes) either before or after this fix, so it may not be the complete
+story. Left in as a safe improvement; flagged as needing more detail
+(exact screen, a screen recording) if the symptom persists.
+
+### Files
+- `backend/Code.gs` — `saveAllRows()`, new `kbdcRowKey_()`,
+  `kbdcMergeRows_()`, `withWriteLock_()`
+- `kb-dental-management-suite.html` — `kbdcSyncRoleEmployeesFromHR()`,
+  `EmployeePickerModal` (`handleAdd`/`handleDelete`),
+  `KBDC_BACKEND_MODULES`, new `kbdcRoleEmpRowsToByCode()`,
+  `kbdcAutoSyncMain()`'s pull-merge (TaskCompletions + new RoleEmployees
+  block), `.tl-body` CSS, `TaskListView` root wrapper
+
+### Risk
+**Backend change: moderate, mitigated by testing.** This changes write
+semantics for every sheet in the spreadsheet — merge-on-write plus a
+script lock instead of blind overwrite. Verified with 9 unit tests
+directly modeling realistic multi-device scenarios, including the exact
+"two devices, one's record disappears" case. The known, accepted
+trade-off (deletions may not propagate across devices) is the main
+residual risk and is documented in code comments for whoever picks this
+up next.
+**Frontend changes: low.** Additive sync wiring plus two merge-instead-of-
+replace fixes, following existing patterns already in use in this exact
+file (`kbdcUnionMergeById`). CSS fix is a single well-understood property
+addition.
+
+### Rollback
+Frontend: revert to `KBDC_APP_VERSION '2026-08-08-1'` (previous commit).
+Backend: revert `backend/Code.gs` to the CR-002 version and redeploy —
+no data migration needed either direction, since old and new formats
+read/write the same row shape.
+
+### Deployment
+`KBDC_APP_VERSION` bumped to `2026-08-13-1`.
+
+**The backend fix (BI-002) requires the clinic to manually redeploy the
+Apps Script** (Deploy → Manage deployments → Edit → New version) —
+pushing the updated `backend/Code.gs` to this repo does not, by itself,
+change what the live Apps Script Web App is running. Until that redeploy
+happens, the cross-device data-loss issue is **not** fixed in production,
+even though everything else in this change is.
+
+### Verification
+- Both frontend and backend syntax-checked clean
+- 28 automated tests across 5 test files, all passing:
+  - Backend merge logic: 9 unit tests, incl. a direct two-device
+    attendance-race reproduction
+  - Attendance immediate-sync (carried over from CR-002, re-verified): 6
+  - Task list scroll: 5
+  - Role-employee save + cross-device sync: 5 — **test-the-test**
+    performed (temporarily reverted the union-merge fix, confirmed the
+    test correctly fails, restored and re-verified passing)
+  - Task-completion race: 3 — same test-the-test discipline applied
+- Reconciled and applied identically to both `kb-management-suite`
+  (production) and this repo — diffed both files at the exact points
+  touched to confirm they were byte-identical before patching, so the same
+  edits apply cleanly to both
+
+### Status
+**Frontend: fixed, tested, deployed to production. Backend: fixed and
+tested in the repo, but NOT yet live — waiting on the clinic to redeploy
+the Apps Script.** Scroll bug (BI-004): partial fix applied, exact
+symptom not confirmed reproduced.
+
+---
