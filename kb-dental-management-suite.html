@@ -870,7 +870,7 @@ body{background:#F5F6FA}
 // whether a newer version is actually live, and force-navigates to a
 // cache-busted URL if so, so updates reach every device without anyone
 // needing to manually clear history/cache.
-var KBDC_APP_VERSION = '2026-08-13-3';
+var KBDC_APP_VERSION = '2026-08-13-4';
 (function(){
   if (sessionStorage.getItem('kbdc_version_check_done')) return;
   sessionStorage.setItem('kbdc_version_check_done','1');
@@ -10066,6 +10066,12 @@ async function kbdcAutoSyncInventory() {
     // ever landed there (before the Stock IN / Stock OUT split) is folded in
     // once and not lost.
     sheetNames.push('InventoryTransactions');
+    // Employee stock-outs submitted from stock-out.html land in their own
+    // 'StaffStockOut' register tab, which nothing in this app used to read —
+    // so an employee's phone submission saved fine and then never appeared
+    // anywhere else, on any device, no matter how long anyone waited. Pull
+    // it in here and fold it into the normal transaction list below.
+    sheetNames.push('StaffStockOut');
     var got = await kbdcBackendReqBatch(url, 'getBatch', { sheets: sheetNames });
     var remote = got.data || {};
     // Union merge by id — a stock in/out just recorded locally (not pushed
@@ -10082,6 +10088,23 @@ async function kbdcAutoSyncInventory() {
     });
     // legacy InventoryTransactions rows -> the transaction key
     remoteByKey['kbdc_inv_tx'] = (remoteByKey['kbdc_inv_tx'] || []).concat((remote['InventoryTransactions'] || []).map(kbdcUnflattenRow));
+    // Employee stock-out register rows -> the same transaction key, mapped
+    // into the shape the Inventory app's transaction views expect. The
+    // original row id is preserved deliberately: the union merge below keys
+    // off id, so re-reading this register every cycle updates in place
+    // instead of piling up duplicates. Nothing here ever writes back to
+    // 'StaffStockOut' — it stays the employees' own append-only register
+    // (and audit trail); this app only ever reads it.
+    remoteByKey['kbdc_inv_tx'] = remoteByKey['kbdc_inv_tx'].concat(
+      (remote['StaffStockOut'] || []).map(kbdcUnflattenRow).map(function(r){
+        return {
+          id: r.id, type: 'OUT', name: r.item, cat: r.cat || '',
+          qty: Number(r.qty) || 0, date: r.date, person: r.staffName || '',
+          issuedTo: r.issuedTo || '', uom: r.uom || '', note: r.note || '',
+          txType: 'Staff Stock Out'
+        };
+      }).filter(function(r){ return r.id && r.name; })
+    );
     Object.keys(remoteByKey).forEach(function(localKey) {
       var localRows = kbdcLsArray(localKey);
       var mergedRows = (localKey === 'kbdc_inv_items')

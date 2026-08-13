@@ -147,8 +147,17 @@ function kbdcRowKey_(row) {
   if (row.id !== undefined && row.id !== null && String(row.id).trim() !== '') {
     return 'id:' + row.id;
   }
-  if (row.name !== undefined && row.category !== undefined) {
-    return 'nc:' + row.name + '|' + row.category; // inventory item catalog fallback
+  // Inventory items carry no id of their own — the app identifies them by
+  // name + category, and the field is called `cat` (NOT `category`), with
+  // trim/lowercase normalisation. This must match the client's
+  // kbdcMergeInvItemsByNameCat() exactly. Getting it wrong is not cosmetic:
+  // these rows then fall through to the content-hash branch below, where any
+  // stock change reads as a brand-new record — so the old row is never
+  // replaced, the sheet accumulates duplicate items with stale stock, and
+  // Stock In appears not to update at all.
+  var cat = (row.cat !== undefined) ? row.cat : row.category;
+  if (row.name !== undefined && cat !== undefined) {
+    return 'nc:' + String(row.name).trim().toLowerCase() + '|' + String(cat).trim().toLowerCase();
   }
   return 'c:' + JSON.stringify(row);
 }
