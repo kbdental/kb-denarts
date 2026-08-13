@@ -278,9 +278,87 @@ even though everything else in this change is.
   edits apply cleanly to both
 
 ### Status
-**Frontend: fixed, tested, deployed to production. Backend: fixed and
-tested in the repo, but NOT yet live — waiting on the clinic to redeploy
-the Apps Script.** Scroll bug (BI-004): partial fix applied, exact
-symptom not confirmed reproduced.
+**Deployed to production and redeployed by the clinic; owner-confirmed
+"✓ Backed up" observed live afterward.** Scroll bug (BI-004): partial fix
+applied, exact symptom not confirmed reproduced.
+
+### Follow-up (same day): lock scope narrowed
+A live `"Failed to fetch"` was observed shortly after the clinic's
+redeploy. Root cause of that specific error is most likely a brief
+instability window some fresh Apps Script deployments have while they
+finish propagating (self-resolving) — but it surfaced a real, independent
+scalability issue worth fixing regardless: `saveBatch` held one
+script-wide lock across every sheet in a device's push, so a device
+writing Attendance would wait on an unrelated device writing Tasks even
+though they touch different sheets. Moved the lock inside `saveAllRows`
+itself so it's held only for one sheet's read-merge-write at a time.
+Apps Script's `LockService` has no per-sheet/named lock (only
+script-wide), so this doesn't eliminate cross-sheet serialization
+entirely, but it cuts each lock's hold time down to a single sheet
+instead of an entire multi-sheet batch. Verified: all 9 merge-logic unit
+tests still pass unchanged (pure lock-scope change). Required (and got)
+a second clinic redeploy.
+
+---
+
+## CR-004 — Task Checkbox Un-clicking Itself After Marking Done
+
+**Date:** 2026-08-13
+**Phase:** Burn-in (P1 — see BURN-IN-LOG.md, BI-005)
+
+### Purpose
+Reported immediately after CR-003 shipped: clicking a task as done in Task
+Management immediately un-clicks itself, and nothing lands in Google
+Sheets — it comes back showing nothing done.
+
+### Root cause
+Same race class as CR-003's role-assignment and task-completion fixes,
+missed on the first pass because it lives in a different place: the Tasks
+sheet's pull-merge (`kbdcTasksRowsToByRole` / the `byRole` block in
+`kbdcAutoSyncMain`) is what actually holds each task's `done` flag — and
+it was still doing the old "blind adopt whatever the pull returned"
+instead of merging. `toggleTaskDone()` sets `done:true` locally and
+immediately triggers a sync; that sync's own pull can fetch a Tasks
+snapshot from just before this completion reached the backend
+(`done:false`), and the blind overwrite would revert the just-toggled
+local list within its own sync cycle — visually, the checkbox un-clicking
+itself.
+
+### Fix
+Union-merge the Tasks pull by `taskCode` instead of blindly adopting
+remote. Task rows don't carry an `id` field, so each task is mapped to a
+synthetic `id: taskCode` for the merge only (reusing the existing,
+already-tested `kbdcUnionMergeById` rather than writing new merge logic),
+then mapped back. Neither side carries a per-task `updatedAt`, so on a
+genuine conflict `kbdcUnionMergeById`'s existing documented default
+applies: local wins — which is exactly what protects a fresh toggle from
+being reverted by a stale pull.
+
+### Files
+- `kb-dental-management-suite.html` — `kbdcAutoSyncMain()`'s Tasks
+  pull-merge block
+
+### Risk
+**Low.** Reuses an existing, already-tested merge helper via a key
+mapping; touches only the Tasks pull-merge, nothing else.
+
+### Verification
+- 5 new tests directly reproducing the reported symptom: checkbox
+  reverting after a stale pull, a genuinely remote-only task still
+  correctly folding in (confirms this isn't just "local wins wholesale"),
+  and the completion log entry staying intact — all passing
+- **Test-the-test:** reverted the fix, confirmed the test correctly fails
+  (`done:false` — exact reproduction of the reported symptom), restored
+  and re-verified passing
+- Full syntax check; full existing regression suite (24 tests across 5
+  files) re-run and still passing
+- Applied identically to `kb-management-suite` (production) and this repo
+
+### Deployment
+`KBDC_APP_VERSION` bumped to `2026-08-13-2`. Frontend-only change — no
+backend/Apps Script redeploy needed for this one.
+
+### Status
+**Fixed, tested, deployed to production.**
 
 ---
