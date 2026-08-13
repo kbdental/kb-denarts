@@ -69,7 +69,11 @@ function doPost(e) {
       // Pushes many sheets in one Apps Script execution instead of one
       // execution per module — several devices polling every ~30s all day
       // would otherwise add up to tens of thousands of executions and risk
-      // hitting quota limits.
+      // hitting quota limits. Each sheet's own write is locked individually
+      // (inside saveAllRows) rather than locking the whole batch — a device
+      // writing InventoryStockIn and a device writing InventoryStockOut at
+      // the same moment don't touch the same sheet, so there's no reason to
+      // make one wait on the other.
       var modules = body.modules || {};
       var savedCounts = {};
       Object.keys(modules).forEach(function(name) {
@@ -103,6 +107,23 @@ function respond(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }
 
+/**
+ * Serializes writes across all simultaneous executions of this script.
+ * Without this, two devices pushing at nearly the same moment can each read
+ * the sheet's old content before either has written, so the merge in
+ * saveAllRows never sees the other's update and one push's result silently
+ * wins over the other's. Scoped as tightly as possible — see saveAllRows.
+ */
+function withWriteLock_(fn) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(15000);
+  try {
+    fn();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function sanitizeSheetName(name) {
   name = String(name || 'Data').replace(/[\\\/\?\*\[\]:]/g, '_');
   return name.slice(0, 99) || 'Data';
@@ -115,12 +136,84 @@ function getOrCreateSheet(name) {
   return sheet;
 }
 
-/** Replaces a tab's full contents with the given rows (array of flat objects). */
+/**
+ * Identifies a row for merge purposes. Prefers the row's own `id` (stock
+ * in/out transactions and inventory items all carry one client-side). Falls
+ * back to a content hash for anything unexpected — safe (never causes
+ * cross-record data loss) even though it can't recognise an in-place edit
+ * of that specific id-less row as "the same record."
+ */
+function kbdcRowKey_(row) {
+  if (row.id !== undefined && row.id !== null && String(row.id).trim() !== '') {
+    return 'id:' + row.id;
+  }
+  if (row.name !== undefined && row.category !== undefined) {
+    return 'nc:' + row.name + '|' + row.category; // inventory item catalog fallback
+  }
+  return 'c:' + JSON.stringify(row);
+}
+
+/**
+ * Merges incoming rows into whatever the sheet already holds, keyed by
+ * kbdcRowKey_. This is the fix for the multi-device "new stock entries
+ * don't show up on other devices" bug: every push used to be a blind
+ * clearContents()+rewrite, so any device pushing from a slightly-stale
+ * local pull would silently erase stock-in/out entries another device had
+ * just added. Now a pushing device can only add or update rows it knows
+ * about — everything else already on the sheet survives.
+ *
+ * Trade-off, deliberate: this cannot tell "a device deleted this row" apart
+ * from "a device's local copy just doesn't have this row yet" — both look
+ * like "incoming doesn't include it." So it always keeps the existing row
+ * rather than risk erasing real data. That means deleting an inventory item
+ * on one device may not remove it from the shared sheet / other devices.
+ * Accepted because silent data loss (the reported problem) is a far worse
+ * failure than a stale row lingering. A real fix for delete-propagation
+ * needs an explicit tombstone mechanism — out of scope here.
+ */
+function kbdcMergeRows_(existingRows, incomingRows) {
+  var merged = {};
+  var order = [];
+  existingRows.forEach(function(row) {
+    var k = kbdcRowKey_(row);
+    if (!(k in merged)) order.push(k);
+    merged[k] = row;
+  });
+  incomingRows.forEach(function(row) {
+    var k = kbdcRowKey_(row);
+    var existing = merged[k];
+    if (!existing) {
+      order.push(k);
+      merged[k] = row;
+    } else if (row.updatedAt && existing.updatedAt) {
+      merged[k] = (String(row.updatedAt) >= String(existing.updatedAt)) ? row : existing;
+    } else {
+      merged[k] = row; // no timestamp to compare — the freshly-pushed row wins
+    }
+  });
+  return order.map(function(k) { return merged[k]; });
+}
+
+/**
+ * Merges the given rows into a tab's contents (see kbdcMergeRows_) and
+ * rewrites it. Locked (see withWriteLock_) so two nearly-simultaneous calls
+ * can't both read the sheet's old content before either has written. Apps
+ * Script's LockService has no per-sheet/named lock, only a single
+ * script-wide one, so this is scoped as tightly as possible (just this one
+ * sheet's read-merge-write) rather than held across a whole multi-sheet
+ * saveBatch call, to keep other devices' waits short.
+ */
 function saveAllRows(sheetName, rows) {
+  withWriteLock_(function() { saveAllRowsLocked_(sheetName, rows); });
+}
+function saveAllRowsLocked_(sheetName, rows) {
   var sheet = getOrCreateSheet(sheetName);
+  var existingRows = readAllRows(sheetName);
+  var mergedRows = kbdcMergeRows_(existingRows, rows || []);
+
   sheet.clearContents();
 
-  if (!rows || !rows.length) {
+  if (!mergedRows.length) {
     sheet.getRange(1, 1).setValue('No data yet — nothing has been pushed from this module.');
     return;
   }
@@ -129,14 +222,14 @@ function saveAllRows(sheetName, rows) {
   // since different records in the same module can have slightly different fields.
   var headers = [];
   var seen = {};
-  rows.forEach(function(row) {
+  mergedRows.forEach(function(row) {
     Object.keys(row).forEach(function(k) {
       if (!seen[k]) { seen[k] = true; headers.push(k); }
     });
   });
 
   var data = [headers];
-  rows.forEach(function(row) {
+  mergedRows.forEach(function(row) {
     data.push(headers.map(function(h) {
       var v = row[h];
       return (v === undefined || v === null) ? '' : v;
@@ -145,10 +238,10 @@ function saveAllRows(sheetName, rows) {
 
   var range = sheet.getRange(1, 1, data.length, headers.length);
   // Force plain-text formatting before writing, so a numeric-looking value
-  // (a PIN like "0000", an employee code, a phone number with a leading
-  // zero) is never silently turned into a real number and lose its exact
-  // form — Sheets applies its "smart" number detection based on the cell's
-  // format at write time, so this has to be set before setValues().
+  // (an item code, a batch number with a leading zero) is never silently
+  // turned into a real number and lose its exact form — Sheets applies its
+  // "smart" number detection based on the cell's format at write time, so
+  // this has to be set before setValues().
   range.setNumberFormat('@');
   range.setValues(data);
   sheet.setFrozenRows(1);
