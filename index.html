@@ -3611,7 +3611,21 @@ function populateImplantDatalist(){
 function getSelectedEnclosures(){return selectedEnclosures;}
 
 // ═══════════════════════════════════════════════ SAVE ORDER
+// Guard against double-submit: two fast clicks used to both clear validation and
+// both reserve a serial, creating two identical orders with consecutive numbers.
+let _savingOrder=false;
 async function saveOrder(){
+  if(_savingOrder) return;
+  _savingOrder=true;
+  const _btn=document.getElementById('btn-save-order');
+  if(_btn) _btn.disabled=true;
+  try{ return await _saveOrderInner(); }
+  finally{
+    _savingOrder=false;
+    if(_btn){_btn.disabled=false;_btn.textContent='Save Order';}
+  }
+}
+async function _saveOrderInner(){
   const doctorId=document.getElementById('f-doctor').value;
   const patient=document.getElementById('f-patient').value.trim();
   if(!doctorId){toast('Please select a doctor','error');return;}
@@ -3662,13 +3676,16 @@ async function saveOrder(){
   // Serial: for new orders try the server-side counter first (prevents duplicates
   // across devices), falling back to the local counter when offline/legacy script.
   let _modelNo;
+  // Snapshot the counter so a failed save can hand the number back instead of
+  // burning it (storage-full saves used to leave permanent gaps in the series).
+  const _serialBefore=editingOrderId?null:getSerial();
   if(editingOrderId){
     _modelNo=getOrders().find(o=>o.id===editingOrderId)?.modelNo;
   }else{
     const btn=document.getElementById('btn-save-order');
-    if(btn){btn.disabled=true;btn.textContent='Saving...';}
+    if(btn) btn.textContent='Saving...';
     _modelNo=await genSerialSafe();
-    if(btn){btn.disabled=false;btn.textContent='Save Order';}
+    if(btn) btn.textContent='Save Order';
   }
 
   const order={
@@ -3710,7 +3727,12 @@ async function saveOrder(){
     const idx=orders.findIndex(o=>o.id===editingOrderId);
     if(idx!==-1) orders[idx]=order; else orders.push(order);
   } else { orders.push(order); }
-  if(!setOrders(orders)) return; // storage full — keep the form so nothing is lost
+  if(!setOrders(orders)){
+    // Storage full — keep the form so nothing is lost, and return the reserved
+    // serial to the pool so the next order reuses it instead of skipping ahead.
+    if(_serialBefore) setData('serial',_serialBefore);
+    return;
+  }
   syncOrderToSheets(order);
   toast(editingOrderId?'Order updated!':'Order saved! Model # '+order.modelNo,'success');
   const _savedId=order.id;
