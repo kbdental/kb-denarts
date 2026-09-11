@@ -2339,7 +2339,7 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
         <!-- Doctor Portal Link Generator -->
         <div class="card" style="margin-top:16px">
           <div style="font-size:12px;font-weight:700;color:var(--primary);letter-spacing:.5px;margin-bottom:10px">🔗 DOCTOR PORTAL LINKS</div>
-          <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Go to Masters → Doctors → click the 🔗 Link button next to each doctor to copy their private portal link.</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Go to Masters → Doctors → click 🔗 Link next to a doctor to copy their private portal link, or 📲 Send to share it with them on WhatsApp.</div>
         </div>
 
       </div>
@@ -6124,6 +6124,7 @@ function renderDoctorsPage(){
           <button class="btn btn-outline btn-xs" onclick="openEditDoctor('${d.id}')">Edit</button>
           <button class="btn btn-danger btn-xs" onclick="deleteDoctor('${d.id}')">Del</button>
           <button class="btn btn-outline btn-xs" style="color:var(--purple);border-color:var(--purple)" onclick="copyDoctorPortalLink(this.dataset.id,this.dataset.name)" data-id="${d.id}" data-name="${esc(d.name||'')}">🔗 Link</button>
+          <button class="btn btn-outline btn-xs" style="color:#22c55e;border-color:#22c55e" onclick="whatsappDoctorPortalLink(this.dataset.id)" data-id="${esc(d.id)}" title="Send portal link on WhatsApp">📲 Send</button>
         </div>
       </td>
     </tr>`).join('');
@@ -9065,16 +9066,34 @@ function fmtDate(d){
 
 let _allRemarks=[];
 
+// Build the portal link from wherever this app is being served, so links follow
+// the live domain (www.kbdenarts.in, and https once it is enforced) instead of
+// the old kbdental.github.io address, which only redirects.
+function doctorPortalLink(name){
+  let base='http://www.kbdenarts.in/kb-doctor-portal.html';
+  if(/^https?:$/.test(location.protocol)) base=new URL('kb-doctor-portal.html',location.href).href.split('?')[0];
+  return base+'?d='+encodeURIComponent(name);
+}
+
 function copyDoctorPortalLink(docIdOrEl,docName){
   let name=docName;
   if(docIdOrEl&&typeof docIdOrEl==='object'&&docIdOrEl.dataset){
     name=docIdOrEl.dataset.name||'';
   }
-  const base='https://kbdental.github.io/kb-denarts/kb-doctor-portal.html';
-  const link=base+'?d='+encodeURIComponent(name);
+  const link=doctorPortalLink(name);
   navigator.clipboard.writeText(link).then(()=>{
     toast('Portal link copied for Dr. '+name,'success');
   }).catch(()=>{window.prompt('Copy this link for Dr. '+name+':',link);});
+}
+
+function whatsappDoctorPortalLink(docId){
+  const d=getDoctors().find(x=>x.id===docId);
+  if(!d) return;
+  const phone=waPhone(d.phone||d.contact);
+  if(!phone) toast('No phone saved for this doctor — pick the contact in WhatsApp','error');
+  const msg='Dear Dr. '+(d.name||'')+',\n\nYou can now check the status of your cases with K.B. Denarts online:\n'+doctorPortalLink(d.name||'')+
+    '\n\nOpen the link and enter your 4-digit PIN (initial PIN: 1234 — please change it after logging in using the ⚙ PIN button).\n\n— K.B. Denarts';
+  window.open('https://wa.me/'+phone+'?text='+encodeURIComponent(msg),'_blank');
 }
 
 function loadDoctorLoginLog(){
