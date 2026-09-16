@@ -1147,6 +1147,10 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px"><rect x="3" y="2" width="14" height="16" rx="1"/><line x1="6" y1="7" x2="14" y2="7"/><line x1="6" y1="11" x2="11" y2="11"/></svg>
             Payment History
           </div>
+          <div class="billing-tab" id="btab-invoices" onclick="selectBillingTab('invoices')">
+            <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px"><rect x="3" y="2" width="14" height="16" rx="1"/><path d="M7 12l2 2 4-5"/></svg>
+            Invoice Report
+          </div>
           <div class="billing-tab" id="btab-outstanding" onclick="selectBillingTab('outstanding')">
             <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" style="width:14px;height:14px"><path d="M10 3v7l4 2"/><circle cx="10" cy="10" r="7"/></svg>
             Outstanding
@@ -2444,6 +2448,34 @@ table.data-tbl input[type=checkbox]{width:14px;height:14px;cursor:pointer}
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
       <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+
+  <!-- Mark Invoiced — records the Tally invoice number (one bill can cover several cases) -->
+  <div id="modal-invoice" class="modal" onclick="event.stopPropagation()" style="display:none;max-width:580px;width:95vw">
+    <div class="modal-header">
+      <span class="modal-title">Mark as Invoiced</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="inv-doctor-line" style="font-size:13px;font-weight:700;margin-bottom:12px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Tally Invoice No <span class="req">*</span></label>
+          <input class="form-control" id="inv-no" placeholder="As on the Tally bill" autocomplete="off" onkeydown="if(event.key==='Enter')saveInvoiceModal()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Invoice Date <span class="req">*</span></label>
+          <input type="date" class="form-control" id="inv-date">
+        </div>
+      </div>
+      <label class="form-label" style="margin-top:12px;display:block">Cases on this bill <span style="font-weight:400;color:var(--muted)">— tick every case billed on this Tally invoice</span></label>
+      <div id="inv-cases" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:6px"></div>
+      <div id="inv-total" style="text-align:right;font-weight:700;margin-top:10px;color:var(--blue)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveInvoiceModal()">Save Invoice</button>
     </div>
   </div>
 
@@ -5723,9 +5755,9 @@ function renderBillingTab(){
     let orders=getOrders();
     if(doctorId) orders=orders.filter(o=>orderDoctorMatch(o,doctorId));
     if(dateFilter) orders=orders.filter(o=>o.date&&o.date.startsWith(dateFilter));
-    if(search) orders=orders.filter(o=>(o.patientName||'').toLowerCase().includes(search)||(o.modelNo||'').toLowerCase().includes(search)||(o.doctorName||'').toLowerCase().includes(search));
-    if(statusFilter==='not-invoiced') orders=orders.filter(o=>!o.invoiced);
-    if(statusFilter==='invoiced') orders=orders.filter(o=>o.invoiced);
+    if(search) orders=orders.filter(o=>(o.patientName||'').toLowerCase().includes(search)||(o.modelNo||'').toLowerCase().includes(search)||(o.doctorName||'').toLowerCase().includes(search)||(o.invoiceNo||'').toLowerCase().includes(search));
+    if(statusFilter==='not-invoiced') orders=orders.filter(o=>!isInvoiced(o));
+    if(statusFilter==='invoiced') orders=orders.filter(o=>isInvoiced(o));
     orders.sort((a,b)=>{
       const numA=parseInt((a.modelNo||'').split('/').pop())||0;
       const numB=parseInt((b.modelNo||'').split('/').pop())||0;
@@ -5733,6 +5765,7 @@ function renderBillingTab(){
     });
 
     area.innerHTML=`<div style="padding:10px 14px 0;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary btn-sm" onclick="markSelectedInvoiced()">🧾 Mark Selected Invoiced</button>
         <button class="btn btn-outline btn-sm" style="color:var(--purple);border-color:var(--purple)" onclick="pushSelectedBillingToTally()">📤 Push Selected to Tally</button>
       </div>
       <div class="tbl-wrap"><table class="data-tbl">
@@ -5749,14 +5782,15 @@ function renderBillingTab(){
         <td>${esc(o.patientName||'—')}</td>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px">${esc((o.allTypes||'—').substring(0,35))}</td>
         <td style="color:var(--blue);font-weight:700">₹${(o.totalAmount||0).toFixed(0)}</td>
-        <td style="font-size:12px;font-weight:600">${esc(o.invoiceNo||'—')}</td>
-        <td><span class="${o.invoiced?'inv-yes':'inv-not'}">${o.invoiced?'Invoiced':'Not Invoiced'}</span>${o.tallySent?' <span style="color:var(--purple);font-size:11px">· Tally</span>':''}</td>
+        <td style="font-size:12px;font-weight:600">${esc(o.invoiceNo||'—')}${o.invoiceDate?`<div style="font-size:11px;font-weight:400;color:var(--muted)">${esc(o.invoiceDate)}</div>`:''}</td>
+        <td><span class="${isInvoiced(o)?'inv-yes':'inv-not'}">${isInvoiced(o)?'Invoiced':'Not Invoiced'}</span>${o.tallySent?' <span style="color:var(--purple);font-size:11px">· Tally</span>':''}</td>
         <td style="white-space:nowrap">
           <button class="btn-invoice" onclick="generateInvoiceForOrder('${o.id}')">
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px"><rect x="2" y="1" width="12" height="14" rx="1"/><line x1="5" y1="5" x2="11" y2="5"/><line x1="5" y1="8" x2="11" y2="8"/></svg>
             Invoice
           </button>
-          <button class="btn-mark-inv" onclick="markAsInvoiced('${o.id}')" style="margin-left:4px">${o.invoiced?'Unmark':'Mark Invoiced'}</button>
+          ${isInvoiced(o)?`<button class="btn-mark-inv" onclick="openInvoiceModal(['${o.id}'])" style="margin-left:4px">Edit Invoice</button>`:''}
+          <button class="btn-mark-inv" onclick="markAsInvoiced('${o.id}')" style="margin-left:4px">${isInvoiced(o)?'Unmark':'Mark Invoiced'}</button>
           <button class="btn btn-outline btn-xs" style="margin-left:4px;color:var(--purple);border-color:var(--purple)" onclick="pushOrderToTally(getOrders().find(x=>x.id==='${o.id}'))">Tally</button>
           <button class="btn btn-outline btn-xs" style="margin-left:4px" onclick="downloadTallyXML(getOrders().find(x=>x.id==='${o.id}'))" title="Download Tally XML for manual import">⬇ XML</button>
         </td>
@@ -5781,11 +5815,9 @@ function renderBillingTab(){
             </div>
 
             <div class="form-group">
-              <label class="form-label">Against Order</label>
-              <select class="form-control" id="rp-order">
-                <option value="">-- General Payment --</option>
-                ${getOrders().filter(o=>orderDoctorMatch(o,doctorId)).sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0))
-                  .map(o=>`<option value="${o.id}">${esc(o.modelNo)} — ${esc(o.patientName)}</option>`).join('')}
+              <label class="form-label">Against Invoice (Tally)</label>
+              <select class="form-control" id="rp-invoice" onchange="fillPaymentFromInvoice()">
+                ${rpInvoiceOptions(doctorId)}
               </select>
             </div>
 
@@ -5820,14 +5852,60 @@ function renderBillingTab(){
         </div>
       </div>`;
 
-    // update order dropdown when doctor changes
+    // update invoice dropdown when doctor changes
     document.getElementById('rp-doctor')?.addEventListener('change', function(){
-      const sel=document.getElementById('rp-order');
-      if(!sel) return;
-      const did=this.value;
-      const opts=getOrders().filter(o=>orderDoctorMatch(o,did)).sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0));
-      sel.innerHTML='<option value="">-- General Payment --</option>'+opts.map(o=>`<option value="${o.id}">${esc(o.modelNo)} — ${esc(o.patientName)}</option>`).join('');
+      const sel=document.getElementById('rp-invoice');
+      if(sel) sel.innerHTML=rpInvoiceOptions(this.value);
     });
+    if(_rpPresetInvoice){
+      const sel=document.getElementById('rp-invoice');
+      if(sel){sel.value=_rpPresetInvoice;fillPaymentFromInvoice();}
+      _rpPresetInvoice='';
+    }
+  }
+
+  // ── INVOICE REPORT ────────────────────────────────────
+  else if(tab==='invoices'){
+    let groups=getInvoiceGroups();
+    if(doctorId) groups=groups.filter(g=>orderDoctorMatch(g.orders[0],doctorId));
+    if(dateFilter) groups=groups.filter(g=>(g.invoiceDate||'').startsWith(dateFilter));
+    if(search) groups=groups.filter(g=>g.invoiceNo.toLowerCase().includes(search)||g.doctorName.toLowerCase().includes(search)||
+      g.orders.some(o=>(o.modelNo||'').toLowerCase().includes(search)||(o.patientName||'').toLowerCase().includes(search)));
+    groups.sort((a,b)=>(b.invoiceDate||'').localeCompare(a.invoiceDate||'')||b.invoiceNo.localeCompare(a.invoiceNo,undefined,{numeric:true}));
+    _invoiceReportRows=groups;
+    const sum=k=>groups.reduce((s,g)=>s+g[k],0);
+    const stColor={Paid:'var(--green)',Partial:'#d97706',Unpaid:'var(--red)'};
+
+    area.innerHTML=`<div style="padding:10px 14px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-outline btn-sm" onclick="exportInvoiceReportCSV()">⬇ Export CSV</button>
+        <span style="font-size:12.5px;color:var(--muted)">${groups.length} invoice${groups.length===1?'':'s'} · Use the filters above for doctor / invoice date</span>
+      </div>
+      <div class="tbl-wrap"><table class="data-tbl">
+      <thead><tr>
+        <th>INVOICE #</th><th>INVOICE DATE</th><th>DOCTOR</th><th>CASES</th>
+        <th>AMOUNT (₹)</th><th>RECEIVED (₹)</th><th>BALANCE (₹)</th><th>STATUS</th><th>ACTION</th>
+      </tr></thead>
+      <tbody>${groups.length?[...groups.map((g,i)=>`<tr>
+        <td style="font-weight:700">${esc(g.invoiceNo)}</td>
+        <td>${esc(g.invoiceDate||'—')}</td>
+        <td>${esc(g.doctorName||'—')}</td>
+        <td style="font-size:12px">${g.orders.map(o=>`<span style="color:var(--blue);font-weight:700;cursor:pointer" onclick="viewOrder('${o.id}')">${esc(o.modelNo)}</span> <span style="color:var(--muted)">${esc(o.patientName||'')}</span>`).join('<br>')}</td>
+        <td>₹${g.amount.toFixed(2)}</td>
+        <td style="color:var(--green)">₹${g.received.toFixed(2)}</td>
+        <td style="font-weight:700;color:${g.balance>0.005?'var(--red)':'var(--green)'}">₹${g.balance.toFixed(2)}</td>
+        <td><span style="font-weight:700;font-size:12px;color:${stColor[g.status]}">${g.status}</span></td>
+        <td style="white-space:nowrap">
+          ${g.balance>0.005?`<button class="btn btn-primary btn-xs" onclick="recordPaymentForInvoice(${i})">Record Payment</button>`:''}
+          <button class="btn btn-outline btn-xs" onclick="openInvoiceModal(['${g.orders[0].id}'])">Edit</button>
+        </td>
+      </tr>`),
+      `<tr style="background:#f8fafc;font-weight:700">
+        <td colspan="4" style="padding:8px 10px">Total</td>
+        <td style="padding:8px 10px">₹${sum('amount').toFixed(2)}</td>
+        <td style="padding:8px 10px;color:var(--green)">₹${sum('received').toFixed(2)}</td>
+        <td style="padding:8px 10px;color:var(--red)">₹${sum('balance').toFixed(2)}</td>
+        <td colspan="2"></td></tr>`].join(''):noRows(9,'No invoices yet — use Mark Invoiced in Generate Invoice')}</tbody>
+    </table></div>`;
   }
 
   // ── PAYMENT HISTORY ───────────────────────────────────
@@ -5835,17 +5913,17 @@ function renderBillingTab(){
     let receipts=getReceipts();
     if(doctorId) receipts=receipts.filter(r=>r.doctorId===doctorId);
     if(dateFilter) receipts=receipts.filter(r=>r.date&&r.date.startsWith(dateFilter));
-    if(search) receipts=receipts.filter(r=>(r.doctorName||'').toLowerCase().includes(search)||(r.ref||'').toLowerCase().includes(search));
+    if(search) receipts=receipts.filter(r=>(r.doctorName||'').toLowerCase().includes(search)||(r.ref||'').toLowerCase().includes(search)||(r.againstInvoiceNo||'').toLowerCase().includes(search));
     receipts.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     const total=receipts.reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
 
     area.innerHTML=`<div class="tbl-wrap"><table class="data-tbl">
       <thead><tr>
-        <th>DATE</th><th>ORDER #</th><th>DOCTOR</th><th>AMOUNT (₹)</th><th>MODE</th><th>REFERENCE</th><th>ACTION</th>
+        <th>DATE</th><th>INVOICE / ORDER #</th><th>DOCTOR</th><th>AMOUNT (₹)</th><th>MODE</th><th>REFERENCE</th><th>ACTION</th>
       </tr></thead>
       <tbody>${receipts.length?[...receipts.map((r,i)=>`<tr>
         <td>${r.date||'—'}</td>
-        <td style="color:var(--blue);font-weight:700">${r.againstOrderNo||'General'}</td>
+        <td style="color:var(--blue);font-weight:700">${r.againstInvoiceNo?'Inv '+esc(r.againstInvoiceNo):esc(r.againstOrderNo||'General')}</td>
         <td>${esc(r.doctorName||r.source||'—')}</td>
         <td style="color:var(--green);font-weight:700">₹${parseFloat(r.amount||0).toFixed(2)}</td>
         <td>${r.mode||'—'}</td>
@@ -5907,40 +5985,180 @@ function pushSelectedBillingToTally(){
   pushOrdersToTally(ids);
 }
 
+// Bills are made in Tally, so "invoiced" means "billed in Tally under invoice X".
+// One Tally invoice can cover several cases of the same doctor; payments are
+// then recorded against the invoice number rather than individual cases.
+function isInvoiced(o){return !!(o.invoiced||o.billingStatus==='Invoiced');}
+function docKey(name){return String(name||'').trim().toLowerCase();}
+function invKey(doctorName,invoiceNo){return docKey(doctorName)+'|'+String(invoiceNo||'').trim().toLowerCase();}
+
+let _invModalDoctor='';
+let _invModalOriginalNo='';
+
+function markSelectedInvoiced(){
+  const ids=[...document.querySelectorAll('.bill-check:checked')].map(c=>c.value);
+  if(!ids.length){toast('Tick the cases billed together first','error');return;}
+  openInvoiceModal(ids);
+}
+
+function openInvoiceModal(ids){
+  const all=getOrders();
+  const picked=all.filter(o=>ids.includes(o.id));
+  if(!picked.length) return;
+  const docs=[...new Set(picked.map(o=>docKey(o.doctorName)))];
+  if(docs.length>1){toast('Selected cases are for different doctors — one invoice can only be for one doctor','error');return;}
+  _invModalDoctor=docs[0];
+  const editing=picked.find(o=>isInvoiced(o)&&o.invoiceNo);
+  _invModalOriginalNo=editing?editing.invoiceNo:'';
+  const ticked=new Set(ids);
+  if(editing) all.forEach(o=>{if(invKey(o.doctorName,o.invoiceNo)===invKey(editing.doctorName,editing.invoiceNo)&&isInvoiced(o)) ticked.add(o.id);});
+  // Offer this doctor's un-billed cases so a combined bill can be ticked in one go
+  const cands=all.filter(o=>docKey(o.doctorName)===_invModalDoctor&&(ticked.has(o.id)||!isInvoiced(o)))
+    .sort((a,b)=>(parseInt((b.modelNo||'').split('/').pop())||0)-(parseInt((a.modelNo||'').split('/').pop())||0));
+
+  document.getElementById('inv-doctor-line').textContent=(picked[0].doctorName||'—')+(picked[0].clinicName?' · '+picked[0].clinicName:'');
+  document.getElementById('inv-no').value=_invModalOriginalNo;
+  document.getElementById('inv-date').value=(editing&&editing.invoiceDate)||today();
+  document.getElementById('inv-cases').innerHTML=cands.map(o=>`
+    <label style="display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px">
+      <input type="checkbox" class="inv-case" value="${o.id}" data-amt="${o.totalAmount||0}"${ticked.has(o.id)?' checked':''} onchange="updateInvoiceModalTotal()">
+      <span style="font-weight:700;color:var(--blue);min-width:90px">${esc(o.modelNo)}</span>
+      <span style="flex:1">${esc(o.patientName||'—')}<span style="color:var(--muted);font-size:11.5px"> · ${esc(o.dispatchDate||o.date||'')}</span></span>
+      <span style="font-weight:700">₹${(o.totalAmount||0).toFixed(0)}</span>
+    </label>`).join('');
+  updateInvoiceModalTotal();
+  showModal('invoice');
+  setTimeout(()=>document.getElementById('inv-no')?.focus(),50);
+}
+
+function updateInvoiceModalTotal(){
+  const boxes=[...document.querySelectorAll('.inv-case:checked')];
+  const total=boxes.reduce((s,b)=>s+(parseFloat(b.dataset.amt)||0),0);
+  document.getElementById('inv-total').textContent=boxes.length+' case'+(boxes.length===1?'':'s')+' · Invoice total ₹'+total.toFixed(2);
+}
+
+function saveInvoiceModal(){
+  const no=document.getElementById('inv-no').value.trim();
+  const date=document.getElementById('inv-date').value||today();
+  const ids=[...document.querySelectorAll('.inv-case:checked')].map(b=>b.value);
+  if(!no){toast('Enter the Tally invoice number','error');document.getElementById('inv-no').focus();return;}
+  if(!ids.length){toast('Tick at least one case','error');return;}
+  const orders=getOrdersRaw();
+  const noKey=no.toLowerCase();
+  const clash=orders.find(o=>!o.deleted&&isInvoiced(o)&&String(o.invoiceNo||'').trim().toLowerCase()===noKey&&docKey(o.doctorName)!==_invModalDoctor);
+  if(clash){toast(`Invoice ${no} is already used for ${clash.doctorName} (${clash.modelNo})`,'error');return;}
+  const joining=orders.filter(o=>!o.deleted&&isInvoiced(o)&&!ids.includes(o.id)&&docKey(o.doctorName)===_invModalDoctor&&String(o.invoiceNo||'').trim().toLowerCase()===noKey&&noKey!==_invModalOriginalNo.toLowerCase());
+  if(joining.length&&!confirm(`Invoice ${no} already has ${joining.map(o=>o.modelNo).join(', ')}. Add these cases to the same invoice?`)) return;
+
+  const origKey=_invModalOriginalNo?invKey(_invModalDoctor,_invModalOriginalNo):'';
+  const now=Date.now();const changed=[];
+  orders.forEach(o=>{
+    if(o.deleted) return;
+    if(ids.includes(o.id)){
+      o.invoiced=true;o.billingStatus='Invoiced';o.invoiceNo=no;o.invoiceDate=date;
+    }else if(origKey&&isInvoiced(o)&&invKey(o.doctorName,o.invoiceNo)===origKey){
+      // un-ticked while editing → no longer on this bill
+      o.invoiced=false;o.billingStatus='Not Invoiced';o.invoiceNo='';o.invoiceDate='';
+    }else return;
+    o.updatedAt=now;changed.push(o);
+  });
+  setOrders(orders);
+  changed.forEach(o=>syncOrderToSheets(o));
+
+  // Invoice number corrected → move payments already recorded against the old number
+  if(origKey&&_invModalOriginalNo!==no){
+    const receipts=getReceipts();let moved=0;
+    receipts.forEach(r=>{if(r.againstInvoiceNo&&invKey(r.doctorName,r.againstInvoiceNo)===origKey){r.againstInvoiceNo=no;moved++;}});
+    if(moved) setReceipts(receipts);
+  }
+  closeModal();
+  renderBillingTab();
+  toast(`Invoice ${no} saved — ${ids.length} case${ids.length===1?'':'s'}`,'success');
+}
+
 function markAsInvoiced(id){
   const orders=getOrdersRaw();
   const idx=orders.findIndex(o=>o.id===id);
   if(idx===-1) return;
-  orders[idx].invoiced=!orders[idx].invoiced;
-  if(orders[idx].invoiced){
-    // Assign a permanent sequential invoice number the first time only —
-    // un-marking keeps the number so the series never gets reused
-    if(!orders[idx].invoiceNo) orders[idx].invoiceNo=genInvoiceSerial();
-    orders[idx].billingStatus='Invoiced';
-  }else{
-    orders[idx].billingStatus='Not Invoiced';
-  }
-  orders[idx].updatedAt=Date.now();
+  const o=orders[idx];
+  if(!isInvoiced(o)){openInvoiceModal([id]);return;}
+  if(!confirm(`Remove ${o.modelNo} from invoice ${o.invoiceNo||''}? Payments already recorded are kept.`)) return;
+  o.invoiced=false;o.billingStatus='Not Invoiced';o.invoiceNo='';o.invoiceDate='';
+  o.updatedAt=Date.now();
   setOrders(orders);
-  pushOrderStatusToSheet(orders[idx]);
+  syncOrderToSheets(o);
   renderBillingTab();
-  toast(orders[idx].invoiced?'Invoiced — '+orders[idx].invoiceNo:'Unmarked','success');
+  toast('Unmarked '+o.modelNo,'success');
+}
+
+// All Tally invoices, grouped by doctor + invoice number, with payments applied
+function getInvoiceGroups(){
+  const map={};
+  getOrders().filter(o=>isInvoiced(o)&&o.invoiceNo).forEach(o=>{
+    const k=invKey(o.doctorName,o.invoiceNo);
+    const g=map[k]||(map[k]={key:k,invoiceNo:String(o.invoiceNo).trim(),invoiceDate:'',doctorName:o.doctorName||'',orders:[],amount:0,received:0});
+    g.orders.push(o);
+    g.amount+=o.totalAmount||0;
+    if(o.invoiceDate&&(!g.invoiceDate||o.invoiceDate<g.invoiceDate)) g.invoiceDate=o.invoiceDate;
+  });
+  getReceipts().forEach(r=>{
+    if(!r.againstInvoiceNo) return;
+    const no=String(r.againstInvoiceNo).trim().toLowerCase();
+    const g=map[invKey(r.doctorName,r.againstInvoiceNo)]||
+      Object.values(map).find(x=>x.invoiceNo.toLowerCase()===no&&r.doctorId&&orderDoctorMatch(x.orders[0],r.doctorId));
+    if(g) g.received+=parseFloat(r.amount)||0;
+  });
+  return Object.values(map).map(g=>{
+    g.balance=g.amount-g.received;
+    g.status=g.balance<=0.005?'Paid':g.received>0?'Partial':'Unpaid';
+    return g;
+  });
+}
+
+let _rpPresetInvoice='';
+let _invoiceReportRows=[];
+
+function rpInvoiceOptions(doctorId){
+  const groups=getInvoiceGroups().filter(g=>doctorId&&orderDoctorMatch(g.orders[0],doctorId))
+    .sort((a,b)=>(b.balance>0.005)-(a.balance>0.005)||(b.invoiceDate||'').localeCompare(a.invoiceDate||''));
+  return `<option value="">${doctorId?'-- General / On account --':'-- Select doctor first --'}</option>`+
+    groups.map(g=>`<option value="${esc(g.invoiceNo)}" data-due="${g.balance.toFixed(2)}">${esc(g.invoiceNo)} · ${esc(g.invoiceDate||'')} · ₹${g.amount.toFixed(0)} ${g.balance>0.005?'(due ₹'+g.balance.toFixed(0)+')':'(paid)'}</option>`).join('');
+}
+
+function fillPaymentFromInvoice(){
+  const sel=document.getElementById('rp-invoice');
+  const opt=sel?.selectedOptions[0];
+  const amt=document.getElementById('rp-amount');
+  if(opt&&opt.value&&amt&&parseFloat(opt.dataset.due)>0) amt.value=opt.dataset.due;
+}
+
+function recordPaymentForInvoice(i){
+  const g=_invoiceReportRows[i];
+  if(!g) return;
+  const d=getDoctors().find(x=>orderDoctorMatch(g.orders[0],x.id,x.name));
+  if(!d){toast('Doctor '+g.doctorName+' is not in Masters → Doctors','error');return;}
+  _rpPresetInvoice=g.invoiceNo;
+  const bd=document.getElementById('bill-doctor');
+  if(bd) bd.value=d.id;
+  selectBillingTab('record');
+}
+
+function exportInvoiceReportCSV(){
+  const rows=_invoiceReportRows;
+  if(!rows.length){toast('Nothing to export','error');return;}
+  const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const lines=[['Invoice No','Invoice Date','Doctor','Cases','Patients','Amount','Received','Balance','Status'].map(q).join(',')];
+  rows.forEach(g=>lines.push([g.invoiceNo,g.invoiceDate,g.doctorName,g.orders.map(o=>o.modelNo).join(' | '),
+    g.orders.map(o=>o.patientName||'').join(' | '),g.amount.toFixed(2),g.received.toFixed(2),g.balance.toFixed(2),g.status].map(q).join(',')));
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(['﻿'+lines.join('\r\n')],{type:'text/csv'}));
+  a.download='Invoice_Report_'+today()+'.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
 }
 
 function generateInvoiceForOrder(id){
   const o=getOrders().find(x=>x.id===id);
   if(!o) return;
-  if(!o.invoiceNo){
-    const orders=getOrdersRaw();
-    const idx=orders.findIndex(x=>x.id===id);
-    if(idx!==-1){
-      orders[idx].invoiceNo=genInvoiceSerial();
-      orders[idx].updatedAt=Date.now();
-      setOrders(orders);
-      pushOrderStatusToSheet(orders[idx]);
-      o.invoiceNo=orders[idx].invoiceNo;
-    }
-  }
   printInvoiceForOrder(o);
 }
 
@@ -6033,7 +6251,7 @@ table.itbl td{padding:8px 10px;border-bottom:1px solid #f1f5f9}
 }
 
 function clearRecordPaymentForm(){
-  ['rp-doctor','rp-order','rp-mode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  ['rp-doctor','rp-invoice','rp-mode'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   ['rp-amount','rp-ref'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   const dt=document.getElementById('rp-date');if(dt)dt.value=today();
 }
@@ -6041,19 +6259,22 @@ function clearRecordPaymentForm(){
 function recordBillingPayment(){
   const date=document.getElementById('rp-date')?.value||today();
   const doctorId=document.getElementById('rp-doctor')?.value||'';
-  const orderId=document.getElementById('rp-order')?.value||'';
+  const invoiceNo=document.getElementById('rp-invoice')?.value||'';
   const amount=parseFloat(document.getElementById('rp-amount')?.value)||0;
   const mode=document.getElementById('rp-mode')?.value||'Cash';
   const ref=document.getElementById('rp-ref')?.value||'';
   if(!doctorId){toast('Select a doctor','error');return;}
   if(!amount||amount<=0){toast('Enter a valid amount','error');return;}
   const doctor=getDoctors().find(d=>d.id===doctorId);
-  const order=orderId?getOrders().find(o=>o.id===orderId):null;
+  if(invoiceNo){
+    const g=getInvoiceGroups().find(x=>x.invoiceNo===invoiceNo&&orderDoctorMatch(x.orders[0],doctorId));
+    if(g&&amount>g.balance+0.005&&!confirm(`₹${amount} is more than the ₹${g.balance.toFixed(2)} due on invoice ${invoiceNo}. Record anyway?`)) return;
+  }
   const receipts=getReceipts();
   receipts.push({id:genId(),date,doctorId,doctorName:doctor?.name||'',source:doctor?.name||'',
-    againstOrderId:orderId||'',againstOrderNo:order?.modelNo||'',amount,mode,ref});
+    againstInvoiceNo:invoiceNo,againstOrderId:'',againstOrderNo:'',amount,mode,ref});
   setReceipts(receipts);
-  toast(`₹${amount} recorded from ${doctor?.name||''}`, 'success');
+  toast(`₹${amount} recorded from ${doctor?.name||''}${invoiceNo?' against invoice '+invoiceNo:''}`, 'success');
   clearRecordPaymentForm();
   renderBillingTab();
 }
@@ -7611,7 +7832,8 @@ function orderDetailPayload(o){
     enclosures:o.enclosures||[],implantSystems:o.implantSystems||[],
     warranty:o.warranty||'',priority:o.priority||'',sourcing:o.sourcing||'',workType:o.workType||'',
     tryIn:o.tryIn||[],ioScan:!!o.ioScan,receivedTime:o.receivedTime||'',dueTime:o.dueTime||'',
-    pickupDate:o.pickupDate||'',pickupTime:o.pickupTime||'',pickupAgency:o.pickupAgency||'',remarks:o.remarks||''
+    pickupDate:o.pickupDate||'',pickupTime:o.pickupTime||'',pickupAgency:o.pickupAgency||'',remarks:o.remarks||'',
+    invoiceDate:o.invoiceDate||''
   };
 }
 function applyOrderDetail(target,detailsStr){
@@ -7778,7 +8000,7 @@ async function pullFromSheets(){
           clinicName:r.clinic||r.clinicName||'',patientName:r.patient||r.patientName||'',
           allTypes:r.workType||'',allTeeth:r.teeth||'',totalUnits:parseInt(r.units)||0,
           status:r.status||'In Production',totalAmount:parseFloat(r.amount)||0,
-          billingStatus:r.billingStatus||'Not Invoiced',implantSystem:r.implantSystem||'',
+          billingStatus:r.billingStatus||'Not Invoiced',invoiced:r.billingStatus==='Invoiced',implantSystem:r.implantSystem||'',
           invoiceNo:r.invoiceNo||'',statusHoldReason:r.holdReason||'',updatedAt:Number(r.updatedAt)||0,
           notes:r.notes||'',workItems:[{productName:r.workType||'',teethDisplay:r.teeth||'',
           units:parseInt(r.units)||0,unitRate:0,total:0}],workType:'New',_fromSheet:true};
@@ -7797,7 +8019,8 @@ async function pullFromSheets(){
         if(localFresher){staleLocal.push(mrg[idx]);return;}
         if(r.status==='Deleted'){mrg[idx].deleted=true;return;}
         if(r.status) mrg[idx].status=r.status;
-        if(r.billingStatus) mrg[idx].billingStatus=r.billingStatus;
+        if(r.billingStatus){mrg[idx].billingStatus=r.billingStatus;mrg[idx].invoiced=r.billingStatus==='Invoiced';}
+        if(r.billingStatus==='Not Invoiced'&&!r.invoiceNo){mrg[idx].invoiceNo='';mrg[idx].invoiceDate='';}
         if(r.amount) mrg[idx].totalAmount=parseFloat(r.amount)||mrg[idx].totalAmount;
         if(r.dispatchDate) mrg[idx].dispatchDate=r.dispatchDate;
         if(r.challanNo) mrg[idx].challanNo=r.challanNo;
