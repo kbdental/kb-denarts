@@ -8261,19 +8261,78 @@ async function syncDoctorsToSheets(){
   toast(`Synced ${synced} doctors`,'success');
 }
 
+// Copy text without assuming the async Clipboard API exists. navigator.clipboard
+// is undefined on a plain-http page (it needs a secure context), and touching
+// .writeText there THROWS rather than rejecting — so it must be guarded, not
+// just .catch()ed. Falls back to the old execCommand path, which works on http.
+async function copyTextSafe(text){
+  try{
+    if(window.isSecureContext&&navigator.clipboard&&navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  }catch(e){/* fall through to execCommand */}
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=text;
+    ta.setAttribute('readonly','');
+    ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus();ta.select();ta.setSelectionRange(0,text.length);
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){return false;}
+}
+
+function downloadScriptFile(text){
+  try{
+    const a=document.createElement('a');
+    a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+    a.download='Code.gs';
+    document.body.appendChild(a);a.click();document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  }catch(e){toast('Download failed','error');}
+}
+
+// Last resort: put the script on screen, already selected, so it can always be
+// copied by hand (or downloaded) even when the browser blocks scripted copying.
+function showScriptFallback(text){
+  const ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML=`<div style="background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden">
+    <div style="padding:16px 18px;border-bottom:1px solid #e5e7eb">
+      <div style="font-weight:700;font-size:15px;color:#1d4ed8">Copy the sync script</div>
+      <div style="font-size:12.5px;color:#555;margin-top:6px;line-height:1.6">The browser blocked automatic copying (this page is not on https). The script is selected below &mdash; press <b>Ctrl+C</b> to copy it, or use <b>Download</b> and open the file.</div>
+    </div>
+    <textarea id="gs-script-ta" readonly style="flex:1;min-height:300px;margin:0;border:0;border-bottom:1px solid #e5e7eb;padding:12px 14px;font-family:monospace;font-size:11.5px;line-height:1.5;resize:none;outline:none"></textarea>
+    <div style="padding:12px 18px;display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-outline btn-sm" id="gs-script-dl">Download Code.gs</button>
+      <button class="btn btn-primary btn-sm" id="gs-script-close">Close</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+  const ta=ov.querySelector('#gs-script-ta');
+  ta.value=text;
+  ta.focus();ta.select();
+  ov.querySelector('#gs-script-dl').onclick=()=>downloadScriptFile(text);
+  ov.querySelector('#gs-script-close').onclick=()=>ov.remove();
+  ov.onclick=e=>{if(e.target===ov) ov.remove();};
+}
+
 async function copyScriptToClipboard(){
   // The script is served alongside the app (apps-script/Code.gs in the repo)
   let text='';
   try{
-    const r=await fetch('apps-script/Code.gs');
+    const r=await fetch('apps-script/Code.gs?t='+Date.now(),{cache:'no-store'});
     if(r.ok) text=await r.text();
-  }catch(e){}
-  if(!text){toast('Could not load apps-script/Code.gs — copy it from the repository','error');return;}
-  navigator.clipboard.writeText(text).then(()=>toast('Script v2 copied — remember to set TOKEN at the top','success')).catch(()=>{
-    const ta=document.createElement('textarea');
-    ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+  }catch(e){console.warn('Could not fetch apps-script/Code.gs',e);}
+  if(!text){toast('Could not load apps-script/Code.gs — open it in the repository and copy it from there','error');return;}
+  if(await copyTextSafe(text)){
     toast('Script v2 copied — remember to set TOKEN at the top','success');
-  });
+  }else{
+    showScriptFallback(text);
+  }
 }
 
 // ═══════════════════════════════════════════════ MODAL
