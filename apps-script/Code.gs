@@ -147,6 +147,11 @@ function doGet(e){
       return jsonOut(reserveSerial(ss,p.prefix||'KB',p.year||'',parseInt(p.min)||1));
     }
 
+    if(p.action==='releaseSerial'){
+      if(!authed(p.token)) return jsonOut({status:'error',message:'unauthorized'});
+      return jsonOut(releaseSerial(ss,p.modelNo||''));
+    }
+
     if(p.action==='portal'){
       return jsonOut(portalLogin(ss,p.doctor||'',p.pin||''));
     }
@@ -201,36 +206,81 @@ function doGet(e){
   }
 }
 
+// How long a '__reserved__' stub holds its claim before it is treated as
+// abandoned. Long enough to cover a slow save + push; short enough that a
+// save that died (storage full, tab closed, laptop slept) gives the number
+// back instead of pushing the series forward forever.
+var RESERVE_GRACE_MS = 5*60*1000;
+
 // Atomically reserve the next order serial for prefix+year.
-// Uses a script property seeded from (and never below) the Orders sheet,
-// and never below the caller's own local counter (min).
+// Derived from the actual highest order in the sheet, never below the
+// caller's own local counter (min).
 function reserveSerial(ss,prefix,year,min){
   var lock=LockService.getScriptLock();
   lock.waitLock(10000);
   try{
-    // Always derive the next number from the ACTUAL highest order in the sheet
-    // (ignoring Deleted rows). No stored counter -> no drift, no skipped numbers.
+    var sh=getOrCreateSheet(ss,ORDERS_SHEET,ORDER_HEADERS);
+    var head=ensureHeaders(sh,ORDER_HEADERS);
     var pre=prefix+'-'+year+'/';
-    var maxN=0;
-    readRows(ss,ORDERS_SHEET).forEach(function(r){
-      if(cellStr(r['Status'])==='Deleted') return;
-      var m=cellStr(r['Model No']);
-      if(m.indexOf(pre)===0){
-        var n=parseInt(m.substring(pre.length));
-        if(n&&n>maxN) maxN=n;
+    var now=Date.now();
+
+    // Always derive the next number from the ACTUAL highest order in the sheet.
+    // Deleted rows don't count, and neither do ABANDONED reservation stubs: a
+    // stub only holds its number for RESERVE_GRACE_MS. Without that, every save
+    // that failed after reserving (e.g. browser storage full) left a stub that
+    // permanently pushed the series forward and opened a gap.
+    var vals=sh.getDataRange().getValues();
+    var hrow=vals.length?vals[0].map(String):[];
+    var cModel=colIndex(hrow,'Model No'), cStatus=colIndex(hrow,'Status'), cUpd=colIndex(hrow,'Updated At');
+    var maxN=0, staleRows=[];
+    for(var i=1;i<vals.length;i++){
+      var status=cStatus<0?'':cellStr(vals[i][cStatus]);
+      if(status==='Deleted') continue;
+      var m=cModel<0?'':cellStr(vals[i][cModel]);
+      if(m.indexOf(pre)!==0) continue;
+      if(status==='__reserved__'){
+        var ts=cUpd<0?0:(parseInt(vals[i][cUpd])||0);
+        if(now-ts>RESERVE_GRACE_MS){ staleRows.push(i+1); continue; } // abandoned — reclaim it
       }
-    });
+      var n=parseInt(m.substring(pre.length));
+      if(n&&n>maxN) maxN=n;
+    }
+    // Clear out the abandoned stubs (bottom-up so indices stay valid).
+    for(var k=staleRows.length-1;k>=0;k--) sh.deleteRow(staleRows[k]);
+
     var next=maxN+1;
-    if(min&&min>next) next=min; // local floor (offline safety); never lets it go backwards
+    if(min&&min>next) next=min; // local floor (offline safety); never goes backwards
     // Claim the number NOW with a reserved stub row (inside the lock) so a
     // concurrent reservation — same device double-save or another laptop at the
     // same moment — can't hand out the same number. The real order overwrites
     // this row (matched by Model No) the instant it is pushed.
-    var sh=getOrCreateSheet(ss,ORDERS_SHEET,ORDER_HEADERS);
-    var head=ensureHeaders(sh,ORDER_HEADERS);
-    var stub={}; stub['Model No']=prefix+'-'+year+'/'+next; stub['Status']='__reserved__'; stub['Updated At']=0;
+    var stub={}; stub['Model No']=prefix+'-'+year+'/'+next; stub['Status']='__reserved__'; stub['Updated At']=now;
     sh.appendRow(head.map(function(h){return stub.hasOwnProperty(h)?stub[h]:'';}));
     return {status:'ok',serial:next};
+  }finally{
+    lock.releaseLock();
+  }
+}
+
+// Hand a reserved number straight back when the save that asked for it failed,
+// so the next order reuses it instead of waiting out RESERVE_GRACE_MS.
+function releaseSerial(ss,modelNo){
+  modelNo=cellStr(modelNo).trim();
+  if(!modelNo) return {status:'error',message:'no modelNo'};
+  var lock=LockService.getScriptLock();
+  lock.waitLock(10000);
+  try{
+    var sh=getOrCreateSheet(ss,ORDERS_SHEET,ORDER_HEADERS);
+    var vals=sh.getDataRange().getValues();
+    var hrow=vals.length?vals[0].map(String):[];
+    var cModel=colIndex(hrow,'Model No'), cStatus=colIndex(hrow,'Status');
+    var removed=0;
+    for(var i=vals.length-1;i>=1;i--){
+      // Only ever remove an UNFILLED stub — never a real order.
+      if(cStatus>=0&&cellStr(vals[i][cStatus])!=='__reserved__') continue;
+      if(cModel>=0&&cellStr(vals[i][cModel])===modelNo){ sh.deleteRow(i+1); removed++; }
+    }
+    return {status:'ok',released:removed};
   }finally{
     lock.releaseLock();
   }

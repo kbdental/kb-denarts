@@ -3762,7 +3762,11 @@ async function _saveOrderInner(){
   if(!setOrders(orders)){
     // Storage full — keep the form so nothing is lost, and return the reserved
     // serial to the pool so the next order reuses it instead of skipping ahead.
+    // Both counters must be wound back: the local one, and the server's claim
+    // (an unfilled stub row in the sheet), or every failed click walks the
+    // series forward and leaves a gap behind.
     if(_serialBefore) setData('serial',_serialBefore);
+    if(!editingOrderId&&_modelNo) releaseSerialSafe(_modelNo);
     return;
   }
   syncOrderToSheets(order);
@@ -3854,6 +3858,17 @@ async function genSerialSafe(){
     }catch(e){console.warn('Serial reservation failed, using local counter',e);}
   }
   return genSerial();
+}
+
+// Give a reserved number back to the server when the save it was meant for
+// failed. Best-effort: if this never lands, the stub ages out server-side
+// after RESERVE_GRACE_MS and the number is reclaimed anyway.
+function releaseSerialSafe(modelNo){
+  const cfg=getData('gs-config');
+  if(!cfg?.url||!cfg?.v2||!cfg?.token||!modelNo) return;
+  const u=cfg.url+(cfg.url.includes('?')?'&':'?')+'action=releaseSerial&token='+encodeURIComponent(cfg.token)
+    +'&modelNo='+encodeURIComponent(modelNo)+'&t='+Date.now();
+  fetch(u).catch(e=>console.warn('Serial release failed (stub will age out)',e));
 }
 
 function genId(){return '_'+Date.now().toString(36)+Math.random().toString(36).substr(2,7)}
@@ -4788,6 +4803,9 @@ function confirmDelete(){
     orders[idx].updatedAt=Date.now();
     setOrders(orders);
     pushOrderStatusToSheet(orders[idx]);
+    // Deleting the highest case frees its number — wind the counter back now so
+    // the next order reuses it instead of leaving a permanent gap.
+    recalibrateSerial();
   }
   deleteOrderId=null;
   closeModal();
